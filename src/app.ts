@@ -30,7 +30,7 @@ export interface RunAppOptions {
 	executionLane  ?: ExecutionLane;
 	/** 생략하면 호환 Workbench, www면 현재 Native 제품 surface를 연다. */
 	surface        ?: "www";
-	/** 생략하면 호환 관측 모드다. WWW 진입점은 명시적으로 off를 선택한다. */
+	/** WWW는 관찰 전용 Runtime을 사용한다. */
 	requestRuntimeMode ?: "off" | "observe";
 	/** 생략하면 외부 runtime config를 로드하지 않는다. */
 	runtimeConfig  ?: string;
@@ -57,9 +57,9 @@ export async function runApp(
 ): Promise<void> {
 	const settings      = await dependencies.loadSettings() ;
 	const executionLane = options.executionLane ?? "codex" ;
-	const requestCapabilityFactory     = options.runtimeConfig
+	const requestCapabilityFactory     = options.surface !== "www" && options.runtimeConfig
 		? await dependencies.loadRequestCapabilityConfig(options.runtimeConfig) : undefined;
-	const requestRuntimeMode          = requestCapabilityFactory ? "broker" : options.requestRuntimeMode ?? "observe";
+	const requestRuntimeMode          = options.surface === "www" ? "observe" : requestCapabilityFactory ? "broker" : options.requestRuntimeMode ?? "observe";
 	const piExecutionSelection        = executionLane === "pi"
 		? { provider: settings.provider, model: settings.model, effort: settings.effort }
 		: {};

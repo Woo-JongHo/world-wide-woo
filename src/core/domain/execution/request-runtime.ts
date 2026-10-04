@@ -2,8 +2,11 @@ import type { ProjectActivity } from "@/core/domain/execution/project-activity";
 
 export const REQUEST_STAGES = ["UNDERSTAND", "DECOMPOSE", "GROUND", "DECIDE", "EXECUTE", "VERIFY", "DELIVER"] as const;
 export type RequestStageId = typeof REQUEST_STAGES[number];
-export const REQUEST_CHECKPOINTS = ["INTENT", "WORK", "RESULT"] as const;
+export const REQUEST_CHECKPOINTS = ["UNDERSTAND", "WORK", "RESULT"] as const;
 export type RequestCheckpointId = typeof REQUEST_CHECKPOINTS[number];
+/** Checkpoint names used by historical model-authored reports. */
+export const LEGACY_REQUEST_CHECKPOINTS = ["INTENT", "WORK", "RESULT"] as const;
+export type LegacyRequestCheckpointId = typeof LEGACY_REQUEST_CHECKPOINTS[number];
 export type RequestStageStatus = "pending" | "running" | "completed" | "skipped" | "failed" | "blocked";
 export const REQUEST_TEST_KINDS = ["black-box", "integration", "regression", "unit", "static-analysis", "read-back", "manual", "unclassified"] as const;
 export type RequestTestKind = typeof REQUEST_TEST_KINDS[number];
@@ -26,6 +29,21 @@ export interface RequestDelivery {
 	target   : string                     ;
 	artifact : string                     ;
 	evidence : readonly RequestEvidence[] ;
+}
+/** A passive summary derived from Native Activity, never a model-authored gate. */
+export interface RequestCheckpointObservation {
+	id         : RequestCheckpointId;
+	status     : "pending" | "running" | "observed" | "failed" | "unobserved";
+	summary    : string | null;
+	activityIds: string[];
+	observedAt : string | null;
+}
+export interface RequestPlanDecision {
+	required   : boolean;
+	reason     : string;
+	activityId : string;
+	decidedAt  : string;
+	planActivityId: string | null;
 }
 /** Public work results only. Never accepts an opaque model reasoning object. */
 export interface RequestStage {
@@ -60,13 +78,17 @@ export interface RequestLifecycleEvent {
 }
 export interface RequestRuntimeRecord {
 	schemaVersion   : 1                       ;
-	protocolVersion : 1 | 2                   ;
+	protocolVersion : 1 | 2 | 3 | 4           ;
 	requestId       : string                  ;
 	threadId        : string | null           ;
 	turnId          : string | null           ;
 	objective       : string                  ;
 	status          : RequestStageStatus      ;
 	stages          : readonly RequestStage[] ;
+	/** Present on protocol v3; omitted by historical v1/v2 snapshots. */
+	checkpoints?    : RequestCheckpointObservation[];
+	/** Protocol v4 records the public decision before work begins. */
+	planDecision?   : RequestPlanDecision | null;
 	attempt         : number                  ;
 	/** Immutable public snapshots; old evidence remains inspectable, never current acceptance. */
 	previousAttempts: readonly {
@@ -111,13 +133,22 @@ export interface RequestStageReport {
 
 export interface RequestCheckpointReport {
 	requestId     : string                    ;
-	checkpoint    : RequestCheckpointId       ;
+	checkpoint    : LegacyRequestCheckpointId ;
 	summary       : string                    ;
 	goal?         : string                    ;
 	plan?         : readonly string[]         ;
 	evidence?     : readonly string[]         ;
 	verification? : readonly string[]         ;
 	decision?     : RequestDecision           ;
+}
+
+export interface RequestPhaseReport {
+	requestId    : string;
+	checkpoint   : "UNDERSTAND" | "RESULT";
+	summary      : string;
+	goal?        : string;
+	planRequired?: boolean;
+	planReason?  : string;
 }
 
 export const REQUEST_REPORT_PREFIX = "[www-runtime]"                                                                                 ;
@@ -135,19 +166,34 @@ function validDecision(value: unknown): value is RequestDecision {
 		&& strings(value.executionPlan);
 }
 
-/** Small observe interface. Runtime expands these checkpoints into the fixed seven-stage record. */
+/** Historical parser retained only to read v1 journal records. */
 export function parseRequestCheckpointReport(message: string): RequestCheckpointReport | null {
 	if (!message.startsWith(REQUEST_REPORT_PREFIX) || message.length > 12000) return null;
 	try {
 		const value: unknown = JSON.parse(message.slice(REQUEST_REPORT_PREFIX.length));
 		if (!object(value) || !only(value, ["requestId", "checkpoint", "summary", "goal", "plan", "evidence", "verification", "decision"])) return null;
-		if (!text(value.requestId) || !REQUEST_CHECKPOINTS.includes(value.checkpoint as RequestCheckpointId) || !text(value.summary)) return null;
+		if (!text(value.requestId) || !LEGACY_REQUEST_CHECKPOINTS.includes(value.checkpoint as LegacyRequestCheckpointId) || !text(value.summary)) return null;
 		if (value.checkpoint === "INTENT" && !text(value.goal)) return null;
 		if (value.goal !== undefined && value.checkpoint !== "INTENT") return null;
 		if (value.plan !== undefined && (value.checkpoint !== "INTENT" || !Array.isArray(value.plan) || value.plan.length < 1 || value.plan.length > 8 || !value.plan.every(text))) return null;
 		for (const key of ["evidence", "verification"]) if (value[key] !== undefined && !strings(value[key])) return null;
 		if (value.decision !== undefined && (value.checkpoint !== "WORK" || !validDecision(value.decision))) return null;
 		return value as unknown as RequestCheckpointReport;
+	} catch { return null; }
+}
+
+export function parseRequestPhaseReport(message: string): RequestPhaseReport | null {
+	if (!message.startsWith(REQUEST_REPORT_PREFIX) || message.length > 12000) return null;
+	try {
+		const value: unknown = JSON.parse(message.slice(REQUEST_REPORT_PREFIX.length));
+		if (!object(value) || !only(value, ["requestId", "checkpoint", "summary", "goal", "planRequired", "planReason"])) return null;
+		if (!text(value.requestId) || !text(value.summary)) return null;
+		if (value.checkpoint === "UNDERSTAND") {
+			if (!text(value.goal) || typeof value.planRequired !== "boolean" || !text(value.planReason)) return null;
+		} else if (value.checkpoint === "RESULT") {
+			if (value.goal !== undefined || value.planRequired !== undefined || value.planReason !== undefined) return null;
+		} else return null;
+		return value as unknown as RequestPhaseReport;
 	} catch { return null; }
 }
 

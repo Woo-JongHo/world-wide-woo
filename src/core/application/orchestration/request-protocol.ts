@@ -1,4 +1,4 @@
-import { REQUEST_CHECKPOINTS, REQUEST_STAGES } from "@/core/domain/execution/request-runtime";
+import { LEGACY_REQUEST_CHECKPOINTS, REQUEST_STAGES } from "@/core/domain/execution/request-runtime";
 import type { NativeAdditionalContextEntry }   from "@/core/domain/execution/native-session";
 
 export interface RequestProtocolEntryDecision {
@@ -7,17 +7,26 @@ export interface RequestProtocolEntryDecision {
 }
 
 /** Public results and plans; Native retains its own private reasoning and workers. */
-export function requestProtocolContext(requestId: string, version: 1 | 2 = 1, entry?: RequestProtocolEntryDecision): NativeAdditionalContextEntry {
+export function requestProtocolContext(requestId: string, version: 1 | 2 | 4 = 1, entry?: RequestProtocolEntryDecision, planMode = false): NativeAdditionalContextEntry {
 	return { kind: "application", value: JSON.stringify({
 		protocol: "www-request-runtime", version, requestId,
-		...(version === 1 ? { checkpoints: REQUEST_CHECKPOINTS } : { stages: REQUEST_STAGES }),
+		...(version === 1 ? { checkpoints: LEGACY_REQUEST_CHECKPOINTS } : version === 4 ? { checkpoints: ["UNDERSTAND", "WORK", "RESULT"] } : { stages: REQUEST_STAGES }),
 		...(entry ? { entry } : {}),
-		instructions: version === 1 ? [
+		instructions: version === 4 ? [
+			"Every request follows UNDERSTAND, WORK, RESULT in order. Emit each control report as one standalone public commentary message prefixed [www-runtime] with a JSON object. Keep private reasoning out of reports.",
+			planMode
+				? "This is Native Plan mode. During UNDERSTAND emit a concise goal, planRequired false, and explain that an execution checklist is not applicable while planning. Do not call update_plan or execute the proposed work. Write the reviewable proposed plan in the final public response; WWW projects that document into PLAN after the turn completes."
+				: "During UNDERSTAND, inspect enough context to decide whether execution needs a Native checklist. Before changes, emit UNDERSTAND with requestId, checkpoint: UNDERSTAND, a public summary, concise goal, planRequired boolean, and a concrete planReason. For multi-step execution set planRequired true, then create the Native checklist with update_plan. WORK begins only after that checklist is observed. For simple work set planRequired false; do not create an empty checklist.",
+			planMode
+				? "Before the final proposed plan, emit RESULT with a public summary of planning and context reviewed. Then provide the normal final plan response. A missing or rejected report remains unobserved."
+				: "Update each Native checklist item as work finishes. Before the final answer, emit RESULT with requestId, checkpoint: RESULT, and a public summary of observed work. Then provide the normal final answer. A missing or rejected report remains unobserved; do not claim the phase advanced.",
+			"Do not use another request's Plan. A plan decision or report does not grant tool or publication permission. Follow existing approval rules.",
+		] : version === 1 ? [
 			"Keep internal reasoning private. Record only three public checkpoints: INTENT before work, WORK after work, and RESULT before the final answer.",
 			...(entry ? ["For a queued follow-up, preserve entry.currentGoal when the request continues the same goal; otherwise set a revised goal in INTENT."] : []),
 			"Emit one standalone commentary message per checkpoint as [www-runtime] followed by JSON. INTENT requires requestId, checkpoint, summary and a concise goal derived from the request. Include plan only when the work needs multiple steps; Native Plan owns the actionable checklist and its progress. WORK requires requestId, checkpoint and summary; include evidence IDs for changes, verification IDs for checks actually performed, and decision only when a meaningful choice was made. Choose whether and how to test or verify based on the work. RESULT requires requestId, checkpoint and summary, then provide the normal final answer.",
 			"For multi-step work, create the Native Plan with update_plan before execution and update each item as its work finishes. PROGRESS reads your WORK summary directly; no second model interprets Bash output. Before a command group, give brief public commentary describing the intended action. After the group, write one concise WORK summary in the selected response language describing only observed results. Intent is not a completed result. PROGRESS reports do not complete PLAN items by themselves.",
-			"Read-only work may omit evidence and verification. Report verification only when actually performed; execution and verification must use distinct evidence IDs when both are reported. Never invent IDs or claim external publication without an observed receipt.",
+			"Before WORK, call www_runtime_evidence({requestId}) to list this request's completed tool/file-change Activity IDs. Use only returned activityId values for evidence and verification; choose distinct IDs for execution and checks actually performed. Shell output chunk IDs and source digests are not Activity IDs. Read-only work may omit both fields. Never invent IDs or claim external publication without an observed receipt.",
 			"WWW records these checkpoints internally. Do not emit the seven internal stages in observe mode or duplicate Native Plan items as progress reports.",
 		] : [
 			"Keep internal reasoning private. Choose your own workers, capabilities and implementation methods. Record public results only, never chain of thought.",
@@ -38,7 +47,10 @@ export function requestProtocolContext(requestId: string, version: 1 | 2 = 1, en
 			"If no action or external check is needed, skip EXECUTE/VERIFY with an honest reason. Tool names do not dictate stages. Respect existing permissions for every external mutation.",
 			"For DELIVER report running then provide the normal final answer. WWW records chat delivery. Put external delivery records in deliveries: [{target, artifact, evidence}]. Never place target or artifact at the report top level, and never claim a publication without a real result.",
 		],
-		...(version === 1 ? {
+		...(version === 4 ? {
+			example: { requestId, checkpoint: "UNDERSTAND", summary: "Public request understanding", goal: "Concise outcome", planRequired: false, planReason: "One direct answer is sufficient" },
+			resultShape: { requestId, checkpoint: "RESULT", summary: "Observed work and response outcome" },
+		} : version === 1 ? {
 			example: { requestId, checkpoint: "INTENT", summary: "Public intent and success condition", goal: "Concise outcome" },
 			workShape: { requestId, checkpoint: "WORK", summary: "Observed work result", evidence: ["change activity ID"], verification: ["check activity ID"] },
 		} : {

@@ -1,6 +1,7 @@
-import { isReasoningActivityPayload } from "@/core/domain/execution/project-activity.js";
-import type { ProjectActivity }       from "@/core/domain/execution/project-activity.js";
-import { redactForExternalReview }    from "@/core/domain/review/redaction.js";
+import      { isReasoningActivityPayload } from "@/core/domain/execution/project-activity.js" ;
+import type { ProjectActivity            } from "@/core/domain/execution/project-activity.js" ;
+import      { redactForExternalReview    } from "@/core/domain/review/redaction.js"           ;
+import      { isRecord                   } from "@/core/domain/value/record.js"               ;
 
 export const MAX_TNOTE_SOURCE_ACTIVITIES = 100                                    ;
 const MAX_ACTIVITY_BODY                  = 32 * 1024                              ;
@@ -145,8 +146,8 @@ export function projectTNoteCompletionIndex(
 		const { threadId, turnId } = activity.nativeRefs;
 		const note = notesByTerminalActivity.get(activity.id);
 		if (!note) return [];
-		const metadata = completionFor(note);
-		const projectedNumber = (numbers.get(threadId) ?? 0) + 1;
+		const metadata        = completionFor(note)              ;
+		const projectedNumber = (numbers.get(threadId) ?? 0) + 1 ;
 		const number = metadata?.threadId === threadId && metadata.turnId === turnId
 			&& metadata.terminalActivityId === activity.id
 			? metadata.number
@@ -223,8 +224,8 @@ export function projectActivityToTNoteSource(activity: ProjectActivity): TNoteAc
 function noteSafeActivityPayload(activity: ProjectActivity): unknown {
 	if (activity.kind !== "file-change") return activity.payload;
 	const payload = objectRecord(activity.payload) ;
-	const params  = objectRecord(payload?.params)  ;
-	const item    = objectRecord(params?.item)     ;
+	const params  = objectRecord(payload?.params ) ;
+	const item    = objectRecord(params?.item    ) ;
 	if (!payload || !params || !item || !Array.isArray(item.changes)) return activity.payload;
 	const changes = item.changes.map(value => {
 		const change = objectRecord(value);
@@ -279,8 +280,8 @@ export function validateTNoteDraft(value: TNoteDraft, calculateDigest?: TNotePac
 	assertId(value.id, "Note id");
 	if (!Number.isSafeInteger(value.sequence) || value.sequence < 1) throw new Error("Invalid Note sequence");
 	assertDate(value.createdAt, "Note timestamp");
-	const packet = validateTNotePacket(value.packet, calculateDigest);
-	const text = sanitizeTNoteText(value.text, MAX_NOTE_BYTES);
+	const packet = validateTNotePacket(value.packet, calculateDigest) ;
+	const text   = sanitizeTNoteText(value.text, MAX_NOTE_BYTES)      ;
 	if (text.length === 0 || text !== value.text) throw new Error("Invalid Note text");
 	const provenance = validateProvenance(value.provenance);
 	return freezeDraft({
@@ -333,16 +334,22 @@ export function sanitizeTNoteText(value: string, maximumBytes: number): string {
 	if (typeof value !== "string" || !Number.isSafeInteger(maximumBytes) || maximumBytes < 1) throw new Error("Invalid Note text");
 	// Redact customer labels first: a path expression may legally contain spaces,
 	// and otherwise could consume the label while leaving its value behind.
-	const protectedTestEvidence = protectTNoteTestEvidence(redactCustomerIdentifiers(value)) ;
-	const protectedMarkers      = protectRedactionMarkers(protectedTestEvidence.text)        ;
-	const localPathsRedacted    = redactLocalPaths(protectedMarkers.text)                    ;
-	return truncateUtf8(
-		restoreTNoteTestEvidence(
-			restoreRedactionMarkers(redactForExternalReview(localPathsRedacted).text, protectedMarkers.markers),
-			protectedTestEvidence.evidence,
-		),
-		maximumBytes,
-	);
+	let text = value;
+	for (let pass = 0; pass < 8; pass += 1) {
+		const protectedTestEvidence = protectTNoteTestEvidence(redactCustomerIdentifiers(text)) ;
+		const protectedMarkers      = protectRedactionMarkers(protectedTestEvidence.text)       ;
+		const localPathsRedacted    = redactLocalPaths(protectedMarkers.text)                   ;
+		const sanitized = truncateUtf8(
+			restoreTNoteTestEvidence(
+				restoreRedactionMarkers(redactForExternalReview(localPathsRedacted).text, protectedMarkers.markers),
+				protectedTestEvidence.evidence,
+			),
+			maximumBytes,
+		);
+		if (sanitized === text) return sanitized;
+		text = sanitized;
+	}
+	throw new Error("Note text redaction did not converge");
 }
 
 function projectActivity(activity: TNoteActivitySource, projectId: string, range: TNoteSourceRange): TNoteSourceActivity {
@@ -365,9 +372,9 @@ function projectPacketActivity(activity: TNoteSourceActivity, _projectId: string
 		throw new Error("Note activity is outside the selected range");
 	}
 	assertDate(activity.occurredAt, "activity timestamp");
-	const kind  = sanitizeTNoteText(activity.kind, 120)               ;
-	const title = sanitizeTNoteText(activity.title, 2 * 1024)         ;
-	const body  = sanitizeTNoteText(activity.body, MAX_ACTIVITY_BODY) ;
+	const kind  = sanitizeTNoteText(activity.kind , 120              ) ;
+	const title = sanitizeTNoteText(activity.title, 2 * 1024         ) ;
+	const body  = sanitizeTNoteText(activity.body , MAX_ACTIVITY_BODY) ;
 	if (kind.length === 0 || title.length === 0 || body !== activity.body && body.length === 0) throw new Error("Invalid Note activity text");
 	return Object.freeze({ id: activity.id, sequence: activity.sequence, occurredAt: activity.occurredAt, kind, title, body });
 }
@@ -387,8 +394,8 @@ function assertStrictlyIncreasingSequences(activities: readonly TNoteSourceActiv
 function validateProvenance(value: TNoteModelProvenance): TNoteModelProvenance {
 	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid Note model provenance");
 	const provider = sanitizeTNoteText(value.provider, 120) ;
-	const model    = sanitizeTNoteText(value.model, 240)    ;
-	const version  = sanitizeTNoteText(value.version, 240)  ;
+	const model    = sanitizeTNoteText(value.model   , 240) ;
+	const version  = sanitizeTNoteText(value.version , 240) ;
 	if (!provider
 		|| !model
 		|| !version
@@ -457,8 +464,8 @@ function fitTNotePacketActivities(
 		title: truncateUtf8(activity.title, titleCap),
 		body: truncateUtf8(activity.body, bodyCap),
 	}));
-	const minimumTextBytes = 4;
-	let titleCap = 2 * 1024;
+	const minimumTextBytes = 4        ;
+	let titleCap           = 2 * 1024 ;
 	if (!fits(withTextCaps(titleCap, minimumTextBytes))) {
 		let low  = minimumTextBytes ;
 		let high = titleCap         ;
@@ -478,8 +485,8 @@ function fitTNotePacketActivities(
 	let fitted = withTextCaps(titleCap, minimumTextBytes) ;
 	if (!fits(fitted)) throw new Error("Note source packet metadata is too large");
 	while (low <= high) {
-		const middle = Math.floor((low + high) / 2);
-		const candidate = withTextCaps(titleCap, middle);
+		const middle    = Math.floor((low + high) / 2)   ;
+		const candidate = withTextCaps(titleCap, middle) ;
 		if (fits(candidate)) {
 			fitted = candidate;
 			low = middle + 1;
@@ -490,8 +497,8 @@ function fitTNotePacketActivities(
 
 /** Keeps a bounded, identifier-free record of native event data for detached summarization. */
 function redactNativePayload(value: unknown): unknown {
-	const seen = new Set<object>();
-	let remainingNodes = MAX_NATIVE_PAYLOAD_NODES;
+	const seen         = new Set<object>()        ;
+	let remainingNodes = MAX_NATIVE_PAYLOAD_NODES ;
 	const project = (candidate: unknown, depth: number): unknown => {
 		if (candidate === null
 			|| typeof candidate === "string"
@@ -506,8 +513,8 @@ function redactNativePayload(value: unknown): unknown {
 			if (candidate.length > entries.length) entries.push("[redacted:source-limit]");
 			return entries;
 		}
-		const projected: Record<string, unknown> = {};
-		let entries = 0;
+		const projected: Record<string, unknown> = {} ;
+		let entries                              = 0  ;
 		for (const key of Object.keys(candidate)) {
 			if (entries >= MAX_NATIVE_PAYLOAD_ENTRIES) {
 				projected.omitted = "[redacted:source-limit]";
@@ -541,10 +548,6 @@ function truncateUtf8(value: string, maximumBytes: number): string {
 	const markerStart = truncated.lastIndexOf("[redacted") ;
 	const markerEnd   = truncated.lastIndexOf("]")         ;
 	return markerStart > markerEnd ? truncated.slice(0, markerStart) : truncated;
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function redactCustomerIdentifiers(value: string): string {

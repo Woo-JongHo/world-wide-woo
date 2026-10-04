@@ -235,6 +235,7 @@ export interface ThreadScopedTodoLedger {
 
 export interface ThreadTodoBinding {
 	readonly ledger: ThreadScopedTodoLedger;
+	prepare?(): Promise<void>;
 	importLegacy(): Promise<string | null>;
 }
 
@@ -266,6 +267,7 @@ export class ThreadScopedTodoSource implements WorkbenchTodoSource {
 			this.ledger             = ledger                                            ;
 			this.ledgerSubscription = ledger.subscribe(snapshot => this.emit(snapshot)) ;
 			try {
+				await todoBinding.prepare?.();
 				await ledger.initialize();
 			} catch (error) {
 				this.clearLedger();

@@ -1,7 +1,8 @@
-# 7-Stage Strict Request Runtime — 구현 준비
+# 7-Stage Strict Request Runtime — 보류된 제안
 
-상태: 구현 명세 + 첫 brokered 실행 경로 구현. 현재 production 기본 경로에 strict 통제가 적용됐다는 뜻이 아니다.
-범위: 모든 업무 Request를 동일한 일곱 Stage 안에서 해결하며, 필요한 Stage만 실행한다.
+상태: 과거 설계 초안. 현재 WWW 제품 계약이나 기본 실행 경로가 아니다.
+2026-09-30 결정에 따라 WWW는 Native 요청을 UNDERSTAND · WORK · RESULT 세 구간으로 관찰하며, 일곱 Stage 통제·보고 게이트를 적용하지 않는다. 이 문서의 아래 설계는 당시 구현과 호환성을 이해하기 위한 기록으로만 남긴다.
+범위: 과거 제안은 모든 업무 Request를 동일한 일곱 Stage 안에서 처리하는 것이었다.
 성공 기준은 화면 표시가 아니라 **통제되지 않은 행동은 실행되지 않고, 허용한 행동은 연동 결과까지 확인되는 것**이다.
 
 ## 1. 확정할 책임

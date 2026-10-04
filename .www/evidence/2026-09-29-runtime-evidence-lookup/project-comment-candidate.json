@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-RUNTIME-EVIDENCE-LOOKUP-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:dev:2026-09-29:dirty",
+  "intent": "observe WORK가 실제 Activity ID를 제출할 수 있게 한 수정과 검증 결과를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "observe Runtime에 현재 요청·턴의 완료된 도구·파일 변경 Activity ID만 조회하는 www_runtime_evidence 도구를 연결했다.",
+      "WORK 안내를 실제 activityId 사용으로 고치고 chunk ID와 source digest를 증거 ID로 쓰지 않도록 명시했다."
+    ],
+    "impacts": [
+      "실제 변경과 검증을 수행했어도 WORK에 해시·chunk 번호를 넣어 GROUND부터 차단되던 증거 연결 오류를 예방한다.",
+      "잘못된 WORK는 계속 차단하며 과거 요청의 단계 기록을 소급 완료 처리하지 않는다."
+    ],
+    "categories": [
+      "fix",
+      "verification"
+    ],
+    "verification": [
+      "bun run check와 git diff --check 통과.",
+      "bun test test/request-runtime.test.ts test/project-workbench.test.ts: 55 pass, 0 fail.",
+      "전체 bun test: 1589 pass, 62 fail. 기존 미커밋 UI 변경을 포함한 전체 제품 수락은 미완료."
+    ],
+    "connections": [
+      "WOO-910 https://linear.app/woo-world/issue/WOO-910/astra에서-요청계획현재-실행을-하나의-7단계-runtime으로-통제한다",
+      "src/core/runtime/request-runtime.ts · src/core/application/orchestration/project-workbench.ts · src/core/application/orchestration/request-protocol.ts",
+      ".www/evidence/2026-09-29-runtime-evidence-lookup"
+    ]
+  },
+  "links": {
+    "linear": "WOO-910",
+    "evidence": ".www/evidence/2026-09-29-runtime-evidence-lookup"
+  },
+  "expectedBefore": {
+    "latestCommentId": "1e2c04d3-cd15-4baf-94df-7eaf56cc8071"
+  },
+  "validation": [
+    {
+      "id": "live-target",
+      "status": "pass",
+      "evidence": "linear-woo에서 World Wide Woo UUID와 기존 WOO-910을 재조회했다."
+    },
+    {
+      "id": "duplicate-check",
+      "status": "pass",
+      "evidence": "최신 Project Activity 10건에서 동일한 Runtime Activity ID 조회 수정 기록이 없음을 확인했다."
+    },
+    {
+      "id": "local-verification",
+      "status": "pass",
+      "evidence": "타입·diff 검사와 수정 범위 테스트 55건이 통과했다. 전체 테스트 실패 62건을 구분했다."
+    }
+  ],
+  "candidateDigest": "c6333e7b72086e26888a9b5a263daf99bc68c8f23b30e324134a478dfbcf785e"
+}

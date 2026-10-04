@@ -41,7 +41,7 @@ interface WorkbenchCommandHandlerDependencies {
 	readonly reviews?           : ReviewService                                                                               ;
 	readonly note               : (noteId: string) => TNoteDraft | undefined                                                  ;
 	readonly activities         : () => readonly ProjectActivity[]                                                            ;
-	readonly hasRuntimeRequests : () => boolean                                                                               ;
+	readonly hasLegacyRuntimeRequests : () => boolean                                                                         ;
 	readonly setMcpServers      : (servers: readonly WorkbenchMcpServer[]) => void                                            ;
 	readonly setActionResult    : (kind: WorkbenchActionResult["kind"], title: string, body: string, digest?: string) => void ;
 	readonly publish            : () => void                                                                                  ;
@@ -135,7 +135,7 @@ export class WorkbenchCommandHandlers {
 	}
 
 	private async mutateTodo(commandId: string, title: string, operation: () => Promise<TodoDocument>): Promise<WorkbenchCommandReceipt> {
-		if (this.dependencies.hasRuntimeRequests()) return { state: "rejected", commandId, reason: "이 Todo는 Request Runtime의 7단계 기록입니다. 입력창에서 단계의 하위 작업 변경을 요청하세요." };
+		if (this.dependencies.hasLegacyRuntimeRequests()) return { state: "rejected", commandId, reason: "과거 Request Runtime 기록이 소유한 Todo입니다." };
 		const document = await operation();
 		this.dependencies.setActionResult("todo", title, todoResultBody(document));
 		return { state: "accepted", commandId, message: title };
@@ -147,7 +147,7 @@ export class WorkbenchCommandHandlers {
 	}
 
 	private async recordTodoEvidence(commandId: string, activityId: string): Promise<WorkbenchCommandReceipt> {
-		if (this.dependencies.hasRuntimeRequests()) return { state: "rejected", commandId, reason: "Runtime Evidence는 Native 단계 보고와 실제 Activity 참조로 연결합니다." };
+		if (this.dependencies.hasLegacyRuntimeRequests()) return { state: "rejected", commandId, reason: "과거 Request Runtime 기록이 소유한 Todo에는 직접 Evidence를 추가할 수 없습니다." };
 		if (!this.dependencies.activities().some(activity => activity.id === activityId)) return { state: "rejected", commandId, reason: `Evidence activity를 찾을 수 없습니다: ${activityId}` };
 		const document = await this.requireTodos().recordEvidence(activityId);
 		if (!document) return { state: "rejected", commandId, reason: "증거를 연결할 진행 중 Todo가 없습니다." };

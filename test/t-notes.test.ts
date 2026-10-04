@@ -12,6 +12,8 @@ import { FileTNoteStore }                               from "../src/adapters/ou
 import {
 	createTNotePacket,
 	projectActivityToTNoteSource,
+	sanitizeTNoteText,
+	validateTNotePacket,
 	tNoteSourceIdempotencyKey,
 } from "../src/core/domain/work/t-notes.js";
 
@@ -85,6 +87,19 @@ describe("Note service", () => {
 			kind: "tool.completed", title: "test", body: "Total 1/2\n01. bun test test/www-ui.test.ts\n/Users/example/private",
 		}], "2026-09-01T00:00:00.000Z", () => "a".repeat(64)).activities[0]?.body)
 			.toBe("Total 1/2\n01. bun test test/www-ui.test.ts\n[redacted:local-path]");
+	});
+
+	test("연속된 저장소 경로를 재검사해도 Note packet digest가 유지된다", async () => {
+		const body = "git diff -- src/test/www-ui.test.ts test/www-provider-logos.test.ts";
+		const digest = (value: string) => new Bun.CryptoHasher("sha256").update(value).digest("hex");
+		const packet = createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [{
+			id: "path-command", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z",
+			kind: "tool.completed", title: "검증", body,
+		}], "2026-09-01T00:00:00.000Z", digest);
+		expect(sanitizeTNoteText(packet.activities[0]!.body, 32 * 1024)).toBe(packet.activities[0]!.body);
+		expect(() => validateTNotePacket(packet, digest)).not.toThrow();
+		const draft = await (await store()).append({ id: "path-note", createdAt: "2026-09-01T00:00:01.000Z", packet, text: report("경로 검증"), provenance: { provider: "test", model: "test", version: "test" } });
+		expect(draft.sequence).toBe(1);
 	});
 
 	test("fits large valid source activities into one packet without losing their identities", () => {

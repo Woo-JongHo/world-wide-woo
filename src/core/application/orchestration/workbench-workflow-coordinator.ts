@@ -136,29 +136,32 @@ export class WorkbenchWorkflowCoordinator {
 	public projectedTodo(executionRun: ExecutionRunState | null, flow: WorkFlowProjection): TodoDocument | null {
 		const activities = this.options.activities()                                                                                                                                   ;
 		const threadId   = this.options.threadId()                                                                                                                                     ;
-		const request    = [...this.records()].reverse().find(record => record.turnId === (this.options.activeTurnId() ?? this.options.selectedPlanTurnId())) ?? this.records().at(-1) ;
+		const records    = this.records()                                                                                                                                                     ;
+		const selectedTurnId = this.options.activeTurnId() ?? this.options.selectedPlanTurnId()                                                                                                 ;
+		const selectedRequest = [...records].reverse().find(record => record.turnId === selectedTurnId) ?? records.at(-1)                                                                      ;
+		const request = selectedRequest && selectedRequest.protocolVersion >= 3 ? undefined : selectedRequest                                                                                                   ;
 		if (request) return projectRequestTodo(request, this.options.todo()?.ownerSessionId ?? threadId ?? "pending", activities.length);
+		if (flow.source && this.options.todo()?.source?.turnId === flow.source.turnId) return this.options.todo();
 		return flow.source?.authority === "native-checklist" && executionRun ? this.executionTodo(executionRun, flow) : null;
 	}
 
 	public scheduleNativeTodoSync(activity: ProjectActivity): void {
-		// 요청 레코드는 프로토콜 v2에서 첫 요청마다 생기므로 존재만으로 네이티브 체크리스트
-		// 동기화를 막지 않는다. 요청 런타임이 관리 모드일 때만 요청 소유 표시로 대체한다.
-		if (this.records().length) {
-			this.scheduleRequestProjections();
-			if (this.options.requestManaged?.() !== false) return;
-		}
+		// Passive v3 records do not own Todo; only legacy v1/v2 projections can replace it.
+		const records = this.records();
+		if (records.length) this.scheduleRequestProjections();
+		const managedRequest = [...records].reverse().find(record => record.turnId === activity.nativeRefs.turnId);
+		if (managedRequest && managedRequest.protocolVersion < 3 && this.options.requestManaged?.() !== false) return;
 		const sync = this.options.todos?.syncNativePlan?.bind(this.options.todos);
 		if (!sync) return;
 		const flow = this.currentFlow();
 		const source = flow.source;
-		if (!source || source.authority !== "native-checklist" || source.turnId !== this.options.activeTurnId()) return;
+		if (!source || source.turnId !== (this.options.activeTurnId() ?? this.options.selectedPlanTurnId())) return;
 		if (activity.nativeRefs.threadId !== this.options.threadId() || activity.nativeRefs.turnId !== source.turnId) return;
 		const method = typeof activity.payload.method === "string" ? activity.payload.method : "";
 		const item = typeof activity.payload.params === "object" && activity.payload.params !== null
 			? (activity.payload.params as { item?: { type?: unknown } }).item
 			: undefined;
-		const isPlanActivity = method === "turn/plan/updated" || method === "item/completed"
+		const isPlanActivity = method === "turn/plan/updated" || method === "turn/plan/public-fallback" || method === "item/completed"
 			&& typeof item?.type === "string" && item.type.toLowerCase() === "plan";
 		const updatesPlan = isPlanActivity && source.currentRevision.activityId === activity.id;
 		const contributesExecution = flow.steps.some(step => step.activityIds.includes(activity.id));
@@ -166,13 +169,14 @@ export class WorkbenchWorkflowCoordinator {
 	}
 
 	public scheduleNarratedTodoSync(): void {
-		if (this.records().length) return;
+		const records = this.records();
+		const selected = [...records].reverse().find(record => record.turnId === (this.options.activeTurnId() ?? this.options.selectedPlanTurnId())) ?? records.at(-1);
+		if (selected && selected.protocolVersion < 3) return;
 		const sync = this.options.todos?.syncNativePlan?.bind(this.options.todos);
 		if (!sync) return;
 		const flow = this.currentFlow();
 		if (!flow.source
-			|| flow.source.authority !== "native-checklist"
-			|| flow.source.turnId !== this.options.activeTurnId()
+			|| flow.source.turnId !== (this.options.activeTurnId() ?? this.options.selectedPlanTurnId())
 			|| flow.steps.length === 0) return;
 		this.enqueueNativeTodoSync(sync, flow);
 	}
@@ -193,7 +197,7 @@ export class WorkbenchWorkflowCoordinator {
 				}
 			});
 			const syncRequest = this.options.todos?.syncRequestRuntime?.bind(this.options.todos);
-			if (request === selected && syncRequest) this.enqueueRequestTodoSync(request, syncRequest);
+			if (request === selected && request.protocolVersion < 3 && syncRequest) this.enqueueRequestTodoSync(request, syncRequest);
 		}
 	}
 
@@ -236,7 +240,7 @@ export class WorkbenchWorkflowCoordinator {
 			} catch {
 				if (syncRevision !== this.todoSyncRevision) return;
 				this.requestProjectionKeys.delete(request.requestId);
-				this.todoSyncState = immutable({ state: "blocked", lastConfirmedAt: this.todoSyncState.lastConfirmedAt, message: "7단계 Todo 저장 실패. 대화는 계속되며 다음 관측에서 재시도합니다." });
+				this.todoSyncState = immutable({ state: "blocked", lastConfirmedAt: this.todoSyncState.lastConfirmedAt, message: "Request Todo 저장 실패. 대화는 계속되며 다음 관측에서 재시도합니다." });
 			}
 			this.options.publish();
 		});

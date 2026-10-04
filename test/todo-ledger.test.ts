@@ -153,7 +153,7 @@ describe("TodoLedger", () => {
 
 		expect(first.title).toBe("Native 계획을 Todo로 반영한다");
 		expect(first.items.map((item) => [item.id, item.status, item.content])).toEqual([
-			[`native-${"a".repeat(48)}`, "in_progress", "Todo 저장 경계를 연결합니다."],
+			[`native-${"a".repeat(48)}`, "in_progress", "계획 자동 동기화"],
 			[`native-${"b".repeat(48)}`, "pending", "동기화 결과 검증"],
 		]);
 		expect(first.items[0]?.details).toEqual([]);
@@ -361,7 +361,7 @@ describe("TodoLedger", () => {
 		const forgedSources: readonly unknown[] = [
 			null,
 			{ ...source, kind: "forged" },
-			{ ...source, authority: "public-plan-document" },
+			{ ...source, authority: "untrusted-document" },
 			{ ...source, algorithm: "dplan-v2" },
 			{ ...source, turnId: "" },
 			{ ...source, turnId: 42 },

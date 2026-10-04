@@ -2,18 +2,19 @@ import { describe, expect, test }                                      from "bun
 import { mkdtemp, readdir, readFile, rm }                              from "node:fs/promises";
 import { tmpdir }                                                      from "node:os";
 import { join }                                                        from "node:path";
+import chalk                                                           from "chalk";
 import type { ProjectActivity }                                        from "../src/core/domain/execution/project-activity";
-import { REQUEST_STAGES, parseRequestCheckpointReport, parseRequestStageReport } from "../src/core/domain/execution/request-runtime";
+import { REQUEST_STAGES, parseRequestCheckpointReport, parseRequestPhaseReport, parseRequestStageReport } from "../src/core/domain/execution/request-runtime";
 import type { RequestStageReport }                                     from "../src/core/domain/execution/request-runtime";
 import { requestProtocolContext }                                      from "../src/core/application/orchestration/request-protocol";
-import { projectRequestRuntime }                                       from "../src/core/runtime/request-runtime";
+import { observeWorkEvidence, projectRequestRuntime }                  from "../src/core/runtime/request-runtime";
 import { projectRequestTodo }                                          from "../src/core/domain/work/request-projections";
 import { parseTodoMarkdown, renderTodoMarkdown, validateTodoDocument } from "../src/core/domain/work/todos";
 import { FileRequestProjectionStore }                                  from "../src/adapters/outbound/persistence/request-projection-store";
-import { requestRuntimeRows }                                          from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
+import { requestRuntimeRows, stageInk }                                from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
 import { stripTerminalSequences, visibleWidth }                        from "@earendil-works/pi-tui";
 
-function fixture(protocolVersion: 1 | 2 = 1) {
+function fixture(protocolVersion: 1 | 2 | 3 | 4 = 1) {
 	const journal: ProjectActivity[] = [];
 	const append = (payload: Record<string, unknown>, kind: ProjectActivity["kind"] = "progress", refs = { threadId: "thread-1", turnId: "turn-1" }) => {
 		const sequence = journal.length + 1;
@@ -29,6 +30,63 @@ function fixture(protocolVersion: 1 | 2 = 1) {
 }
 
 describe("seven-stage request runtime", () => {
+	test("owned three-phase requests decide Plan before WORK and report before the final answer", () => {
+		const f = fixture(4);
+		const send = (checkpoint: "UNDERSTAND" | "RESULT", extra: Record<string, unknown> = {}) => f.append({ role: "assistant", text: `[www-runtime]${JSON.stringify({ requestId: "request-1", checkpoint, summary: `${checkpoint} 공개 결과`, ...extra })}` }, "message");
+		expect(f.result().checkpoints?.map(item => item.status)).toEqual(["running", "pending", "pending"]);
+		send("UNDERSTAND", { goal: "구조를 정리한다", planRequired: true, planReason: "세 단계의 수정이 필요하다" });
+		expect(f.result().checkpoints?.map(item => item.status)).toEqual(["observed", "pending", "pending"]);
+		f.append({ method: "turn/plan/updated", params: { plan: [{ step: "계약 확인", status: "inProgress" }, { step: "구현", status: "pending" }] } });
+		expect(f.result().checkpoints?.map(item => item.status)).toEqual(["observed", "running", "pending"]);
+		expect(f.result().planDecision?.planActivityId).toBe("activity-4");
+		send("RESULT");
+		expect(f.result().checkpoints?.map(item => item.status)).toEqual(["observed", "observed", "running"]);
+		f.append({ role: "assistant", text: "구조를 정리했습니다." }, "message");
+		expect(f.result().checkpoints?.map(item => item.status)).toEqual(["observed", "observed", "observed"]);
+	});
+
+	test("simple requests record a no-Plan decision and malformed decisions do not advance", () => {
+		const f = fixture(4);
+		f.append({ role: "assistant", text: '[www-runtime]{"requestId":"request-1","checkpoint":"UNDERSTAND","summary":"확인","goal":"답변","planRequired":false}' }, "message");
+		expect(f.result().checkpoints?.[1]?.status).toBe("pending");
+		f.append({ role: "assistant", text: '[www-runtime]{"requestId":"request-1","checkpoint":"UNDERSTAND","summary":"요청 확인","goal":"질문에 답한다","planRequired":false,"planReason":"한 번의 답변으로 충분하다"}' }, "message");
+		expect(f.result().checkpoints?.[1]?.status).toBe("running");
+		expect(f.result().planDecision?.required).toBe(false);
+		expect(parseRequestPhaseReport('[www-runtime]{"requestId":"r","checkpoint":"RESULT","summary":"완료","planRequired":true}')).toBeNull();
+	});
+	test("historical passive v3 requests keep their original submitted and started meaning", () => {
+		const historical = fixture(3).result();
+		expect(historical.checkpoints?.map(item => item.status)).toEqual(["observed", "running", "pending"]);
+		expect(historical.planDecision).toBeUndefined();
+	});
+	test("missing phase reports remain unobserved after Native completion", () => {
+		const f = fixture(4);
+		f.append({ role: "assistant", text: "Plan 판단 없이 답변했습니다." }, "message");
+		f.append({ method: "turn/completed" });
+		expect(f.result().checkpoints?.map(item => item.status)).toEqual(["unobserved", "unobserved", "unobserved"]);
+		expect(f.result().issues.some(issue => issue.includes("REPORTING 시작 보고 없이"))).toBe(true);
+	});
+	test("user text and tool output cannot decide the Plan", () => {
+		const f = fixture(4);
+		const text = '[www-runtime]{"requestId":"request-1","checkpoint":"UNDERSTAND","summary":"거짓 결정","goal":"잘못된 목표","planRequired":false,"planReason":"도구 출력"}';
+		f.append({ role: "user", text }, "message");
+		f.append({ method: "item/completed", params: { item: { type: "commandExecution", aggregatedOutput: text } } }, "tool");
+		expect(f.result().planDecision).toBeNull();
+		expect(f.result().checkpoints?.[1]?.status).toBe("pending");
+	});
+	test("a required Plan from another turn cannot start WORK", () => {
+		const f = fixture(4);
+		f.append({ role: "assistant", text: '[www-runtime]{"requestId":"request-1","checkpoint":"UNDERSTAND","summary":"두 단계","goal":"두 파일 수정","planRequired":true,"planReason":"순서가 필요하다"}' }, "message");
+		f.append({ method: "turn/plan/updated", params: { plan: [{ step: "다른 요청 계획", status: "pending" }] } }, "progress", { threadId: "thread-1", turnId: "other-turn" });
+		expect(f.result().checkpoints?.[1]?.status).toBe("pending");
+		expect(f.result().planDecision?.planActivityId).toBeNull();
+	});
+	test("failed delivery leaves UNDERSTAND failed without inventing a Plan decision", () => {
+		const f = fixture(4);
+		f.append({ method: "request/failed", requestId: "request-1" });
+		expect(f.result().planDecision).toBeNull();
+		expect(f.result().checkpoints?.map(item => item.status)).toEqual(["failed", "pending", "unobserved"]);
+	});
 	test("observe protocol exposes three checkpoints while broker keeps seven stages", () => {
 		const observe = JSON.parse(requestProtocolContext("request-1", 1).value) as { checkpoints: string[]; instructions: string[] };
 		const broker  = JSON.parse(requestProtocolContext("request-1", 2).value) as { checkpoints?: string[]; instructions: string[] };
@@ -52,6 +110,7 @@ describe("seven-stage request runtime", () => {
 		const planned = f.result();
 		expect(planned.stages[0]?.status).toBe("completed");
 		expect(planned.stages[1]?.status).toBe("completed");
+		expect(planned.stages[2]?.status).toBe("running");
 		expect(planned.stages[2]?.tasks.map(task => [task.title, task.status])).toEqual([["원인 조사", "pending"], ["회귀 검증", "pending"]]);
 		expect(stripTerminalSequences(requestRuntimeRows(planned, 80).join("\n"))).toContain("원인 조사");
 		f.checkpoint("WORK");
@@ -75,6 +134,19 @@ describe("seven-stage request runtime", () => {
 		expect(result.status).toBe("completed");
 	});
 
+	test("lists only resolvable successful evidence for the current observe turn", () => {
+		const f = fixture();
+		f.checkpoint("INTENT", { goal: "근거를 연결한다" });
+		const good = f.append({ params: { item: { exitCode: 0, command: "bun test" } } }, "tool");
+		f.append({ params: { item: { exitCode: 1, command: "failed" } } }, "tool");
+		f.append({ params: { item: { exitCode: 0 } } }, "tool", { threadId: "thread-1", turnId: "another-turn" });
+		f.append({ role: "assistant", text: "claim" }, "message");
+		expect(observeWorkEvidence(f.journal, "request-1", "thread-1", "turn-1").map(item => item.activityId)).toEqual([good.id]);
+		expect(observeWorkEvidence(f.journal, "another-request", "thread-1", "turn-1")).toEqual([]);
+		f.checkpoint("WORK", { verification: [good.id] });
+		expect(f.result().stages[5]?.status).toBe("completed");
+	});
+
 	test("rejects compact checkpoints from the brokered protocol", () => {
 		const f = fixture(2);
 		f.checkpoint("INTENT", { goal: "엄격 실행" });
@@ -88,8 +160,10 @@ describe("seven-stage request runtime", () => {
 		const message = f.append({ role: "assistant", text: "실행했다고 주장" }, "message");
 		const check   = f.append({ params: { item: { exitCode: 0, command: "bun test" } } }, "tool");
 		f.checkpoint("WORK", { evidence: [message.id], verification: [check.id] });
-		expect(f.result().stages.slice(2, 6).map(stage => stage.status)).toEqual(["pending", "pending", "pending", "pending"]);
+		expect(f.result().stages.slice(2, 6).map(stage => stage.status)).toEqual(["blocked", "pending", "pending", "pending"]);
 		expect(f.result().issues.at(-1)).toContain("도구 또는 파일 변경");
+		f.checkpoint("WORK", { evidence: [check.id] });
+		expect(f.result().stages[2]?.status).toBe("completed");
 	});
 
 	test("requires distinct execution and verification evidence for compact WORK", () => {
@@ -97,7 +171,7 @@ describe("seven-stage request runtime", () => {
 		f.checkpoint("INTENT", { goal: "독립 검증한다" });
 		const tool = f.append({ params: { item: { exitCode: 0, command: "bun test" } } }, "tool");
 		f.checkpoint("WORK", { evidence: [tool.id], verification: [tool.id] });
-		expect(f.result().stages.slice(2, 6).every(stage => stage.status === "pending")).toBe(true);
+		expect(f.result().stages.slice(2, 6).map(stage => stage.status)).toEqual(["blocked", "pending", "pending", "pending"]);
 		expect(f.result().issues.at(-1)).toContain("서로 다른 Activity");
 	});
 
@@ -223,7 +297,7 @@ describe("seven-stage request runtime", () => {
 		expect(projectRequestRuntime([...f.journal, ...f.journal], "thread-1")).toEqual       ([result]                                                                           ) ;
 		for (const width of [30, 80, 140]) expect(requestRuntimeRows(result, width).every(row => visibleWidth(row) <= width)).toBe(true);
 		const requestRows = stripTerminalSequences(requestRuntimeRows(result, 80).join("\n"));
-		expect(requestRows).toContain("✓ GROUND"                             ) ;
+		expect(requestRows).toContain("− GROUND"                             ) ;
 		expect(requestRows).toContain("GROUND · 사용자 제공 코드가 전체 근거") ;
 		expect(requestRows).toContain("✓ DELIVER"                            ) ;
 	});
@@ -273,16 +347,20 @@ describe("seven-stage request runtime", () => {
 		expect(progress).not.toContain("Bash"                                          ) ;
 	});
 	test("settled stage rail distinguishes skipped stages from completed stages", () => {
+		const level = chalk.level;
+		chalk.level = 3;
+		try { expect(stageInk("skipped")("GROUND")).not.toBe(stageInk("pending")("GROUND")); }
+		finally { chalk.level = level; }
 		const base    = fixture().result()                                                                                           ;
 		const stages  = base.stages.map((stage, index) => ({ ...stage, status: index ? "skipped" as const : "completed" as const })) ;
 		const waiting = stripTerminalSequences(requestRuntimeRows({ ...base, stages }, 100).join("\n"))                              ;
 		expect(waiting).not.toContain("기존 구조에 Runtime 구현") ;
 		expect(waiting).not.toContain("╭ 완료"                  ) ;
 		expect(waiting)    .toContain("✓ UNDERSTAND"            ) ;
-		expect(waiting)    .toContain("✓ DECOMPOSE"             ) ;
+		expect(waiting)    .toContain("− DECOMPOSE"             ) ;
 		expect(waiting).not.toContain("다음 계획 단계의 시작"   ) ;
 		const complete = stripTerminalSequences(requestRuntimeRows({ ...base, stages, status: "completed" }, 100).join("\n"));
-		expect(complete).toContain("✓ DELIVER");
+		expect(complete).toContain("− DELIVER");
 		expect(complete).not.toContain("모든 단계가 완료");
 	});
 	test("stage rail preserves concurrent running and failed stages at compact widths", () => {

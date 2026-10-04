@@ -1,20 +1,20 @@
 import type {
-	NativeApprovalPolicy,
-	NativeCollaborationMode,
-	NativeSandboxMode,
-	NativeSandboxPolicy,
-	NativeThreadStart,
-	NativeTurnStart,
-	NativeTurnSteer,
-} from "@/core/domain/execution/native-session.js";
+              NativeApprovalPolicy       ,
+              NativeCollaborationMode    ,
+              NativeSandboxMode          ,
+              NativeSandboxPolicy        ,
+              NativeThreadStart          ,
+              NativeTurnStart            ,
+              NativeTurnSteer            ,
+                                           } from "@/core/domain/execution/native-session.js"  ;
 import type {
-	WorkbenchChatQueueItem,
-	WorkbenchCollaborationMode,
-	WorkbenchPermissionMode,
-	WorkbenchResumeCoverage,
-} from "@/core/domain/work/workbench.js";
-import { record }              from "@/core/application/orchestration/workbench-projections.js";
-import type { OutputLanguage } from "@/core/domain/execution/output-language.js";
+              WorkbenchChatQueueItem     ,
+              WorkbenchCollaborationMode ,
+              WorkbenchPermissionMode    ,
+              WorkbenchResumeCoverage    ,
+                                           } from "@/core/domain/work/workbench.js"            ;
+import type { OutputLanguage               } from "@/core/domain/execution/output-language.js" ;
+import      { asRecord                     } from "@/core/domain/value/record.js"              ;
 
 export type BlockedChatDeliveryState =
 	| { readonly state: "in-progress"; readonly turnId: string }
@@ -168,21 +168,23 @@ export class NativeTurnCoordinator {
 						"도구 성공이나 turn 종료만으로 계획 항목을 완료 처리하지 말고, 해당 단계의 결과를 확인한 뒤 native 계획 상태를 변경하세요.",
 					]),
 					"Native Plan의 각 항목은 80자 이내의 간결한 한 문장으로 작성하고, 한 항목에 여러 행동을 나열하지 마세요.",
-					...(goal ? ["이 요청은 사용자가 정한 Goal입니다. 먼저 Goal을 실행 가능한 Native Plan으로 분해하고, 관측된 Plan을 Todo로 동기화한 뒤 각 단계를 실행하세요."] : []),
+					...(goal ? [planning
+						? "이 요청은 사용자가 정한 Goal입니다. 검토 가능한 Native Plan을 작성하고 실행은 시작하지 마세요."
+						: "이 요청은 사용자가 정한 Goal입니다. 먼저 Goal을 실행 가능한 Native Plan으로 분해하고, 관측된 Plan을 Plan.md로 동기화한 뒤 각 단계를 실행하세요."] : []),
 				].join(" "),
 			},
 		};
 	}
 
 	public deliveryState(value: Readonly<Record<string, unknown>>): BlockedChatDeliveryState {
-		const status = record(value.status);
-		const turns = value.turns;
+		const status = asRecord(value.status) ;
+		const turns  = value.turns            ;
 		if (!status || typeof status.type !== "string" || !Array.isArray(turns)) return { state: "unknown" };
 		if (status.type === "idle") return { state: "idle" };
 		for (let index = turns.length - 1; index >= 0; index -= 1) {
-			const turn = record(turns[index]);
+			const turn = asRecord(turns[index]);
 			if (!turn) continue;
-			const turnStatus = typeof turn.status === "string" ? turn.status : record(turn.status)?.type;
+			const turnStatus = typeof turn.status === "string" ? turn.status : asRecord(turn.status)?.type;
 			if (turnStatus !== "inProgress") continue;
 			return typeof turn.id === "string" && turn.id
 				? { state: "in-progress", turnId: turn.id }

@@ -52,10 +52,11 @@ export async function createProjectSession(
 
 	try {
 		await migrateLegacyTodo(workspace.legacyTodoPath, workspace.todosDirectory);
+		await migrateLegacyTodo(join(workspace.todosDirectory, sessionId, "Todo.md"), join(workspace.todosDirectory, sessionId, "Plan.md"));
 
 		const todos            = new TodoLedger(
 			sessionId,
-			new FileTodoStore(join(workspace.todosDirectory, sessionId, "Todo.md")),
+			new FileTodoStore(join(workspace.todosDirectory, sessionId, "Plan.md")),
 			sessions,
 		);
 		await todos.initialize();

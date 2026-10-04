@@ -621,11 +621,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		expect(native.startTurnCalls       ).toBe        (2                                            ) ;
 		expect(workbench.snapshot.chatQueue).toEqual     ([]                                           ) ;
 		expect(workbench.snapshot.tnotes   ).toEqual     ([]                                           ) ;
-		expect(workbench.snapshot.actionResult).toMatchObject({
-			kind  : "tnote",
-			title : "완료 보고 작성 중",
-			body  : expect.stringContaining("요청은 완료되었습니다."),
-		});
+		expect(workbench.snapshot.actionResult?.kind).not.toBe("tnote");
 
 		releaseSummary();
 		await Bun.sleep(10);
@@ -634,11 +630,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 			title   : "이 세션의 구현과 검증을 진행해줘",
 			summary : "질문: 이 세션의 구현과 검증을 진행해줘\n왜: 구현 위치를 찾고 실제 동작을 검증해야 했습니다.\n결과: 구현과 테스트가 끝났습니다.",
 		});
-		expect(workbench.snapshot.actionResult).toMatchObject({
-			kind  : "tnote",
-			title : "완료 보고 #1",
-			body  : expect.stringContaining("Chat 타임라인"),
-		});
+		expect(workbench.snapshot.actionResult?.kind).not.toBe("tnote");
 		await workbench.close();
 	});
 
@@ -1011,7 +1003,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		expect(generatedSourceIds                    ).toContain   (answerId       ) ;
 		expect(generatedSourceIds                    ).toContain   (turnCompletedId) ;
 		expect(workbench.snapshot.tnotes             ).toHaveLength(1              ) ;
-		expect(workbench.snapshot.actionResult?.title).toBe        ("완료 보고 #1" ) ;
+		expect(workbench.snapshot.actionResult?.kind).not.toBe("tnote");
 		await workbench.close();
 	});
 
@@ -1043,6 +1035,39 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		const createdBeforeCrossTurnAttempt = creates.length;
 		expect(await workbench.dispatch({ type: "tnote.capture-range", startSequence: 3, endSequence: 8 })).toMatchObject({ state: "rejected" });
 		expect(creates).toHaveLength(createdBeforeCrossTurnAttempt);
+		await workbench.close();
+	});
+
+	test("다음 자동 Note가 성공하면 이전 완료 보고 실패 알림을 지운다", async () => {
+		const native = new FakeNativeHarness();
+		let attempts = 0;
+		const tnotes: WorkbenchTNoteSource = {
+			readAll: async () => [],
+			create: async (input) => {
+				attempts += 1;
+				if (attempts === 1) throw new Error("첫 완료 보고 생성 오류");
+				return {
+					schemaVersion: 1, id: "next-note", sequence: 1,
+					createdAt: "2026-09-01T00:00:01.000Z",
+					packet: { schemaVersion: 1, projectId: input.projectId, range: input.range, createdAt: "2026-09-01T00:00:01.000Z", activities: input.activities.map(({ nativeRefs: _, ...activity }) => activity), digest: "e".repeat(64) },
+					text: `질문: ${input.expectedQuestion}\n왜: 완료 범위를 확인했습니다.\n결과: 요약을 저장했습니다.`,
+					provenance: { provider: "test", model: "test", version: "test" },
+				};
+			},
+		};
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample", tnotes });
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "첫 질문" });
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.actionResult?.title).toBe("완료 보고 생성 실패");
+		expect(workbench.snapshot.actionResult?.body).toContain("첫 완료 보고 생성 오류");
+		await workbench.dispatch({ type: "chat.send", text: "둘째 질문" });
+		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
+		await Bun.sleep(10);
+		expect(attempts).toBe(2);
+		expect(workbench.snapshot.tnotes).toHaveLength(1);
+		expect(workbench.snapshot.actionResult?.title).not.toBe("완료 보고 생성 실패");
 		await workbench.close();
 	});
 
@@ -1083,6 +1108,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await Bun.sleep(10);
 		expect(attempts).toBe(1);
 		expect(persisted).toEqual([]);
+		expect(first.snapshot.actionResult?.title).toBe("완료 보고 생성 실패");
 		await first.close();
 
 		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, {

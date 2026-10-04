@@ -1,106 +1,132 @@
 /** @linear WOO-688 WOO-690 WOO-691 */
-import { AsyncLocalStorage }                                          from "node:async_hooks";
-import { createHash, randomUUID }                                     from "node:crypto";
-import { TodoWriteConflictError }                                     from "@/core/application/work/todo-ledger.js";
-import { ContextComposer }                                            from "@/core/application/orchestration/context-composer.js";
-import { requestProtocolContext }                                     from "@/core/application/orchestration/request-protocol";
-import { RequestController, REQUEST_RUNTIME_TOOLS }                   from "@/core/application/orchestration/request-controller";
-import { RequestRuntimePolicy }                                       from "@/core/application/orchestration/request-runtime-mode.js";
-import { REQUEST_REPORT_PREFIX }                                      from "@/core/domain/execution/request-runtime";
-import { ApprovalResponseDispatcher }                                 from "@/core/application/orchestration/approval-dispatch.js";
-import { SessionUsageTracker }                                        from "@/core/application/session/session-usage-tracker.js";
-import { projectBackgroundWorkState }                                 from "@/core/domain/execution/native-session.js";
-import {
-	fallbackNativeModelCatalog,
-	nativeModelNames,
-	nativeModelEfforts,
-} from "@/core/domain/execution/model-settings.js";
-import { isTerminalActivityPhase }                                    from "@/core/domain/execution/project-activity.js";
-import { sanitizeTerminalTextExcerpt, sanitizeTerminalTextUnbounded } from "@/core/domain/execution/terminal.js";
-import { projectExecutionActivity }                                   from "@/core/runtime/execution-run.js";
-import { workbenchApprovalDecisions }                                 from "@/core/domain/work/workbench.js";
-import { resolveActivitySelection, resolveTraceSelection }            from "@/core/domain/work/trace-selection.js";
-import { EMPTY_LINEAR_PROJECT_DASHBOARD }                             from "@/core/domain/work/linear-dashboard.js";
-import { projectPerformance }                                         from "@/core/domain/work/performance.js";
-import { projectNativeEvidence }                                      from "@/core/application/orchestration/native-event-projection.js";
-import { LayerPerformanceRecorder }                                   from "@/core/domain/observability/layer-performance.js";
-import {
-	SESSION_GOAL_CHARACTER_LIMIT,
-	activityText,
-	projectSessionGoal,
-	summarizeSessionGoal,
-	record,
-	stableJson,
-} from "@/core/application/orchestration/workbench-projections.js";
-import { NativeStreamProjection }                                     from "@/core/application/orchestration/native-stream-projection.js";
-import { WorkbenchDurableProjection }                                 from "@/core/application/orchestration/workbench-durable-projection.js";
-import { NativeTurnCoordinator }                                      from "@/core/application/orchestration/native-turn-coordinator.js";
-import { WorkbenchCommandHandlers }                                   from "@/core/application/orchestration/workbench-command-handlers.js";
-import { NativeEventLifecycle }                                       from "@/core/application/orchestration/native-event-lifecycle.js";
-import { WorkbenchCacheProjection }                                   from "@/core/application/orchestration/workbench-cache-projection.js";
-import { WorkbenchWorkflowCoordinator }                               from "@/core/application/orchestration/workbench-workflow-coordinator.js";
-import { WorkbenchJournalCoordinator }                                from "@/core/application/orchestration/workbench-journal-coordinator.js";
-import { WorkbenchNoteNarration }                                     from "@/core/application/orchestration/workbench-note-narration.js";
-import { WorkbenchThreadLifecycle }                                   from "@/core/application/orchestration/workbench-thread-lifecycle.js";
+import      { AsyncLocalStorage               } from "node:async_hooks"                                                   ;
+import      {
+              createHash                    ,
+              randomUUID                    ,
+                                              } from "node:crypto"                                                        ;
+import      { TodoWriteConflictError          } from "@/core/application/work/todo-ledger.js"                             ;
+import      { ContextComposer                 } from "@/core/application/orchestration/context-composer.js"               ;
+import      { requestProtocolContext          } from "@/core/application/orchestration/request-protocol"                  ;
+import      {
+              RequestController             ,
+              REQUEST_RUNTIME_TOOLS         ,
+                                              } from "@/core/application/orchestration/request-controller"                ;
+import      { RequestRuntimePolicy            } from "@/core/application/orchestration/request-runtime-mode.js"           ;
+import      { REQUEST_REPORT_PREFIX           } from "@/core/domain/execution/request-runtime"                            ;
+import      { ApprovalResponseDispatcher      } from "@/core/application/orchestration/approval-dispatch.js"              ;
+import      { SessionUsageTracker             } from "@/core/application/session/session-usage-tracker.js"                ;
+import      { projectBackgroundWorkState      } from "@/core/domain/execution/native-session.js"                          ;
+import      {
+              fallbackNativeModelCatalog    ,
+              nativeModelNames              ,
+              nativeModelEfforts            ,
+                                              } from "@/core/domain/execution/model-settings.js"                          ;
+import      { isTerminalActivityPhase         } from "@/core/domain/execution/project-activity.js"                        ;
+import      {
+              sanitizeTerminalTextExcerpt   ,
+              sanitizeTerminalTextUnbounded ,
+                                              } from "@/core/domain/execution/terminal.js"                                ;
+import      { projectExecutionActivity        } from "@/core/runtime/execution-run.js"                                    ;
+import      { workbenchApprovalDecisions      } from "@/core/domain/work/workbench.js"                                    ;
+import      { readNativePlanRevision          } from "@/core/domain/work/native-plan-revision.js"                         ;
+import      {
+              resolveActivitySelection      ,
+              resolveTraceSelection         ,
+                                              } from "@/core/domain/work/trace-selection.js"                              ;
+import      { EMPTY_LINEAR_PROJECT_DASHBOARD  } from "@/core/domain/work/linear-dashboard.js"                             ;
+import      { projectPerformance              } from "@/core/domain/work/performance.js"                                  ;
+import      { projectNativeEvidence           } from "@/core/application/orchestration/native-event-projection.js"        ;
+import      { LayerPerformanceRecorder        } from "@/core/domain/observability/layer-performance.js"                   ;
+import      {
+              SESSION_GOAL_CHARACTER_LIMIT  ,
+              activityText                  ,
+              projectSessionGoal            ,
+              summarizeSessionGoal          ,
+              stableJson                    ,
+                                              } from "@/core/application/orchestration/workbench-projections.js"          ;
+import      { NativeStreamProjection          } from "@/core/application/orchestration/native-stream-projection.js"       ;
+import      { WorkbenchDurableProjection      } from "@/core/application/orchestration/workbench-durable-projection.js"   ;
+import      { NativeTurnCoordinator           } from "@/core/application/orchestration/native-turn-coordinator.js"        ;
+import      { WorkbenchCommandHandlers        } from "@/core/application/orchestration/workbench-command-handlers.js"     ;
+import      { NativeEventLifecycle            } from "@/core/application/orchestration/native-event-lifecycle.js"         ;
+import      { WorkbenchCacheProjection        } from "@/core/application/orchestration/workbench-cache-projection.js"     ;
+import      { WorkbenchWorkflowCoordinator    } from "@/core/application/orchestration/workbench-workflow-coordinator.js" ;
+import      { WorkbenchJournalCoordinator     } from "@/core/application/orchestration/workbench-journal-coordinator.js"  ;
+import      { WorkbenchNoteNarration          } from "@/core/application/orchestration/workbench-note-narration.js"       ;
+import      { WorkbenchThreadLifecycle        } from "@/core/application/orchestration/workbench-thread-lifecycle.js"     ;
 
-import type { ExecutorPort }                                      from "@/core/ports/execution/executor-port.js";
-import type { CanonicalPromotionService }                         from "@/core/application/work/canonical-promotion.js";
-import type { ReviewService }                                     from "@/core/application/review/review-service.js";
-import type { ActivityNarrator }                                  from "@/core/application/orchestration/activity-narrator.js";
-import type { SessionModelUsageSource }                           from "@/core/application/session/session-model-usage.js";
-import type { WooEntry }                                          from "@/core/application/orchestration/woo-entry.js";
-import type { SkillRegistrySnapshot }                             from "@/core/skills/skill-registry.js";
-import type { RequestActionApproval, RequestActionCapability }    from "@/core/ports/execution/request-action-port";
-import type { RuntimeToolCall }                                   from "@/core/ports/execution/runtime-tool-port";
-import type { RequestRuntimeMode }                                from "@/core/application/orchestration/request-runtime-mode.js";
-import type { RequestRuntimeRecord }                              from "@/core/domain/execution/request-runtime";
-import type { RequestProjectionPort }                             from "@/core/ports/execution/request-projection-port";
-import type { LinearProjectDashboardReader }                      from "@/core/ports/integration/linear-project-dashboard-port";
+import type { ExecutorPort                    } from "@/core/ports/execution/executor-port.js"                            ;
+import type { CanonicalPromotionService       } from "@/core/application/work/canonical-promotion.js"                     ;
+import type { ReviewService                   } from "@/core/application/review/review-service.js"                        ;
+import type { ActivityNarrator                } from "@/core/application/orchestration/activity-narrator.js"              ;
+import type { SessionModelUsageSource         } from "@/core/application/session/session-model-usage.js"                  ;
+import type { WooEntry                        } from "@/core/application/orchestration/woo-entry.js"                      ;
+import type { SkillRegistrySnapshot           } from "@/core/skills/skill-registry.js"                                    ;
 import type {
-	BackgroundWorkState,
-	NativeApprovalPolicy,
-	NativeApprovalRequest,
-	NativeRefs,
-	NativeSandboxMode,
-	NativeThreadStart,
-	NativeUncertainOperation,
-} from "@/core/domain/execution/native-session.js";
-import type { NativeModelCatalog }                                from "@/core/domain/execution/model-settings.js";
+              RequestActionApproval         ,
+              RequestActionCapability       ,
+                                              } from "@/core/ports/execution/request-action-port"                         ;
+import type { RuntimeToolCall                 } from "@/core/ports/execution/runtime-tool-port"                           ;
+import type { RequestRuntimeMode              } from "@/core/application/orchestration/request-runtime-mode.js"           ;
+import type { RequestRuntimeRecord            } from "@/core/domain/execution/request-runtime"                            ;
+import type { RequestProjectionPort           } from "@/core/ports/execution/request-projection-port"                     ;
+import type { LinearProjectDashboardReader    } from "@/core/ports/integration/linear-project-dashboard-port"             ;
 import type {
-	ProjectActivity,
-	ProjectActivityAppendResult,
-	ProjectActivityInput,
-	ProjectActivityKind,
-	ProjectActivityPhase,
-} from "@/core/domain/execution/project-activity.js";
-import type { TodoDocument, TodoNativePlanBinding }               from "@/core/domain/work/todos.js";
-import type { DplanHash, WorkFlowProjection }                     from "@/core/domain/work/index.js";
-import type { ExecutionRunState }                                 from "@/core/runtime/execution-run.js";
-import type { TNoteActivitySource, TNoteDraft, TNoteSourceRange } from "@/core/domain/work/t-notes.js";
+              BackgroundWorkState           ,
+              NativeApprovalPolicy          ,
+              NativeApprovalRequest         ,
+              NativeRefs                    ,
+              NativeSandboxMode             ,
+              NativeThreadStart             ,
+              NativeUncertainOperation      ,
+                                              } from "@/core/domain/execution/native-session.js"                          ;
+import type { NativeModelCatalog              } from "@/core/domain/execution/model-settings.js"                          ;
 import type {
-	WorkbenchChatMessage,
-	WorkbenchActionResult,
-	WorkbenchCollaborationMode,
-	WorkbenchCommand,
-	WorkbenchCommandReceipt,
-	WorkbenchListener,
-	WorkbenchMcpServer,
-	WorkbenchModelSelection,
-	WorkbenchPermissionMode,
-	WorkbenchSessionGoal,
-	WorkbenchSnapshot,
-} from "@/core/domain/work/workbench.js";
-import type { ActivitySelectionResult }                           from "@/core/domain/work/trace-selection.js";
-import type { LinearProjectDashboard }                            from "@/core/domain/work/linear-dashboard.js";
-import type { CacheLayerObservation }                             from "@/core/domain/observability/cache-telemetry.js";
+              ProjectActivity               ,
+              ProjectActivityAppendResult   ,
+              ProjectActivityInput          ,
+              ProjectActivityKind           ,
+              ProjectActivityPhase          ,
+                                              } from "@/core/domain/execution/project-activity.js"                        ;
 import type {
-	PerformanceBoundary,
-	PerformanceLayerId,
-	PerformanceTrace,
-	PerformanceWindow,
-} from "@/core/domain/observability/layer-performance.js";
-import type { BlockedChatDeliveryState }                          from "@/core/application/orchestration/native-turn-coordinator.js";
-import type { WorkbenchMcpManagement }                            from "@/core/application/orchestration/workbench-command-handlers.js";
+              TodoDocument                  ,
+              TodoNativePlanBinding         ,
+                                              } from "@/core/domain/work/todos.js"                                        ;
+import type {
+              DplanHash                     ,
+              WorkFlowProjection            ,
+                                              } from "@/core/domain/work/index.js"                                        ;
+import type { ExecutionRunState               } from "@/core/runtime/execution-run.js"                                    ;
+import type {
+              TNoteActivitySource           ,
+              TNoteDraft                    ,
+              TNoteSourceRange              ,
+                                              } from "@/core/domain/work/t-notes.js"                                      ;
+import type {
+              WorkbenchChatMessage          ,
+              WorkbenchActionResult         ,
+              WorkbenchCollaborationMode    ,
+              WorkbenchCommand              ,
+              WorkbenchCommandReceipt       ,
+              WorkbenchListener             ,
+              WorkbenchMcpServer            ,
+              WorkbenchModelSelection       ,
+              WorkbenchPermissionMode       ,
+              WorkbenchSessionGoal          ,
+              WorkbenchSnapshot             ,
+                                              } from "@/core/domain/work/workbench.js"                                    ;
+import type { ActivitySelectionResult         } from "@/core/domain/work/trace-selection.js"                              ;
+import type { LinearProjectDashboard          } from "@/core/domain/work/linear-dashboard.js"                             ;
+import type { CacheLayerObservation           } from "@/core/domain/observability/cache-telemetry.js"                     ;
+import type {
+              PerformanceBoundary           ,
+              PerformanceLayerId            ,
+              PerformanceTrace              ,
+              PerformanceWindow             ,
+                                              } from "@/core/domain/observability/layer-performance.js"                   ;
+import type { BlockedChatDeliveryState        } from "@/core/application/orchestration/native-turn-coordinator.js"        ;
+import type { WorkbenchMcpManagement          } from "@/core/application/orchestration/workbench-command-handlers.js"     ;
+import      { asRecord                        } from "@/core/domain/value/record.js"                                      ;
 
 const dplanHash: DplanHash = {
 	sha256Hex: (input) => createHash("sha256").update(input).digest("hex"),
@@ -133,7 +159,7 @@ export interface WorkbenchTodoSource {
 	 * Workbench가 버린다. 실패는 현재 Todo를 보존하며 다음 Plan 관측에서 다시 시도한다.
 	 */
 	syncNativePlan?(flow: WorkFlowProjection, binding: TodoNativePlanBinding): Promise<TodoDocument>;
-	/** Request Runtime의 requestId를 identity로 하는 seven-stage Todo mirror다. */
+	/** Historical v1/v2 request records may have a Todo mirror. */
 	syncRequestRuntime?(request: RequestRuntimeRecord): Promise<TodoDocument>;
 	create        (title: string, items: readonly string[], storyId?: string): Promise<TodoDocument>;
 	add           (content: string, placement: "now" | "after"              ): Promise<TodoDocument>;
@@ -168,7 +194,7 @@ export interface WorkbenchTNoteSource {
 export interface ProjectWorkbenchOptions {
 	/** Explicitly scoped capabilities. No ambient shell or publication authority. */
 	requestCapabilities?: readonly RequestActionCapability[];
-	/** The first request starts Runtime; an explicit /goal additionally promotes off to observe. */
+	/** Request observations can be disabled or enabled; WWW uses passive observe mode. */
 	requestRuntimeMode?: RequestRuntimeMode;
 	requestProjection?: RequestProjectionPort;
 	/** Local preflight only; the implementation owns its persisted state and receipts. */
@@ -190,14 +216,14 @@ export interface ProjectWorkbenchOptions {
 	sandbox?                  : NativeThreadStart["sandbox"]        ;
 	resumeThreadId?           : string                              ;
 	/** Acquires the caller-owned writable lease before resuming a thread. */
-	acquireThreadLease? : (threadId: string) => Promise<void> ;
-	todos?              : WorkbenchTodoSource                 ;
-	tnotes?             : WorkbenchTNoteSource                ;
-	promotions?         : CanonicalPromotionService           ;
-	reviews?            : ReviewService                       ;
-	narrator?           : ActivityNarrator                    ;
+	acquireThreadLease? : (threadId: string) => Promise<void>                                          ;
+	todos?              : WorkbenchTodoSource                                                          ;
+	tnotes?             : WorkbenchTNoteSource                                                         ;
+	promotions?         : CanonicalPromotionService                                                    ;
+	reviews?            : ReviewService                                                                ;
+	narrator?           : ActivityNarrator                                                             ;
 	outputLanguage?     : import("@/core/domain/execution/output-language.js").OutputLanguageSelection ;
-	wooEntry?           : WooEntry                            ;
+	wooEntry?           : WooEntry                                                                     ;
 	/** Revision-bound local Skill inventory supplied to every Native turn. */
 	skillRegistry?         : SkillRegistrySnapshot                                                              ;
 	auxiliaryUsage?        : SessionModelUsageSource                                                            ;
@@ -420,10 +446,15 @@ export class ProjectWorkbench {
 			...(options.reviews === undefined ? {} : { reviews: options.reviews }),
 			note               : noteId => this.noteNarration.note(noteId),
 			activities         : () => this.activities,
-			hasRuntimeRequests : () => this.workflow.records().length > 0,
-			setMcpServers      : servers => { this.mcpServers = immutable(servers); },
-			setActionResult    : (kind, title, body, digest) => this.setActionResult(kind, title, body, digest),
-			publish            : () => this.publish(),
+			hasLegacyRuntimeRequests: () => {
+				const turnId  = this.activeTurnId ?? this.selectedPlanTurnId                                        ;
+				const records = this.workflow.records()                                                             ;
+				const current = [...records].reverse().find(request => request.turnId === turnId) ?? records.at(-1) ;
+				return current !== undefined && current.protocolVersion < 3;
+			},
+			setMcpServers   : servers => { this.mcpServers = immutable(servers); },
+			setActionResult : (kind, title, body, digest) => this.setActionResult(kind, title, body, digest),
+			publish         : () => this.publish(),
 		});
 		this.workflow.confirmTodo(this.todo);
 		this.current = this.makeSnapshot("loading");
@@ -434,8 +465,8 @@ export class ProjectWorkbench {
 				: event.type === "approval-requested"
 					? event.approval.refs.turnId ?? event.approval.refs.threadId ?? `approval-${event.approval.requestId}`
 					: event.refs.turnId ?? event.refs.threadId ?? `approval-${event.requestId}`;
-			const traceId = `${traceScope}:event-${++this.performanceTraceSequence}`;
-			const receivedAt = performance.now();
+			const traceId    = `${traceScope}:event-${++this.performanceTraceSequence}` ;
+			const receivedAt = performance.now()                                        ;
 			this.observeLayerPerformance(traceId, "native-receive", "queued", receivedAt);
 			this.observeLayerPerformance(traceId, "native-receive", "started", receivedAt);
 			if (event.type === "approval-requested" && event.approval.refs.threadId === this.threadId) { this.runtimePendingApproval = true; this.requestController.interrupt(); }
@@ -559,7 +590,7 @@ export class ProjectWorkbench {
 	/** Conservative native-only background state for consumers that need it. */
 	public get backgroundWorkState(): BackgroundWorkState {
 		return projectBackgroundWorkState(this.visibleActivities.flatMap((activity) => {
-			const item = record(record(activity.payload.params)?.item);
+			const item = asRecord(asRecord(activity.payload.params)?.item);
 			return item ? [item] : [];
 		}));
 	}
@@ -640,8 +671,8 @@ export class ProjectWorkbench {
 				this.publish();
 				resolve(accepted && !signal.aborted && !this.closed && Date.now() < approval.expiresAt);
 			};
-			const abort = () => finish(false);
-			const timer = setTimeout(abort, Math.max(0, approval.expiresAt - Date.now()));
+			const abort = () => finish(false)                                             ;
+			const timer = setTimeout(abort, Math.max(0, approval.expiresAt - Date.now())) ;
 			this.runtimeApproval = { id: approval.id, resolve: finish };
 			this.pendingApproval = immutable({
 				requestId: approval.id, callbackId: null, kind: approval.intent.stage === "EXECUTE" ? "file-change" : "mcp-tool",
@@ -784,16 +815,21 @@ export class ProjectWorkbench {
 			this.applyThreadSettings(resumed);
 			this.visibleThreadId = resumed.id;
 			this.visibleActivities.push(...this.activities.filter(activity => activity.nativeRefs.threadId === resumed.id));
-			this.selectedPlanTurnId = [...this.activities].reverse().find((activity) =>
+			const latestTurnId = [...this.activities].reverse().find((activity) =>
 				activity.nativeRefs.threadId === resumed.id
 				&& (activity.payload.method === "turn/start" || activity.payload.method === "turn/started")
 				&& typeof activity.nativeRefs.turnId === "string",
 			)?.nativeRefs.turnId ?? null;
+			const persistedPlanTurnId = this.todo?.source?.turnId;
+			this.selectedPlanTurnId = persistedPlanTurnId && this.activities.some(activity =>
+				activity.nativeRefs.threadId === resumed.id && activity.nativeRefs.turnId === persistedPlanTurnId
+				&& (activity.payload.method === "turn/start" || activity.payload.method === "turn/started"))
+				? persistedPlanTurnId : latestTurnId;
 			this.workflow.invalidateFlow();
 			this.noteNarration.scheduleNarrations();
 			this.threadId = read.id;
-			const resumedTodoFlow = this.workflow.currentFlow();
-			const syncResumedTodo = this.workflow.records().length ? undefined : this.options.todos?.syncNativePlan?.bind(this.options.todos);
+			const resumedTodoFlow = this.workflow.currentFlow()                                                                               ;
+			const syncResumedTodo = this.workflow.records().length ? undefined : this.options.todos?.syncNativePlan?.bind(this.options.todos) ;
 			if (
 				syncResumedTodo
 				&& (!this.todo || this.todo.items.length === 0 || this.todo.source !== undefined)
@@ -860,11 +896,11 @@ export class ProjectWorkbench {
 	private async sendChat(commandId: string, rawText: string, goal = false, delivery: "queue" | "steer" = "steer"): Promise<WorkbenchCommandReceipt> {
 		const text = sanitizeTerminalTextUnbounded(rawText).trim();
 		if (!text) return { state: "rejected", commandId, reason: "보낼 메시지가 비어 있습니다." };
-		const effectiveGoal = goal || this.sessionGoal === null;
-		const goalText      = goal ? summarizeSessionGoal(text) : undefined;
+		const effectiveGoal = goal || this.sessionGoal === null             ;
+		const goalText      = goal ? summarizeSessionGoal(text) : undefined ;
 		if (this.requestRuntimePolicy.brokered && !this.activeTurnId) {
-			const unresolved = this.workflow.records().find(r => r.actions.some(a => a.status === "unconfirmed"));
-			const action = unresolved?.actions.find(a => a.status === "unconfirmed");
+			const unresolved = this.workflow.records().find(r => r.actions.some(a => a.status === "unconfirmed")) ;
+			const action     = unresolved?.actions.find(a => a.status === "unconfirmed")                          ;
 			if (unresolved && action) return { state: "rejected", commandId, reason: `이전 실행 결과를 먼저 정산하세요: /reconcile ${unresolved.requestId} ${action.operationId}` };
 		}
 		if (delivery !== "queue"
@@ -930,7 +966,7 @@ export class ProjectWorkbench {
 				threadId,
 				turnId,
 				messageId: localMessageId,
-				text: managedRequest ? `${text}\n\n${requestProtocolContext(localMessageId, this.requestProtocolVersion()).value}` : text,
+				text: managedRequest && this.requestRuntimePolicy.brokered ? `${text}\n\n${requestProtocolContext(localMessageId, 2).value}` : text,
 			}));
 		} catch (error) {
 			if (managedRequest) await this.appendRequestObservation(
@@ -961,8 +997,8 @@ export class ProjectWorkbench {
 	}
 
 	private async startChatTurn(text: string, localMessageId: string, queued = false, goal = false, planGoal = goal, goalText?: string): Promise<ProjectActivity> {
-		const managedRequest = this.requestRuntimePolicy.manages(goal);
-		const intake = managedRequest && !this.threadId && this.journal.supportsRequestIntake === true;
+		const managedRequest = this.requestRuntimePolicy.manages(goal)                                         ;
+		const intake         = managedRequest && !this.threadId && this.journal.supportsRequestIntake === true ;
 		if (intake) await this.appendRequestObservation("request/submitted", localMessageId, undefined, text);
 		const messagePayload = {
 			direction: "outbound",
@@ -1037,8 +1073,9 @@ export class ProjectWorkbench {
 				managedRequest
 					? { ...turnInput, additionalContext: { www_request_runtime: requestProtocolContext(
 						localMessageId,
-						this.requestProtocolVersion(),
+						this.requestRuntimePolicy.brokered ? 2 : 4,
 						queued ? { kind: "queued-follow-up", currentGoal: this.current.sessionGoal?.text ?? null } : undefined,
+						this.collaborationMode === "plan",
 					) } }
 					: turnInput,
 				this.options.wooEntry?.snapshot,
@@ -1070,7 +1107,7 @@ export class ProjectWorkbench {
 		this.nativeEvents.rememberNativeRefs({ threadId: this.threadId, turnId: turn.id });
 		this.setContextTurn(turn.id);
 		this.activeTurnId = turn.id;
-		if (queued && this.selectedPlanTurnId) this.deferredPlanTurnId = turn.id;
+		if (this.selectedPlanTurnId && (queued || this.todo?.source?.turnId === this.selectedPlanTurnId)) this.deferredPlanTurnId = turn.id;
 		else {
 			this.deferredPlanTurnId = null;
 			this.selectedPlanTurnId = turn.id;
@@ -1109,7 +1146,7 @@ export class ProjectWorkbench {
 		}, { method, requestId, text, protocolVersion: this.requestProtocolVersion(), ...(model ?? {}) }, false, sourceDigest);
 	}
 
-	private requestProtocolVersion(): 1 | 2 {
+	private requestProtocolVersion(): 1 | 2 | 3 | 4 {
 		return this.requestRuntimePolicy.protocolVersion(
 			this.activities.some(a => a.payload.method === "request/submitted" && a.payload.protocolVersion === 2),
 		);
@@ -1416,7 +1453,7 @@ export class ProjectWorkbench {
 		sourceDigest?: string,
 	): Promise<ProjectActivity> {
 		const activity = await this.activityJournal.append(kind, phase, nativeRefs, payload, publish, sourceDigest);
-		if (payload.method === "turn/plan/updated"
+		if (readNativePlanRevision(activity).kind === "valid-plan-revision"
 			&& nativeRefs.turnId
 			&& nativeRefs.turnId === this.deferredPlanTurnId) {
 			this.selectedPlanTurnId = nativeRefs.turnId;
@@ -1488,16 +1525,17 @@ export class ProjectWorkbench {
 		const executionActivity = executionRun ? projectExecutionActivity(executionRun) : null             ;
 		const workFlow          = this.workflow.currentFlow()                                              ;
 		const delegation        = this.cacheProjection.delegation(this.activities, this.threadId)          ;
-		// New requests always use the seven-stage template. Legacy sessions retain
-		// their Native Plan projection; stages are never inferred retroactively.
-		const allRequestRuntime = this.workflow.records();
-		const selectedRequestTurnId = this.activeTurnId ?? this.selectedPlanTurnId;
+		// New requests keep passive checkpoint observations; legacy stage data is replayed as history.
+		const allRequestRuntime     = this.workflow.records()                      ;
+		const selectedRequestTurnId = this.activeTurnId ?? this.selectedPlanTurnId ;
 		const requestRuntime = this.requestRuntimePolicy.mode !== "off"
 			? allRequestRuntime
 			: allRequestRuntime.filter(request => request.turnId === selectedRequestTurnId);
-		const request        = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1)                ;
-		const understood     = request?.events.filter(event => event.stage === "UNDERSTAND" && (event.type === "stage.completed" || event.type === "stage.skipped")).at(-1) ;
-		const goalSource     = understood                                                                                                                                     ;
+		const request    = [...requestRuntime].reverse().find(r => r.turnId === (this.activeTurnId ?? this.selectedPlanTurnId)) ?? requestRuntime.at(-1)                ;
+		const understood = request?.events.filter(event => event.stage === "UNDERSTAND" && (event.type === "stage.completed" || event.type === "stage.skipped")).at(-1) ;
+		const goalSource     = understood ?? (request?.protocolVersion === 4 && request.planDecision
+			? { activityId: request.planDecision.activityId, at: request.planDecision.decidedAt }
+			: null)                                                                                                                                                          ;
 		// SessionGoal은 $session-goal 턴의 sole bounded 마커나 goal.set으로만 확정된다.
 		// 일반 요청의 objective는 UNDERSTAND가 완료된 뒤에만 목표가 된다.
 		// 시작 시점의 objective는 사용자 입력 원문이므로 Goal에 표시하지 않는다.

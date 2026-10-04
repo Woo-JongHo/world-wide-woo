@@ -1,0 +1,17 @@
+{
+  "kind": "linear-project-comment",
+  "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "candidateId": "ARTIFACT-CANDIDATE-REQUEST-RUNTIME-V4-ANALYSIS-COMMENT",
+  "candidateDigest": "PENDING",
+  "expectedBefore": {
+    "latestCommentId": "e84e0862-4178-43d7-bf30-1b1e0dcc6c6b"
+  },
+  "result": {
+    "commentId": "fcb04e32-ac47-4f9c-8fa9-707e70bccae5",
+    "authorId": "b4d40a2b-9d29-441c-a5d3-71d4867ff22b",
+    "authorName": "우종호",
+    "createdAt": "2026-09-30T23:33:14.023Z",
+    "latestCommentIdAfter": "fcb04e32-ac47-4f9c-8fa9-707e70bccae5",
+    "bodyReadBack": true
+  }
+}

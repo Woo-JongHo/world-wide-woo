@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-REQUEST-RUNTIME-V4-ANALYSIS-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "worktree:0e7d421b5da741d39b34895a6d2d1fbdb3ff14be:dirty",
+  "intent": "Request Runtime v4 현행 관측 경로 분석 보고서 작성 기록",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "Request Runtime v4의 상태 전환, Plan 필요 판단, 실패·재개 경로를 구현·계약·테스트 파일에 대조한 3부분 보고서를 docs/REQUEST_RUNTIME_V4_ANALYSIS_2026-10-01.md에 작성했다.",
+      "제품·테스트 코드는 수정하지 않았고 현재 작업트리의 미커밋 변경을 조사 기준으로 명시했다."
+    ],
+    "impacts": [
+      "Native turn 결과와 공개 Checkpoint 관측, 같은 turn의 Plan 수락, thread 재개 경계를 구분해 후속 검토의 근거를 제공한다. 새 제품 계약 결정은 없다."
+    ],
+    "categories": [
+      "verification"
+    ],
+    "verification": [
+      "git diff --check -- docs/REQUEST_RUNTIME_V4_ANALYSIS_2026-10-01.md 통과; 자리표시 검색 결과 없음.",
+      "bun test test/request-runtime.test.ts: 27 pass, 9 fail. v4 관련 7개 사례는 통과했으며 전체 테스트 통과는 아니다."
+    ],
+    "connections": [
+      "WOO-845: 실행 상태 수렴의 기존 책임 이슈; WOO-910: 과거 7단계 Runtime 기록.",
+      "docs/REQUEST_RUNTIME_V4_ANALYSIS_2026-10-01.md"
+    ]
+  },
+  "links": {
+    "linear": "WOO-845",
+    "relatedLinear": "WOO-910",
+    "evidence": "docs/REQUEST_RUNTIME_V4_ANALYSIS_2026-10-01.md"
+  },
+  "expectedBefore": {
+    "latestCommentId": "e84e0862-4178-43d7-bf30-1b1e0dcc6c6b"
+  },
+  "validation": [
+    {
+      "id": "existing-issue",
+      "status": "pass",
+      "evidence": "linear-woo에서 WOO-845와 WOO-910을 조회했다. 분석만 수행하여 새 이슈가 필요하지 않다."
+    },
+    {
+      "id": "duplicate-check",
+      "status": "pass",
+      "evidence": "2026-10-01 Project Activity 최신 50건에서 동일 보고서 경로와 같은 작업 기록이 없었다."
+    },
+    {
+      "id": "publication-boundary",
+      "status": "pass",
+      "evidence": "Project Comment 상시 사전 승인 범위이며 게시 직전 latestCommentId를 다시 대조한다."
+    }
+  ],
+  "candidateDigest": "07ced7880d2fe9fd3fdd5a6dd817bc64f9fbc67fed501f23da6435f8ad12e34d"
+}

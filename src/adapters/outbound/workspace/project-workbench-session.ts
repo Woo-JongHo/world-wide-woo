@@ -292,7 +292,8 @@ export async function createProjectWorkbenchSession(
 		);
 		if (options.resumeThreadId) await journal.bindThread(options.resumeThreadId);
 		const todoSource = new ThreadScopedTodoSource(resolveNativeThreadScope, scope => {
-			const todoPath = join(workspace.todosDirectory, scope.workId, "Todo.md");
+			const todoPath       = join(workspace.todosDirectory, scope.workId, "Plan.md");
+			const previousPath   = join(workspace.todosDirectory, scope.workId, "Todo.md");
 			const ledger   = factories.createTodoLedger(
 				scope.workId,
 				factories.createTodoStore(todoPath),
@@ -300,6 +301,7 @@ export async function createProjectWorkbenchSession(
 			);
 			return {
 				ledger,
+				prepare: async () => { await factories.importLegacyTodo(previousPath, todoPath); },
 				importLegacy: () => factories.importLegacyTodo(workspace.legacyTodoPath, todoPath),
 			};
 		});

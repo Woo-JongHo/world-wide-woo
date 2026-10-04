@@ -699,8 +699,8 @@ describe("createProjectWorkbenchSession", () => {
 
 		const entries = [...stores.entries()];
 		expect(entries.map(([path]) => path)).toEqual([
-			join(workspace.todosDirectory, scopedTodoSessionId("thread-a"), "Todo.md"),
-			join(workspace.todosDirectory, scopedTodoSessionId("thread-b"), "Todo.md"),
+			join(workspace.todosDirectory, scopedTodoSessionId("thread-a"), "Plan.md"),
+			join(workspace.todosDirectory, scopedTodoSessionId("thread-b"), "Plan.md"),
 		]);
 		expect(entries.map(([, store]) => store.document)).toEqual([
 			expect.objectContaining({ items: [expect.objectContaining({ content: "plan 1" })], source: expect.objectContaining({ turnId: "turn-1", input: expect.objectContaining({ requestId: "thread-a-request" }), rootExecution: expect.objectContaining({ model: "gpt-5.6-sol", threadId: "thread-a", runId: "turn-1" }) }) }),
@@ -840,7 +840,7 @@ describe("createProjectWorkbenchSession", () => {
 		expect(observed.workflowRoot                                                      ).toBe         (workspace.root                                                                    ) ;
 		expect(observed.workflowCreated                                                   ).toBe         (1                                                                                 ) ;
 		expect(session.projectId                                                          ).toBe         (scopedProjectId(workspace.root)                                                   ) ;
-		expect(observed.todoPath                                                          ).toBe         (join(workspace.todosDirectory, scopedTodoSessionId("opaque-native-id"), "Todo.md")) ;
+		expect(observed.todoPath                                                          ).toBe         (join(workspace.todosDirectory, scopedTodoSessionId("opaque-native-id"), "Plan.md")) ;
 		expect(observed.journalPath                                                       ).toBe         (join(workspace.runtimeDirectory, "activity")                                      ) ;
 		expect(observed.draftPath                                                         ).toBe         (workspace.draftsDirectory                                                         ) ;
 		expect(observed.tnoteModel                                                        ).toBe         ("gpt-5.6-luna"                                                                    ) ;
@@ -946,7 +946,7 @@ describe("createProjectWorkbenchSession", () => {
 		expect(todoPaths).toEqual([]);
 
 		await session.workbench.dispatch({ type: "chat.send", text: "세션 Todo를 시작해" });
-		expect(todoPaths).toEqual([join(workspace.todosDirectory, scopedTodoSessionId("thread"), "Todo.md")]);
+		expect(todoPaths).toEqual([join(workspace.todosDirectory, scopedTodoSessionId("thread"), "Plan.md")]);
 		await Bun.sleep(10);
 		await session.close();
 		expect(nativePlanSyncCalls).toBeGreaterThan(0);

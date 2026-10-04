@@ -1,10 +1,14 @@
-import type { ProjectActivity }                                  from "@/core/domain/execution/project-activity.js";
-import { redactForExternalReview }                               from "@/core/domain/review/redaction.js";
-import { sanitizeTerminalTextExcerpt }                           from "@/core/domain/execution/terminal.js";
-import { classifyWorkActivity }                                  from "@/core/domain/work/activity-classification.js";
-import type { ExecutionRunState }                                from "@/core/domain/execution/execution-run-contract.js";
-import { readNativePlanRevision }                                from "@/core/domain/work/native-plan-revision.js";
-import type { NativePlanRevisionValidationCode, WorkStepStatus } from "@/core/domain/work/native-plan-revision.js";
+import type { ProjectActivity                    } from "@/core/domain/execution/project-activity.js"       ;
+import      { redactForExternalReview            } from "@/core/domain/review/redaction.js"                 ;
+import      { sanitizeTerminalTextExcerpt        } from "@/core/domain/execution/terminal.js"               ;
+import      { classifyWorkActivity               } from "@/core/domain/work/activity-classification.js"     ;
+import type { ExecutionRunState                  } from "@/core/domain/execution/execution-run-contract.js" ;
+import      { readNativePlanRevision             } from "@/core/domain/work/native-plan-revision.js"        ;
+import type {
+              NativePlanRevisionValidationCode ,
+              WorkStepStatus                   ,
+                                                 } from "@/core/domain/work/native-plan-revision.js"        ;
+import      { asRecord                           } from "@/core/domain/value/record.js"                     ;
 
 export type { WorkStepStatus } from "@/core/domain/work/native-plan-revision.js";
 
@@ -53,7 +57,7 @@ export interface DerivedPlanIdentity {
 }
 export interface NativePlanSource {
 	readonly kind: "native-plan-derived";
-	/** Public Plan documents remain displayable but never own executable Todo state. */
+	/** 공개 계획 문서도 스레드 Plan.md에 보존하지만 실행을 허가하지는 않는다. */
 	readonly authority               : "native-checklist" | "public-plan-document" ;
 	readonly expectedThreadKeyDigest : Sha256Hex                                   ;
 	readonly turnId                  : string                                      ;
@@ -177,8 +181,8 @@ function frame(...parts: readonly (string | Uint8Array)[]): Uint8Array {
 	const output = new Uint8Array(
 		encoded.reduce((size, part) => size + 4 + part.length, 0),
 	);
-	const view = new DataView(output.buffer);
-	let offset = 0;
+	const view = new DataView(output.buffer) ;
+	let offset = 0                           ;
 	for (const part of encoded) {
 		view.setUint32(offset, part.length);
 		offset += 4;
@@ -464,8 +468,8 @@ class PlanScan {
 			this.emitOrphan(activity, "invalid_revision");
 			return;
 		}
-		const running = this.current.filter(state => state.entry.status === "running");
-		const state = running.length === 1 ? running[0] : undefined;
+		const running = this.current.filter(state => state.entry.status === "running") ;
+		const state   = running.length === 1 ? running[0] : undefined                  ;
 		if (!this.currentRevision) this.emitOrphan(activity, "pre_plan");
 		else if (!state) this.emitOrphan(activity, "no_unambiguous_running_item");
 		else {
@@ -518,8 +522,8 @@ export function projectWorkFlow(
 	);
 	const scan = new PlanScan(interval, input, threadDigest, rejections);
 	for (const activity of interval) scan.accept(activity);
-	const steps = projectSteps(scan.current, selectedTurnId, checked.activities, narrations);
-	const completedCount = steps.filter((step) => step.status === "completed").length;
+	const steps          = projectSteps(scan.current, selectedTurnId, checked.activities, narrations) ;
+	const completedCount = steps.filter((step) => step.status === "completed").length                 ;
 	const currentStep = steps.find((step) => step.status === "running") ??
 		steps.find((step) => step.status === "pending") ?? null;
 	return {
@@ -636,8 +640,8 @@ function reconcile(
 		}
 		seeds.set(state.identity.value, state.canonicalSeed);
 	}
-	const oldCounts = count(old.map((state) => state.entry.tokenDigest));
-	const nextCounts = count(next.map((entry) => entry.tokenDigest));
+	const oldCounts  = count(old.map((state) => state.entry.tokenDigest)) ;
+	const nextCounts = count(next.map((entry) => entry.tokenDigest)     ) ;
 	const blocked = collisionTitles([
 		...old.map((state) => state.entry),
 		...next,
@@ -656,8 +660,8 @@ function reconcile(
 		);
 		if (newIndex >= 0) matches.set(newIndex, oldIndex);
 	}
-	let unmatchedOld = old.map((_, index) => index).filter((index) => ![...matches.values()].includes(index));
-	let unmatchedNew = next.map((_, index) => index).filter((index) => !matches.has(index));
+	let unmatchedOld = old.map((_, index) => index).filter((index) => ![...matches.values()].includes(index)) ;
+	let unmatchedNew = next.map((_, index) => index).filter((index) => !matches.has(index))                   ;
 	if (unmatchedOld.length === 1 && unmatchedNew.length === 1) {
 		const priorIndex     = unmatchedOld[0]                                                 ;
 		const candidateIndex = unmatchedNew[0]                                                 ;
@@ -671,8 +675,8 @@ function reconcile(
 				[...prior.entry.raw].length,
 				[...candidate.raw].length,
 			);
-			const limit = Math.min(8, Math.max(1, Math.floor(maxLength * .2)));
-			const distance = lev(prior.entry.raw, candidate.raw, limit);
+			const limit    = Math.min(8, Math.max(1, Math.floor(maxLength * .2))) ;
+			const distance = lev(prior.entry.raw, candidate.raw, limit)           ;
 			if (distance <= limit && distance / maxLength <= .2) {
 				matches.set(candidateIndex, priorIndex);
 			}
@@ -767,8 +771,8 @@ function reconcile(
 			entry.tokenDigest,
 			nonce,
 		);
-		const seed = `${ref.sourceRevisionKeyDigest}:${entry.tokenDigest}:${ordinal}:${sourcePosition}`;
-		const known = seeds.get(value);
+		const seed  = `${ref.sourceRevisionKeyDigest}:${entry.tokenDigest}:${ordinal}:${sourcePosition}` ;
+		const known = seeds.get(value)                                                                   ;
 		if (known !== undefined && known !== seed) {
 			throw new DplanIdentityCollisionError();
 		}
@@ -820,8 +824,8 @@ function narration(
 }
 function activitySummary(activity: ProjectActivity | undefined): string[] {
 	if (!activity) return [];
-	const params = record(activity.payload.params);
-	const item = record(params?.item) ?? params;
+	const params = asRecord(activity.payload.params) ;
+	const item   = asRecord(params?.item) ?? params  ;
 	if (!item) return [];
 	if (item.arguments && typeof item.arguments === "object") {
 		return [`args: ${publicText(JSON.stringify(item.arguments))}`];
@@ -855,8 +859,8 @@ function lev(left: string, right: string, limit = 8): number {
 	if (Math.abs(a.length - b.length) > limit) return limit + 1;
 	let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
 	for (let i = 0; i < a.length; i++) {
-		const next = [i + 1];
-		let minimum = next[0] ?? 0;
+		const next  = [i + 1]      ;
+		let minimum = next[0] ?? 0 ;
 		for (let j = 0; j < b.length; j++) {
 			const leftDistance     = next[j]         ;
 			const upperDistance    = previous[j + 1] ;
@@ -886,11 +890,6 @@ function isEditLike(left: string, right: string): boolean {
 function isTurnStart(activity: ProjectActivity): boolean {
 	return activity.payload.method === "turn/start" ||
 		activity.payload.method === "turn/started";
-}
-function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? Object.fromEntries(Object.entries(value))
-		: undefined;
 }
 function publicText(value: string): string {
 	return redactForExternalReview(

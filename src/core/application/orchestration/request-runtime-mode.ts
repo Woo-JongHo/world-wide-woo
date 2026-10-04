@@ -36,8 +36,8 @@ export class RequestRuntimePolicy {
 		return this.modeForRequest(goal) !== "off";
 	}
 
-	/** A resumed v1 thread cannot be silently upgraded to the v2 protocol. */
-	public protocolVersion(hasBrokeredHistory: boolean): 1 | 2 {
-		return this.brokered && (!this.options.resuming || hasBrokeredHistory) ? 2 : 1;
+	/** v1-v3 remain readable as history; new WWW requests use the owned three-phase contract. */
+	public protocolVersion(_hasBrokeredHistory: boolean): 1 | 2 | 3 | 4 {
+		return this.brokered ? 2 : 4;
 	}
 }

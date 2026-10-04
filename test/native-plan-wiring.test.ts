@@ -13,6 +13,7 @@ import type {
 import type { TodoDocument, TodoItemStatus }    from "../src/core/domain/work/todos.js";
 import { CodexAppServer }                       from "../src/adapters/outbound/execution/codex-app-server.js";
 import type { JsonLineTransport }               from "../src/adapters/outbound/execution/codex-app-server.js";
+import { FakeActivityNarrator }                 from "./project-workbench.fixtures";
 
 class FakeJsonLineTransport implements JsonLineTransport {
 	public readonly sent: Array<Record<string, unknown>> = []                                 ;
@@ -121,7 +122,7 @@ function expectRuntimeTodo(todo: TodoDocument | null, statuses: readonly TodoIte
 }
 
 describe("Native Plan and Runtime Todo boundaries", () => {
-	test("keeps a public numbered Plan in workFlow without replacing the seven-stage Todo or carrying it into manual execution", async () => {
+	test("Plan 모드의 공개 계획을 스레드 문서로 저장하고 다음 실행 턴에도 유지한다", async () => {
 		const transport = new FakeJsonLineTransport();
 		transport.responses.set("mcpServerStatus/list", [{ data: [], nextCursor: null }]);
 		transport.responses.set("thread/start", [{ thread: { id: "thread-root", turns: [] } }]);
@@ -133,18 +134,21 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 		const journal = new MemoryJournal()                                                                                           ;
 		const store   = new MemoryTodoStore()                                                                                         ;
 		const ledger  = new TodoLedger("public-plan-fallback", store, new MemoryEvents(), () => new Date("2026-09-07T00:00:00.000Z")) ;
+		const narrator = new FakeActivityNarrator();
 		await ledger.initialize();
 		const todos = Object.assign(ledger, { importLegacy: async (): Promise<string | null> => null });
 		const workbench = new ProjectWorkbench(server, journal, {
 			projectId: "public-plan-fallback",
 			cwd: "/workspace/public-plan-fallback",
 			todos,
+			narrator,
 		});
 
 		try {
 			await waitFor(() => expect(workbench.snapshot.phase).toBe("ready"));
 			await workbench.dispatch({ type: "session.mode", mode: "plan" });
 			await workbench.dispatch({ type: "chat.send", text: "3단계 계획을 세워줘" });
+			expect((transport.sent.find(message => message.method === "turn/start")?.params as { collaborationMode?: { mode?: string } })?.collaborationMode?.mode).toBe("plan");
 			transport.emit({
 				method: "item/completed",
 				params: {
@@ -179,7 +183,7 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			});
 
 			await waitFor(() => expect(workbench.snapshot.workFlow.steps).toHaveLength(3));
-			expectRuntimeTodo(ledger.snapshot, blockedRuntimeTodoStatuses);
+			await waitFor(() => expect(ledger.snapshot?.items.map(item => item.content)).toEqual(["현재 상태를 확인합니다.", "필요한 변경을 적용합니다.", "결과를 검증합니다."]));
 			expect(workbench.snapshot.workFlow.source?.authority).toBe("public-plan-document");
 			expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["현재 상태를 확인합니다.", "필요한 변경을 적용합니다.", "결과를 검증합니다."]);
 
@@ -194,6 +198,7 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 			const planTurnAction = journal.records.find((activity) => activity.nativeRefs.itemId === "plan-action");
 			expect(planTurnAction).toBeDefined();
 			expect(workbench.snapshot.workFlow.steps[0]?.observationCount).toBe(1);
+			await waitFor(() => expect(workbench.snapshot.planActivities?.some(item => item.stepTitle === "현재 상태를 확인합니다.")).toBe(true));
 			expect(await workbench.dispatch({ type: "trace.select", activityId: planTurnAction!.id })).toMatchObject({
 				state: "accepted",
 				selection: { state: "selected", attribution: { planAssociation: "inferred" } },
@@ -210,8 +215,8 @@ describe("Native Plan and Runtime Todo boundaries", () => {
 				},
 			});
 			await waitFor(() => expect(journal.records.some(activity => activity.nativeRefs.itemId === "manual-action")).toBe(true));
-			expect(workbench.snapshot.workFlow.source).toBeNull();
-			expectRuntimeTodo(ledger.snapshot, activeRuntimeTodoStatuses);
+			expect(workbench.snapshot.workFlow.source?.turnId).toBe("turn-plan");
+			expect(ledger.snapshot?.items.map(item => item.content)).toEqual(["현재 상태를 확인합니다.", "필요한 변경을 적용합니다.", "결과를 검증합니다."]);
 			const action = journal.records.find(activity => activity.nativeRefs.itemId === "manual-action")!;
 			expect(workbench.snapshot.workFlow.steps.some(step => step.activityIds.includes(action.id))).toBe(false);
 

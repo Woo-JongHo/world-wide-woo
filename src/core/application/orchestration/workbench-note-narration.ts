@@ -70,6 +70,7 @@ export class WorkbenchNoteNarration {
 	private readonly completionOrdinals                                                                                                = new Map<string, number>()                                                 ;
 	private readonly automaticTurns                                                                                                    = new Set<string>()                                                         ;
 	private readonly failedAutomaticTurns                                                                                              = new Set<string>()                                                         ;
+	private automaticFailureResult  : WorkbenchActionResult | null                                                                                     = null                                                                      ;
 	private readonly inFlight                                                                                                          = new Map<string, Promise<TNoteDraft>>()                                    ;
 	private queue                   : Promise<void>                                                                                    = Promise.resolve()                                                         ;
 	private readonly abort                                                                                                             = new AbortController()                                                     ;
@@ -212,7 +213,6 @@ export class WorkbenchNoteNarration {
 		if (!scope || this.hasNoteFor(scope.activities)) return;
 		this.automaticTurns.add(turnId);
 		const request = this.request(scope.activities);
-		this.options.setActionResult("tnote", "완료 보고 작성 중", "요청은 완료되었습니다. 검증 근거를 포함한 Report를 Chat 타임라인에 저장하고 있습니다.");
 		this.queue = this.queue.catch(() => undefined).then(async () => {
 			try {
 				const draft = await this.create(request, turnId);
@@ -220,15 +220,15 @@ export class WorkbenchNoteNarration {
 				if (!isValidTNote(draft, request)) throw new Error("Note 생성 결과 형식이 올바르지 않습니다.");
 				this.remember(draft);
 				this.failedAutomaticTurns.delete(turnId);
-				this.options.setActionResult("tnote", `완료 보고 #${draft.sequence}`, "검증 근거를 포함한 Report를 Chat 타임라인에 저장했습니다.");
-			} catch {
+				if (this.automaticFailureResult && this.options.actionResult() === this.automaticFailureResult) this.options.clearActionResult();
+				this.automaticFailureResult = null;
+				this.options.publish();
+			} catch (error) {
 				if (this.options.closed() || this.abort.signal.aborted) return;
 				this.failedAutomaticTurns.add(turnId);
-				const action = this.options.actionResult();
-				if (action?.kind === "tnote" && action.title === "완료 보고 작성 중") {
-					this.options.clearActionResult();
-					this.options.publish();
-				}
+				const reason = error instanceof Error ? error.message : String(error);
+				this.options.setActionResult("tnote", "완료 보고 생성 실패", `완료 응답은 Chat에 남아 있습니다. 별도 Report를 저장하지 못했습니다: ${reason}`);
+				this.automaticFailureResult = this.options.actionResult();
 			} finally {
 				this.automaticTurns.delete(turnId);
 			}
@@ -257,6 +257,17 @@ export class WorkbenchNoteNarration {
 		});
 		const turnId = this.options.activeTurnId() ?? this.options.selectedPlanTurnId();
 		this.planNarration.select(turnId);
+		const flow = this.options.currentFlow();
+		if (turnId && flow.source?.turnId === turnId && flow.steps.length) {
+			const observed = this.options.activities();
+			this.observedSequence = Math.max(this.observedSequence, observed.at(-1)?.sequence ?? 0);
+			const activities = new Map(observed.map(activity => [activity.id, activity]));
+			for (const step of flow.steps) for (const id of [...step.activityIds, ...(step.association?.observationActivityIds ?? [])]) {
+				const activity = activities.get(id);
+				if (activity) this.planNarration.observe(activity, { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal, kind: "plan-progress" });
+			}
+			return;
+		}
 		const context = this.narrationContext();
 		for (const activity of this.options.activities()) {
 			if (activity.sequence <= this.observedSequence) continue;

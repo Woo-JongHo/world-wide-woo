@@ -155,6 +155,26 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		await workbench.close();
 		expect(native.handler).toBeNull();
 	});
+
+	test("observe mode exposes current-turn Activity IDs through a read-only Runtime tool", async () => {
+		class ObserveNative extends FakeNativeHarness {
+			handler: RuntimeToolHandler | null = null;
+			definitions: readonly RuntimeToolDefinition[] = [];
+			registerRuntimeTools(definitions: readonly RuntimeToolDefinition[], handler: RuntimeToolHandler) { this.definitions = definitions; this.handler = handler; return () => { this.handler = null; }; }
+		}
+		const native = new ObserveNative(), journal = new MemoryJournal();
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "p", cwd: "/tmp" });
+		await ready(workbench);
+		const request = await workbench.dispatch({ type: "chat.send", text: "도구 근거 확인" });
+		expect(native.definitions.map(tool => tool.name)).toEqual(["www_runtime_evidence"]);
+		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain("www_runtime_evidence");
+		const result = JSON.parse((await native.handler!({ threadId: "thread-1", turnId: "turn-1", callId: "lookup", tool: "www_runtime_evidence", arguments: { requestId: request.commandId } })).text);
+		expect(result.state).toBe("accepted");
+		expect(result.evidence).toEqual([]);
+		const foreign = JSON.parse((await native.handler!({ threadId: "thread-1", turnId: "turn-1", callId: "foreign", tool: "www_runtime_evidence", arguments: { requestId: "foreign" } })).text);
+		expect(foreign.state).toBe("rejected");
+		await workbench.close();
+	});
 	test("shows a derived session GOAL only after the first request is understood", async () => {
 		const native = new FakeNativeHarness();
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
@@ -188,6 +208,47 @@ describe("ProjectWorkbench · Native bootstrap and planning", () => {
 		expect(native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value).toContain   ("INTENT"             ) ;
 		expect(workbench.snapshot.requestRuntime                                       ).toHaveLength(1                    ) ;
 		expect(workbench.snapshot.todo?.items.map(item => item.content)                ).toEqual     ([...REQUEST_STAGES]  ) ;
+		await workbench.close();
+	});
+	test("delivers the owned three-phase contract to Native and waits for its Plan decision", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample", cwd: "/sample" });
+		await ready(workbench);
+		const request = await workbench.dispatch({ type: "chat.send", text: "두 파일을 수정해줘" });
+		const context = native.startTurnInputs[0]?.additionalContext?.www_request_runtime?.value ?? "";
+		expect(context).toContain('"version":4');
+		expect(context).toContain("planRequired");
+		expect(workbench.snapshot.requestRuntime?.[0]?.checkpoints?.map(item => item.status)).toEqual(["running", "pending", "pending"]);
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "understand" }, params: { item: { type: "agentMessage", phase: "commentary", text: `[www-runtime]${JSON.stringify({ requestId: request.commandId, checkpoint: "UNDERSTAND", summary: "수정 범위를 확인했다", goal: "두 파일을 수정한다", planRequired: true, planReason: "두 파일의 순서가 필요하다" })}` } } });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.sessionGoal?.text).toBe("두 파일을 수정한다");
+		expect(workbench.snapshot.requestRuntime?.[0]?.checkpoints?.[1]?.status).toBe("pending");
+		expect(workbench.snapshot.chat.some(message => message.content.includes("[www-runtime]"))).toBe(false);
+		native.emit({ type: "notification", method: "turn/plan/updated", refs: { threadId: "thread-1", turnId: "turn-1" }, params: { plan: [{ step: "첫 파일 수정", status: "inProgress" }, { step: "둘째 파일 수정", status: "pending" }] } });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.requestRuntime?.[0]?.checkpoints?.[1]?.status).toBe("running");
+		expect(workbench.snapshot.workFlow.steps.map(step => step.title)).toEqual(["첫 파일 수정", "둘째 파일 수정"]);
+		expect(workbench.snapshot.todo?.items.map(item => item.content)).toEqual(["첫 파일 수정", "둘째 파일 수정"]);
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "reporting" }, params: { item: { type: "agentMessage", phase: "commentary", text: `[www-runtime]${JSON.stringify({ requestId: request.commandId, checkpoint: "RESULT", summary: "두 파일의 수정 결과를 정리한다" })}` } } });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.requestRuntime?.[0]?.checkpoints?.[2]?.status).toBe("running");
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "answer" }, params: { item: { type: "agentMessage", phase: "final", text: "수정 결과입니다." } } });
+		await Bun.sleep(10);
+		expect(workbench.snapshot.requestRuntime?.[0]?.checkpoints?.[2]?.status).toBe("observed");
+		await workbench.close();
+	});
+	test("Native Plan 모드에서는 실행 체크리스트를 요구하지 않는다", async () => {
+		const native = new FakeNativeHarness();
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample", cwd: "/sample" });
+		await ready(workbench);
+		await workbench.dispatch({ type: "session.mode", mode: "plan" });
+		await workbench.dispatch({ type: "chat.send", text: "변경 계획을 세워줘" });
+		const input = native.startTurnInputs[0];
+		const context = input?.additionalContext?.www_request_runtime?.value ?? "";
+		expect(input?.collaborationMode?.mode).toBe("plan");
+		expect(context).toContain("Do not call update_plan or execute the proposed work");
+		expect(context).toContain("planRequired false");
+		expect(input?.collaborationMode?.settings.developer_instructions).toContain("plan mode에서는 실행용 update_plan을 호출하지 마세요");
 		await workbench.close();
 	});
 	test("accepts Native stage reports into seven-stage Todo and hides transport messages from Chat", async () => {

@@ -101,6 +101,7 @@ describe("WWW slash commands", () => {
 		expect(parseWorkbenchShellCommand("/permission manual")                       ).toEqual      ({ type: "session.permission", mode: "manual" }                   ) ;
 		expect(parseWorkbenchShellCommand("/permission unsafe")                       ).toMatchObject({ type: "error" }                                                ) ;
 		expect(parseWorkbenchShellCommand("/mode plan")                               ).toEqual      ({ type: "session.mode", mode: "plan" }                           ) ;
+		expect(parseWorkbenchShellCommand("/plan")                                    ).toEqual      ({ type: "session.mode", mode: "plan" }                           ) ;
 		expect(parseWorkbenchShellCommand("/mode manual")                             ).toEqual      ({ type: "session.mode", mode: "manual" }                         ) ;
 		expect(parseWorkbenchShellCommand("/woo-entry")                               ).toEqual      ({ type: "woo-entry.refresh" }                                    ) ;
 		expect(parseWorkbenchShellCommand("/woo-entry now")                           ).toMatchObject({ type: "error" }                                                ) ;

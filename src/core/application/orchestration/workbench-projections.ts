@@ -1,9 +1,10 @@
-import type { NativeRefs }                                 from "@/core/domain/execution/native-session.js";
-import type { ProjectActivity, ProjectActivityPhase }      from "@/core/domain/execution/project-activity.js";
-import { REQUEST_REPORT_PREFIX }                           from "@/core/domain/execution/request-runtime.js";
-import { sanitizeTerminalTextUnbounded }                   from "@/core/domain/execution/terminal.js";
-import type { WorkbenchChatMessage, WorkbenchSessionGoal } from "@/core/domain/work/workbench.js";
-import { questionForTurn }                                 from "@/core/application/work/completed-turn-note-scope.js";
+import type { NativeRefs                                 } from "@/core/domain/execution/native-session.js"            ;
+import type { ProjectActivity, ProjectActivityPhase      } from "@/core/domain/execution/project-activity.js"          ;
+import      { REQUEST_REPORT_PREFIX                      } from "@/core/domain/execution/request-runtime.js"           ;
+import      { sanitizeTerminalTextUnbounded              } from "@/core/domain/execution/terminal.js"                  ;
+import type { WorkbenchChatMessage, WorkbenchSessionGoal } from "@/core/domain/work/workbench.js"                      ;
+import      { questionForTurn                            } from "@/core/application/work/completed-turn-note-scope.js" ;
+import      { asRecord                                   } from "@/core/domain/value/record.js"                        ;
 
 const SESSION_GOAL_MARKER = /^SESSION_GOAL:[ \t]*(\S(?:[^\r\n]*\S)?)$/u;
 
@@ -44,8 +45,8 @@ export function projectSessionGoal(activities: readonly ProjectActivity[]): Work
 export function isAssistantMessageActivity(activity: ProjectActivity): boolean {
 	if (activity.payload.role === "assistant") return true;
 	if (activity.payload.role === "user" || activity.payload.direction === "outbound") return false;
-	const params   = record(activity.payload.params)                                                          ;
-	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase()             ;
+	const params   = asRecord(activity.payload.params)                                                        ;
+	const itemType = String(asRecord(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase()           ;
 	const method   = typeof activity.payload.method === "string" ? activity.payload.method.toLowerCase() : "" ;
 	return itemType === "agentmessage" || method.startsWith("item/agentmessage/");
 }
@@ -53,7 +54,7 @@ export function isAssistantMessageActivity(activity: ProjectActivity): boolean {
 export function isStructuredPlanActivity(activity: ProjectActivity): boolean {
 	if (activity.payload.method === "turn/plan/updated") return true;
 	if (activity.payload.method !== "item/completed") return false;
-	const item = record(record(activity.payload.params)?.item);
+	const item = asRecord(asRecord(activity.payload.params)?.item);
 	return typeof item?.type === "string" && item.type.toLowerCase() === "plan";
 }
 
@@ -90,8 +91,8 @@ export function publicNumberedPlanEntries(
 		}
 		if (ended) return null;
 		started = true;
-		const ordinal = Number(numbered[1]);
-		const step = numbered[2]?.trim().replace(/^\*\*(.+)\*\*$/u, "$1").trim();
+		const ordinal = Number(numbered[1])                                         ;
+		const step    = numbered[2]?.trim().replace(/^\*\*(.+)\*\*$/u, "$1").trim() ;
 		if (ordinal !== entries.length + 1
 			|| !step
 			|| [...step].length > 240
@@ -113,7 +114,7 @@ export function projectChat(activities: readonly ProjectActivity[], rootThreadId
 	for (const activity of activities) {
 		if (activity.kind !== "message") continue;
 		if (rootThreadId && activity.nativeRefs.threadId !== rootThreadId) continue;
-		const payload = record(activity.payload)                  ;
+		const payload = asRecord(activity.payload)                ;
 		const role    = payload ? chatMessageRole(payload) : null ;
 		const status  = chatMessageStatus(activity, payload)      ;
 		const text    = payload ? activityText(payload) : ""      ;
@@ -163,8 +164,8 @@ export function activityText(payload: Readonly<Record<string, unknown>>): string
 	for (const candidate of [payload.text, payload.message, payload.delta]) {
 		if (typeof candidate === "string") return candidate;
 	}
-	const params = record(payload.params);
-	const item = record(params?.item);
+	const params = asRecord(payload.params) ;
+	const item   = asRecord(params?.item  ) ;
 	for (const candidate of [params?.text, params?.message, params?.delta, item?.text, item?.content]) {
 		if (typeof candidate === "string") return candidate;
 	}
@@ -181,13 +182,9 @@ export function stableJson(value: unknown): string {
 	return JSON.stringify(value) ?? "null";
 }
 
-export function record(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-}
-
 function sessionGoalMarker(text: string): string | null {
-	const match = SESSION_GOAL_MARKER.exec(text);
-	const goal = match?.[1];
+	const match = SESSION_GOAL_MARKER.exec(text) ;
+	const goal  = match?.[1]                     ;
 	if (!goal || goal.length > SESSION_GOAL_CHARACTER_LIMIT) return null;
 	return goal;
 }
@@ -196,8 +193,8 @@ function chatMessageRole(payload: Readonly<Record<string, unknown>>): WorkbenchC
 	if (payload.role === "user" || payload.direction === "outbound") return "user";
 	if (payload.role === "assistant") return "assistant";
 	if (payload.role !== undefined || payload.direction !== undefined) return null;
-	const params = record(payload.params);
-	const itemType = String(record(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase();
+	const params   = asRecord(payload.params)                                                       ;
+	const itemType = String(asRecord(params?.item)?.type ?? "").replace(/[-_]/gu, "").toLowerCase() ;
 	if (itemType === "usermessage") return "user";
 	const method = typeof payload.method === "string" ? payload.method.replace(/[-_]/gu, "").toLowerCase() : "";
 	if (itemType === "agentmessage" || method.startsWith("item/agentmessage/")) return "assistant";
@@ -206,7 +203,7 @@ function chatMessageRole(payload: Readonly<Record<string, unknown>>): WorkbenchC
 
 function chatMessageStatus(
 	activity: ProjectActivity,
-	payload: Readonly<Record<string, unknown>> | null,
+	payload: Readonly<Record<string, unknown>> | undefined,
 ): WorkbenchChatMessage["status"] | null {
 	if (!payload) return null;
 	if (activity.phase === "completed" && payload.finalObservation === "missing") return "incomplete";

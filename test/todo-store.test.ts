@@ -214,10 +214,11 @@ describe("FileTodoStore", () => {
 		expect(await store.compareAndSwap(0, todo(1))).toBe("written");
 	});
 
-	test("copies a legacy Todo into an absent canonical path without deleting the source", async () => {
+	test("기존 스레드 Todo.md를 Plan.md로 복사하고 원본을 보존한다", async () => {
 		const { directory } = await fixture();
-		const legacy = join(directory, "Todo.md");
-		const canonical = join(directory, "vault", "Todo.md");
+		const legacy = join(directory, "todos", "thread", "Todo.md");
+		const canonical = join(directory, "todos", "thread", "Plan.md");
+		await mkdir(join(directory, "todos", "thread"), { recursive: true });
 		await writeFile(legacy, renderTodoMarkdown(todo(0)));
 		expect(await importLegacyTodo(legacy, canonical)).toBe   (canonical                  ) ;
 		expect(await readFile(legacy, "utf8")           ).toBe   (renderTodoMarkdown(todo(0))) ;

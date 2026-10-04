@@ -1,19 +1,28 @@
-import type { SessionEventInput }                                    from "@/core/domain/execution/session-events";
-import { MAX_TODO_EVIDENCE, sanitizeTodoText, validateTodoDocument } from "@/core/domain/work/todos";
+import type { SessionEventInput        } from "@/core/domain/execution/session-events"      ;
+import      {
+              MAX_TODO_EVIDENCE      ,
+              sanitizeTodoText       ,
+              validateTodoDocument   ,
+                                       } from "@/core/domain/work/todos"                    ;
 import type {
-	TodoDocument,
-	TodoExecutionReference,
-	TodoItem,
-	TodoItemStatus,
-	TodoNativePlanBinding,
-	TodoNativePlanSource,
-} from "@/core/domain/work/todos";
-import type { SemanticWorkStep, WorkFlowProjection, WorkStepStatus } from "@/core/domain/work";
-import type { TodoController }                                       from "@/core/ports/execution/todo-controller-port";
-import type { SessionRepository }                                    from "@/core/ports/persistence/session-repository";
-import type { TodoStore }                                            from "@/core/ports/persistence/todo-store";
-import type { RequestRuntimeRecord }                                 from "@/core/domain/execution/request-runtime";
-import { projectRequestTodo }                                        from "@/core/domain/work/request-projections";
+              TodoDocument           ,
+              TodoExecutionReference ,
+              TodoItem               ,
+              TodoItemStatus         ,
+              TodoNativePlanBinding  ,
+              TodoNativePlanSource   ,
+                                       } from "@/core/domain/work/todos"                    ;
+import type {
+              SemanticWorkStep       ,
+              WorkFlowProjection     ,
+              WorkStepStatus         ,
+                                       } from "@/core/domain/work"                          ;
+import type { TodoController           } from "@/core/ports/execution/todo-controller-port" ;
+import type { SessionRepository        } from "@/core/ports/persistence/session-repository" ;
+import type { TodoStore                } from "@/core/ports/persistence/todo-store"         ;
+import type { RequestRuntimeRecord     } from "@/core/domain/execution/request-runtime"     ;
+import      { projectRequestTodo       } from "@/core/domain/work/request-projections"      ;
+import      { isRecord                 } from "@/core/domain/value/record.js"               ;
 
 /** Coordinates the project todo document with the session audit trail. */
 /** @Unit Code-011 */
@@ -63,8 +72,8 @@ export class TodoLedger implements TodoController {
 
 	/** @linear WOO-702 Mirrors one observed Native input/turn/Plan revision into its session Todo.md. */
 	public async syncNativePlan(flow: WorkFlowProjection, binding?: TodoNativePlanBinding): Promise<TodoDocument> {
-		const validatedSource = validateNativePlanSource(flow.source);
-		const nativeSteps = flow.steps.slice(0, 12);
+		const validatedSource = validateNativePlanSource(flow.source) ;
+		const nativeSteps     = flow.steps.slice(0, 12)               ;
 		validateNativeTodoIds(nativeSteps);
 		const source = nativeTodoSource(validatedSource, binding ?? reusableNativeBinding(this.current?.source, validatedSource));
 		if (this.current?.source && !canApplyNativeSource(this.current.source, source)) return this.current;
@@ -113,8 +122,8 @@ export class TodoLedger implements TodoController {
 			const match = /^todo-(\d+)$/u.exec(item.id);
 			return Math.max(highest, match ? Number.parseInt(match[1], 10) : 0);
 		}, 0) + 1;
-		const item = { id: `todo-${nextNumber}`, content, status: placement === "now" ? "in_progress" as const : "pending" as const, evidenceIds: [], details: [] };
-		const activeIndex = document.items.findIndex(candidate => candidate.status === "in_progress");
+		const item        = { id: `todo-${nextNumber}`, content, status: placement === "now" ? "in_progress" as const : "pending" as const, evidenceIds: [], details: [] } ;
+		const activeIndex = document.items.findIndex(candidate => candidate.status === "in_progress")                                                                      ;
 		let items = document.items.map(candidate =>
 			placement === "now" && candidate.status === "in_progress"
 				? { ...candidate, status: "pending" as const, evidenceIds: [] }
@@ -137,8 +146,8 @@ export class TodoLedger implements TodoController {
 			|| details.some(detail => typeof detail !== "string")) {
 			throw new Error("Todo details must contain between 1 and 8 strings");
 		}
-		const document = this.requireCurrent();
-		const parent = document.items.find(item => item.id === itemId);
+		const document = this.requireCurrent()                           ;
+		const parent   = document.items.find(item => item.id === itemId) ;
 		if (!parent) throw new Error(`Unknown todo item: ${itemId}`);
 		if (parent.status === "completed") throw new Error("Cannot add details to a completed todo item");
 		if (parent.details.length + details.length > 8) throw new Error("Todo detail limit reached");
@@ -210,13 +219,13 @@ export class TodoLedger implements TodoController {
 	public async recordEvidence(evidenceId: string): Promise<TodoDocument | null> {
 		if (!this.current) return null;
 		if (typeof evidenceId !== "string" || !isId(evidenceId)) throw new Error("Invalid evidence id");
-		const document = this.requireCurrent();
-		const activeItems = document.items.filter((item) => item.status === "in_progress");
+		const document    = this.requireCurrent()                                          ;
+		const activeItems = document.items.filter((item) => item.status === "in_progress") ;
 		// Without a direct Native Plan item reference, evidence is safe to attach
 		// only when the current plan has one unambiguous running item.
 		if (activeItems.length !== 1) return null;
-		const active = activeItems[0];
-		const activeDetail = active.details.find(detail => detail.status === "in_progress");
+		const active       = activeItems[0]                                                 ;
+		const activeDetail = active.details.find(detail => detail.status === "in_progress") ;
 		if (activeDetail && (activeDetail.evidenceIds.includes(evidenceId) || activeDetail.evidenceIds.length >= MAX_TODO_EVIDENCE)) return null;
 		if (!activeDetail && (active.evidenceIds.includes(evidenceId) || active.evidenceIds.length >= MAX_TODO_EVIDENCE)) return null;
 		const next = this.document({
@@ -237,14 +246,14 @@ export class TodoLedger implements TodoController {
 
 	private async transition(itemId: string, change: (item: TodoDocument["items"][number] | TodoDocument["items"][number]["details"][number], parent: TodoDocument["items"][number] | null, document: TodoDocument) => TodoDocument["items"][number] | TodoDocument["items"][number]["details"][number]): Promise<TodoDocument> {
 		if (typeof itemId !== "string" || !isId(itemId)) throw new Error("Invalid todo item id");
-		const document = this.requireCurrent();
-		const parent = document.items.find(candidate => candidate.id === itemId);
+		const document = this.requireCurrent()                                     ;
+		const parent   = document.items.find(candidate => candidate.id === itemId) ;
 		if (parent) {
 			const changed = change(parent, null, document);
 			return this.commit(this.document({ ...document, items: document.items.map(candidate => candidate.id === itemId ? changed as typeof candidate : candidate) }));
 		}
-		const detailParent = document.items.find(candidate => candidate.details.some(detail => detail.id === itemId));
-		const detail = detailParent?.details.find(candidate => candidate.id === itemId);
+		const detailParent = document.items.find(candidate => candidate.details.some(detail => detail.id === itemId)) ;
+		const detail       = detailParent?.details.find(candidate => candidate.id === itemId)                         ;
 		if (!detail || !detailParent) throw new Error(`Unknown todo item: ${itemId}`);
 		const changed = change(detail, detailParent, document);
 		return this.commit(this.document({
@@ -353,11 +362,11 @@ function isTodoParent(item: TodoDocument["items"][number] | TodoDocument["items"
 }
 
 function nativeTodoItem(step: SemanticWorkStep, status: TodoItemStatus, rootExecution: TodoExecutionReference): TodoItem {
-	const id = nativeTodoParentId(step.identity.value);
-	const evidenceIds = validEvidenceIds(step.activityIds);
+	const id          = nativeTodoParentId(step.identity.value) ;
+	const evidenceIds = validEvidenceIds(step.activityIds)      ;
 	return {
 		id,
-		content: todoNarrationText(step.narration.what, TODO_NARRATION_WHAT),
+		content: todoNarrationText(step.title, TODO_NARRATION_WHAT),
 		status,
 		evidenceIds,
 		details: [],
@@ -416,7 +425,7 @@ function isNativePlanSource(source: unknown): source is NonNullable<WorkFlowProj
 	try {
 		if (!isRecord(source)
 			|| source.kind !== "native-plan-derived"
-			|| source.authority !== "native-checklist"
+			|| (source.authority !== "native-checklist" && source.authority !== "public-plan-document")
 			|| source.algorithm !== "dplan-v1") return false;
 		if (!isOpaqueNativeId(source.turnId) || !isSha256Hex(source.expectedThreadKeyDigest)) return false;
 		const revision = source.currentRevision;
@@ -433,10 +442,6 @@ function isNativePlanSource(source: unknown): source is NonNullable<WorkFlowProj
 	}
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 function isSha256Hex(value: unknown): value is string {
 	return typeof value === "string" && /^[a-f0-9]{64}$/u.test(value);
 }
@@ -451,15 +456,15 @@ function isOpaqueNativeId(value: unknown): value is string {
 }
 
 function validateNativeTodoIds(steps: readonly SemanticWorkStep[]): void {
-	const identities = new Map<string, string>();
-	const ids = new Set<string>();
+	const identities = new Map<string, string>() ;
+	const ids        = new Set<string>()         ;
 	for (const step of steps) {
 		const identity = step.identity?.value;
 		if (typeof identity !== "string" || !/^[a-f0-9]{64}$/u.test(identity)) {
 			throw new TodoIdentityCollisionError("invalid_identity");
 		}
-		const parentId = nativeTodoParentId(identity);
-		const previous = identities.get(parentId);
+		const parentId = nativeTodoParentId(identity) ;
+		const previous = identities.get(parentId)     ;
 		if ((previous !== undefined && previous !== identity) || ids.has(parentId)) {
 			throw new TodoIdentityCollisionError("id_collision");
 		}

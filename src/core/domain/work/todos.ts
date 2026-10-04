@@ -1,5 +1,7 @@
-export const TODO_ITEM_STATUSES = ["pending", "in_progress", "completed", "blocked"] as const;
-export const MAX_TODO_EVIDENCE = 8;
+import { isRecord } from "@/core/domain/value/record.js";
+
+export const TODO_ITEM_STATUSES = ["pending", "in_progress", "completed", "blocked"] as const ;
+export const MAX_TODO_EVIDENCE  = 8                                                           ;
 export type TodoItemStatus = (typeof TODO_ITEM_STATUSES)[number];
 
 export interface TodoPlanRevisionReference {
@@ -64,7 +66,7 @@ export interface TodoItem {
 }
 
 export interface TodoDocument {
-	/** A seven-stage Runtime projection; absent for historical/native-plan boards. */
+	/** Historical v1/v2 Runtime projection; new observation records use Native Plan instead. */
 	readonly requestId? : string ;
 	readonly version    : 1      ;
 	readonly revision   : number ;
@@ -130,12 +132,12 @@ export function validateTodoDocument(value: unknown): TodoDocument {
 	if (typeof value.title !== "string") fail("invalid title");
 	if (typeof value.updatedAt !== "string" || !isIsoDate(value.updatedAt)) fail("invalid updatedAt");
 	if (!Array.isArray(value.items) || value.items.length > 12) fail("invalid item count");
-	const requestId = value.requestId;
-	const runtime = requestId !== undefined;
+	const requestId = value.requestId         ;
+	const runtime   = requestId !== undefined ;
 	if (runtime && (!isOpaqueReference(requestId) || value.items.map(itemId).join(",") !== "understand,decompose,ground,decide,execute,verify,deliver")) fail("invalid request runtime todo");
 
-	const items = validateTodoItems(value.items, runtime);
-	const source = value.source === undefined ? undefined : validateTodoSource(value.source);
+	const items  = validateTodoItems(value.items, runtime)                                   ;
+	const source = value.source === undefined ? undefined : validateTodoSource(value.source) ;
 	validateTodoRelationships(items, source);
 	return Object.freeze({
 		version        : 1,
@@ -155,8 +157,8 @@ function itemId(value: unknown): unknown {
 }
 
 function validateTodoItems(rawItems: readonly unknown[], runtime: boolean): readonly TodoItem[] {
-	const ids = new Set<string>();
-	let activeDetails = 0;
+	const ids         = new Set<string>() ;
+	let activeDetails = 0                 ;
 	const items = rawItems.map((raw) => {
 		if (!isRecord(raw) || typeof raw.id !== "string" || !idPattern.test(raw.id)) fail("invalid todo item id");
 		if (ids.has(raw.id)) fail("duplicate todo item id");
@@ -219,8 +221,8 @@ export function renderTodoMarkdown(document: TodoDocument): string {
 export function parseTodoMarkdown(markdown: string): TodoDocument {
 	const lines = markdown.split(/\r?\n/u);
 	if (lines.at(-1) === "") lines.pop();
-	const headerLine = lines[0];
-	const titleLine = lines[1];
+	const headerLine = lines[0] ;
+	const titleLine  = lines[1] ;
 	if (!headerLine || !titleLine) fail("invalid todo markdown layout");
 	const header = parseComment(headerLine);
 	if (!isRecord(header) || !hasExactKeys(header, ["version", "revision", "ownerSessionId", "storyId", "updatedAt"], ["source", "requestId"]) || header.version !== 1) fail("invalid todo markdown header");
@@ -260,11 +262,11 @@ export function patchTodoMarkdown(markdown: string, next: TodoDocument): string 
 		renderEntry(item),
 		...item.details.map((detail) => `  ${renderEntry(detail)}`),
 	]);
-	const managed = lines.flatMap((line, index) => isManagedTodoLine(line.content) ? [index] : []);
-	const common = Math.min(managed.length, desired.length);
+	const managed = lines.flatMap((line, index) => isManagedTodoLine(line.content) ? [index] : []) ;
+	const common  = Math.min(managed.length, desired.length)                                       ;
 	for (let index = 0; index < common; index += 1) {
-		const lineIndex = managed[index];
-		const content = desired[index];
+		const lineIndex = managed[index] ;
+		const content   = desired[index] ;
 		if (lineIndex === undefined || content === undefined || !lines[lineIndex]) fail("invalid managed todo range");
 		lines[lineIndex].content = content;
 	}
@@ -291,8 +293,8 @@ interface MarkdownLine {
 function splitMarkdownLines(markdown: string): MarkdownLine[] {
 	const lines: MarkdownLine[] = [];
 	for (const match of markdown.matchAll(/([^\r\n]*)(\r\n|\n|$)/gu)) {
-		const content = match[1];
-		const eol = match[2];
+		const content = match[1] ;
+		const eol     = match[2] ;
 		if (content === undefined || !isLineEnding(eol)) fail("invalid todo line ending");
 		if (content === "" && eol === "") break;
 		lines.push({ content, eol });
@@ -337,8 +339,8 @@ function parseItemLine(line: string): TodoItem {
 		|| !Array.isArray(metadata.evidenceIds)) fail("invalid todo item metadata");
 	if (!isTodoItemStatus(metadata.status)) fail("invalid todo item status");
 	if ((checkbox === "x") !== (metadata.status === "completed")) fail("invalid todo checkbox state");
-	const status = metadata.status;
-	let content = rawContent;
+	const status = metadata.status ;
+	let content  = rawContent      ;
 	if (status === "in_progress") {
 		if (!content.startsWith("진행 중: ")) fail("invalid todo status prefix");
 		content = content.slice("진행 중: ".length);
@@ -373,8 +375,8 @@ function renderHeader(todo: TodoDocument): string {
 }
 
 function renderEntry(item: TodoDetail | TodoItem): string {
-	const prefix = item.status === "in_progress" ? "진행 중: " : item.status === "blocked" ? "막힘: " : "";
-	const checked = item.status === "completed" ? "x" : " ";
+	const prefix  = item.status === "in_progress" ? "진행 중: " : item.status === "blocked" ? "막힘: " : "" ;
+	const checked = item.status === "completed" ? "x" : " "                                                 ;
 	const metadata = JSON.stringify({
 		id          : item.id,
 		status      : item.status,
@@ -420,7 +422,6 @@ function isIsoDate(value: string): boolean {
 	return isoDatePattern.test(value) && !Number.isNaN(Date.parse(value));
 }
 function isNonNegativeInteger(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }
-function isRecord(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
 function hasExactKeys(value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []): boolean {
 	const allowed = new Set([...required, ...optional]);
 	return required.every((key) => Object.hasOwn(value, key)) && Object.keys(value).every((key) => allowed.has(key));
@@ -443,8 +444,8 @@ function validateTodoSource(value: unknown): TodoNativePlanSource {
 function validateTodoItemSource(value: unknown): TodoNativePlanItemSource {
 	if (!isRecord(value) || !hasExactKeys(value, ["kind", "identity", "originRevision", "currentRevision", "executions"]) || value.kind !== "native-plan-item") fail("invalid Native Plan item source");
 	if (!isSha256Hex(value.identity) || !Array.isArray(value.executions) || value.executions.length > 16) fail("invalid Native Plan item source");
-	const executions = value.executions.map(validateExecutionReference);
-	const keys = executions.map((execution) => JSON.stringify(execution));
+	const executions = value.executions.map(validateExecutionReference)         ;
+	const keys       = executions.map((execution) => JSON.stringify(execution)) ;
 	if (new Set(keys).size !== keys.length) fail("duplicate execution reference");
 	return Object.freeze({
 		kind            : "native-plan-item",

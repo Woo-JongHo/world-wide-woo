@@ -1,22 +1,27 @@
-import { isReasoningActivityPayload } from "@/core/domain/execution/project-activity";
-import type { ProjectActivity }       from "@/core/domain/execution/project-activity";
-import {
-	REQUEST_STAGES,
-	REQUEST_REPORT_PREFIX,
-	parseRequestCheckpointReport,
-	parseRequestStageReport,
-} from "@/core/domain/execution/request-runtime";
+import      { isReasoningActivityPayload     } from "@/core/domain/execution/project-activity" ;
+import type { ProjectActivity                } from "@/core/domain/execution/project-activity" ;
+import      {
+              REQUEST_STAGES               ,
+              REQUEST_REPORT_PREFIX        ,
+              REQUEST_CHECKPOINTS          ,
+              parseRequestCheckpointReport ,
+              parseRequestPhaseReport      ,
+              parseRequestStageReport      ,
+                                             } from "@/core/domain/execution/request-runtime"  ;
+import      { readNativePlanRevision         } from "@/core/domain/work/native-plan-revision"  ;
 import type {
-	RequestCheckpointReport,
-	RequestRuntimeRecord,
-	RequestStage,
-	RequestStageId,
-	RequestStageReport,
-	RequestEvidence,
-	RequestLifecycleEvent,
-} from "@/core/domain/execution/request-runtime";
+              RequestCheckpointReport      ,
+              RequestPhaseReport           ,
+              RequestRuntimeRecord         ,
+              RequestStage                 ,
+              RequestStageId               ,
+              RequestStageReport           ,
+              RequestEvidence              ,
+              RequestCheckpointObservation ,
+              RequestLifecycleEvent        ,
+                                             } from "@/core/domain/execution/request-runtime"  ;
+import      { asRecord                       } from "@/core/domain/value/record.js"            ;
 
-const record    = (v: unknown): Record<string, unknown> => v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : {}                                                           ;
 const settled   = (s: RequestStage) => s.status === "completed" || s.status === "skipped"                                                                                                                ;
 const delivered = (r: RequestRuntimeRecord, deliveries = r.deliveries) => r.requiredDeliveries.every(required => deliveries.some(d => d.target === required.target && d.artifact === required.artifact)) ;
 const stageGoals: Record<RequestStageId, string> = {
@@ -34,14 +39,14 @@ function publicMessage(a: ProjectActivity): string | null {
 		|| a.phase !== "completed"
 		|| a.payload.finalObservation === "missing"
 		|| isReasoningActivityPayload(a.payload)) return null;
-	const p = a.payload, params = record(p.params), item = record(params.item);
+	const p = a.payload, params = asRecord(p.params) ?? {}, item = asRecord(params.item) ?? {};
 	if (p.direction === "outbound" || p.role === "user" || (p.role !== "assistant" && item.type !== "agentMessage")) return null;
 	return typeof p.text === "string" ? p.text : typeof item.text === "string" ? item.text : null;
 }
 
 function evidence(a: ProjectActivity): RequestEvidence {
-	const item = record(record(a.payload.params).item);
-	const failed = a.phase === "failed" || a.phase === "cancelled" || typeof item.exitCode === "number" && item.exitCode !== 0;
+	const item   = asRecord(asRecord(a.payload.params)?.item) ?? {}                                                            ;
+	const failed = a.phase === "failed" || a.phase === "cancelled" || typeof item.exitCode === "number" && item.exitCode !== 0 ;
 	return { activityId: a.id, sequence: a.sequence, sourceDigest: a.sourceDigest, itemId: a.nativeRefs.itemId ?? null, kind: a.kind,
 		status: failed ? "failed" : a.phase === "completed" && item.exitCode === 0 ? "passed" : "observed" };
 }
@@ -53,10 +58,44 @@ function reject(r: RequestRuntimeRecord, a: ProjectActivity, reason: string): vo
 	r.issues = [...r.issues, `${a.id}: ${reason}`];
 	event(r, a, "protocol.rejected", null, reason);
 }
+function checkpoint(r: RequestRuntimeRecord, id: RequestCheckpointObservation["id"]): RequestCheckpointObservation | undefined {
+	return r.checkpoints?.find(item => item.id === id);
+}
+function observeCheckpoint(r: RequestRuntimeRecord, id: RequestCheckpointObservation["id"], a: ProjectActivity, status: RequestCheckpointObservation["status"], summary: string): void {
+	const item = checkpoint(r, id);
+	if (!item) return;
+	item.status      = status                                    ;
+	item.summary     = summary                                   ;
+	item.activityIds = [...new Set([...item.activityIds, a.id])] ;
+	item.observedAt  = a.recordedAt                              ;
+}
+function applyPhaseReport(r: RequestRuntimeRecord, report: RequestPhaseReport, a: ProjectActivity): void {
+	if (report.checkpoint === "UNDERSTAND") {
+		if (checkpoint(r, "UNDERSTAND")?.status !== "running") return reject(r, a, "UNDERSTAND는 현재 이해 단계에서 한 번만 기록합니다.");
+		r.objective = report.goal!;
+		r.planDecision = { required: report.planRequired!, reason: report.planReason!, activityId: a.id, decidedAt: a.recordedAt, planActivityId: null };
+		observeCheckpoint(r, "UNDERSTAND", a, "observed", report.summary);
+		if (!report.planRequired) observeCheckpoint(r, "WORK", a, "running", "Plan 불필요 결정 후 작업 시작");
+		return;
+	}
+	if (checkpoint(r, "WORK")?.status !== "running" || checkpoint(r, "RESULT")?.status !== "pending") return reject(r, a, "WORK 시작 전에 RESULT로 전환할 수 없습니다.");
+		observeCheckpoint(r, "WORK", a, "observed", report.summary);
+		observeCheckpoint(r, "RESULT", a, "running", "최종 응답 작성 중");
+}
+function observeRequiredPlan(r: RequestRuntimeRecord, a: ProjectActivity): void {
+	if (!r.planDecision?.required || r.planDecision.planActivityId || checkpoint(r, "WORK")?.status !== "pending") return;
+	const plan = readNativePlanRevision(a);
+	if (plan.kind !== "valid-plan-revision" || plan.entries.length === 0) return;
+	r.planDecision.planActivityId = a.id;
+	observeCheckpoint(r, "WORK", a, "running", "현재 요청의 Native Plan 수신 후 작업 시작");
+}
 function create(a: ProjectActivity, id: string): RequestRuntimeRecord {
-	return { schemaVersion: 1, protocolVersion: a.payload.protocolVersion === 2 ? 2 : 1, requestId: id, threadId: a.nativeRefs.threadId ?? null, turnId: null,
+	const protocolVersion = a.payload.protocolVersion === 4 ? 4 : a.payload.protocolVersion === 3 ? 3 : a.payload.protocolVersion === 2 ? 2 : 1;
+	return { schemaVersion: 1, protocolVersion, requestId: id, threadId: a.nativeRefs.threadId ?? null, turnId: null,
 		objective: typeof a.payload.text === "string" ? a.payload.text : "요청 원문은 연결된 Activity에서 확인",
-		status: "pending", attempt: 1, previousAttempts: [], stages: REQUEST_STAGES.map((id, i) => ({ id, status: "pending", goal: stageGoals[id], input: [], owner: "orchestrator", model: null, agents: [], tools: [], tasks: [], output: null, evidence: [], decision: null, skipReason: null, startedAt: null, completedAt: null, next: REQUEST_STAGES[i + 1] ?? null, evidenceAfterSequence: 0 })),
+		status: "pending", attempt: 1, previousAttempts: [], stages: protocolVersion >= 3 ? [] : REQUEST_STAGES.map((id, i) => ({ id, status: "pending", goal: stageGoals[id], input: [], owner: "orchestrator", model: null, agents: [], tools: [], tasks: [], output: null, evidence: [], decision: null, skipReason: null, startedAt: null, completedAt: null, next: REQUEST_STAGES[i + 1] ?? null, evidenceAfterSequence: 0 })),
+		...(protocolVersion >= 3 ? { checkpoints: REQUEST_CHECKPOINTS.map(id => ({ id, status: "pending" as const, summary: null, activityIds: [], observedAt: null })) } : {}),
+		...(protocolVersion === 4 ? { planDecision: null } : {}),
 		deliveries: [], requiredDeliveries: [], events: [], startedAt: a.recordedAt, completedAt: null, issues: [], actions: [] };
 }
 
@@ -172,8 +211,8 @@ function applyRuntimeAction(r: RequestRuntimeRecord, a: ProjectActivity, method:
 }
 
 function resolveEvidence(refs: readonly string[], r: RequestRuntimeRecord, source: ProjectActivity, journal: readonly ProjectActivity[]): RequestEvidence[] | null {
-	const result: RequestEvidence[] = [];
-	const submittedAt = journal.find(a => a.payload.method === "request/submitted" && a.payload.requestId === r.requestId && a.nativeRefs.threadId === r.threadId)?.sequence ?? source.sequence;
+	const result: RequestEvidence[] = []                                                                                                                                                                      ;
+	const submittedAt               = journal.find(a => a.payload.method === "request/submitted" && a.payload.requestId === r.requestId && a.nativeRefs.threadId === r.threadId)?.sequence ?? source.sequence ;
 	for (const ref of refs) {
 		// Native knows item IDs; ledger consumers can use exact Activity IDs.
 		const matches = journal.filter(a => a.sequence >= submittedAt && a.sequence < source.sequence && a.nativeRefs.threadId === r.threadId && a.nativeRefs.turnId === r.turnId && !isReasoningActivityPayload(a.payload)
@@ -183,6 +222,15 @@ function resolveEvidence(refs: readonly string[], r: RequestRuntimeRecord, sourc
 		result.push(evidence(a));
 	}
 	return result;
+}
+
+/** Read-only IDs that an observe WORK checkpoint can actually resolve. */
+export function observeWorkEvidence(journal: readonly ProjectActivity[], requestId: string, threadId: string, turnId: string): RequestEvidence[] {
+	const submittedAt = journal.find(a => a.payload.method === "request/submitted" && a.payload.requestId === requestId && a.nativeRefs.threadId === threadId)?.sequence;
+	if (submittedAt === undefined || !journal.some(a => a.payload.method === "request/started" && a.payload.requestId === requestId && a.nativeRefs.threadId === threadId && a.nativeRefs.turnId === turnId)) return [];
+	return journal.filter(a => a.sequence >= submittedAt && a.nativeRefs.threadId === threadId && a.nativeRefs.turnId === turnId
+		&& (a.kind === "tool" || a.kind === "file-change") && a.phase === "completed" && !isReasoningActivityPayload(a.payload))
+		.map(evidence).filter(item => item.status !== "failed");
 }
 
 function resolveObservedEvidence(refs: readonly string[], r: RequestRuntimeRecord, source: ProjectActivity, journal: readonly ProjectActivity[]): RequestEvidence[] {
@@ -237,7 +285,7 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 	for (const d of report.deliveries ?? []) {
 		const resolved = resolveEvidence(d.evidence, r, a, journal);
 		if (report.stage !== "DELIVER" || !resolved?.length || resolved.some(e => e.status === "failed" || e.sequence <= stage.evidenceAfterSequence)) { reject(r, a, "전달 기록에는 DELIVER 단계와 현재 시도의 성공한 관측 근거가 필요합니다."); return; }
-		if (r.protocolVersion === 2 && !resolved.some(e => e.status === "passed" && journal.some(source => source.id === e.activityId && source.payload.method === "runtime/action-completed" && source.payload.authority === "runtime" && source.payload.requestId === r.requestId && source.payload.stage === "DELIVER" && source.payload.effect === "publish" && record(source.payload.delivery).target === d.target && record(source.payload.delivery).artifact === d.artifact))) { reject(r, a, "외부 전달에는 대상·artifact가 일치하는 DELIVER publish Receipt가 필요합니다."); return; }
+		if (r.protocolVersion === 2 && !resolved.some(e => e.status === "passed" && journal.some(source => source.id === e.activityId && source.payload.method === "runtime/action-completed" && source.payload.authority === "runtime" && source.payload.requestId === r.requestId && source.payload.stage === "DELIVER" && source.payload.effect === "publish" && asRecord(source.payload.delivery)?.target === d.target && asRecord(source.payload.delivery)?.artifact === d.artifact))) { reject(r, a, "외부 전달에는 대상·artifact가 일치하는 DELIVER publish Receipt가 필요합니다."); return; }
 		deliveries.push({ target: d.target, artifact: d.artifact, evidence: resolved });
 	}
 	if (stage.id === "DELIVER" && ["completed", "skipped"].includes(report.status) && !delivered(r, [...r.deliveries, ...deliveries])) { reject(r, a, "필수 전달 미완료: 모든 대상의 일치하는 Receipt가 필요합니다."); return; }
@@ -270,30 +318,39 @@ function applyReport(r: RequestRuntimeRecord, report: RequestStageReport, a: Pro
 
 function applyCheckpoint(r: RequestRuntimeRecord, report: RequestCheckpointReport, a: ProjectActivity, journal: readonly ProjectActivity[]): void {
 	if (r.protocolVersion !== 1) { reject(r, a, "경량 Checkpoint는 observe Runtime에서만 사용할 수 있습니다."); return; }
+	const blockWork = (reason: string): void => {
+		reject(r, a, reason);
+		const stage = r.stages[2];
+		stage.status = "blocked" ;
+		stage.output = reason    ;
+		r.status     = "blocked" ;
+		event(r, a, "stage.blocked", stage.id, reason);
+	};
 	if (report.checkpoint === "INTENT") {
 		if (r.stages[0].status !== "running") { reject(r, a, "INTENT는 활성 UNDERSTAND에서 한 번만 기록합니다."); return; }
 		applyReport(r, { requestId: r.requestId, stage: "UNDERSTAND", status: "completed", summary: report.summary, ...(report.goal ? { goal: report.goal } : {}) }, a, journal);
 		applyReport(r, report.plan
 			? { requestId: r.requestId, stage: "DECOMPOSE", status: "completed", summary: "요청 작업 계획", plan: [{ stage: "GROUND", tasks: report.plan.map((title, index) => ({ id: `observe-${index + 1}`, title, status: "pending", dependsOn: [] })) }] }
 			: { requestId: r.requestId, stage: "DECOMPOSE", status: "skipped", summary: "경량 observe · 세부 계획 없음" }, a, journal);
+		if (settled(r.stages[1]) && r.stages[2].status === "pending") applyReport(r, { requestId: r.requestId, stage: "GROUND", status: "running", summary: "작업 근거를 수집하는 중" }, a, journal);
 		return;
 	}
 	if (report.checkpoint === "WORK") {
 		const evidenceIds     = report.evidence ?? []     ;
 		const verificationIds = report.verification ?? [] ;
-		if (r.stages[2].status !== "pending") {
+		if (r.stages[2].status !== "running" && r.stages[2].status !== "blocked") {
 			reject(r, a, "WORK는 INTENT 뒤 한 번만 기록합니다."); return;
 		}
 		if (evidenceIds.some(id => verificationIds.includes(id))) {
-			reject(r, a, "WORK 실행과 검증은 서로 다른 Activity Evidence가 필요합니다."); return;
+			blockWork("WORK 실행과 검증은 서로 다른 Activity Evidence가 필요합니다."); return;
 		}
-		const execution    = resolveEvidence(evidenceIds, r, a, journal)     ;
+		const execution    = resolveEvidence(evidenceIds    , r, a, journal) ;
 		const verification = resolveEvidence(verificationIds, r, a, journal) ;
 		if (!execution || !verification || [...execution, ...verification].some(item => item.status === "failed")) {
-			reject(r, a, "WORK Evidence는 같은 요청의 성공한 선행 Activity여야 합니다."); return;
+			blockWork("WORK Evidence는 같은 요청의 성공한 선행 Activity여야 합니다."); return;
 		}
 		if ([...execution, ...verification].some(item => item.kind !== "tool" && item.kind !== "file-change")) {
-			reject(r, a, "WORK Evidence는 관측된 도구 또는 파일 변경 Activity여야 합니다."); return;
+			blockWork("WORK Evidence는 관측된 도구 또는 파일 변경 Activity여야 합니다."); return;
 		}
 		applyReport(r, { requestId: r.requestId, stage: "GROUND", status: "completed", summary: report.summary,
 			...(r.stages[2].tasks.length ? { plan: [{ stage: "GROUND", tasks: r.stages[2].tasks.map(task => ({ ...task, status: "completed" as const })) }] } : {}) }, a, journal);
@@ -314,12 +371,12 @@ function applyCheckpoint(r: RequestRuntimeRecord, report: RequestCheckpointRepor
 
 /** Same append-only Activity journal is the record. No second database or provider state machine. */
 export function projectRequestRuntime(journal: readonly ProjectActivity[], threadId: string | null): readonly RequestRuntimeRecord[] {
-	const activities  = [...new Map(journal.map(a => [a.id, a])).values()].sort((a, b) => a.sequence - b.sequence)                                                                    ;
-	const requests    = new Map<string, RequestRuntimeRecord>()                                                                                                                       ;
-	const submitted   = new Map<string, number>()                                                                                                                                     ;
-	const approvals   = new Map<string, { stage: RequestStage; id: unknown }>()                                                                                                       ;
-	const state       = { requests, submitted, approvals }                                                                                                                            ;
-	const protocolIds = new Set(activities.filter(a => [1, 2].includes(Number(a.payload.protocolVersion)) && a.payload.method === "request/submitted").map(a => a.payload.requestId)) ;
+	const activities  = [...new Map(journal.map(a => [a.id, a])).values()].sort((a, b) => a.sequence - b.sequence)                                                                          ;
+	const requests    = new Map<string, RequestRuntimeRecord>()                                                                                                                             ;
+	const submitted   = new Map<string, number>()                                                                                                                                           ;
+	const approvals   = new Map<string, { stage: RequestStage; id: unknown }>()                                                                                                             ;
+	const state       = { requests, submitted, approvals }                                                                                                                                  ;
+	const protocolIds = new Set(activities.filter(a => [1, 2, 3, 4].includes(Number(a.payload.protocolVersion)) && a.payload.method === "request/submitted").map(a => a.payload.requestId)) ;
 	// Bind before replay: Native may emit notifications before startTurn resolves.
 	for (const a of activities) {
 		if (threadId && a.nativeRefs.threadId !== threadId) continue;
@@ -335,10 +392,40 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 		requests.set(id, r);
 	}
 	for (const a of activities) {
-		const method = String(a.payload.method ?? "");
-		const direct = typeof a.payload.requestId === "string" ? requests.get(a.payload.requestId) : undefined;
+		const method = String(a.payload.method ?? "")                                                          ;
+		const direct = typeof a.payload.requestId === "string" ? requests.get(a.payload.requestId) : undefined ;
 		if (direct && method.startsWith("request/")) {
 			if (method === "request/submitted") event(direct, a, "request.started");
+			if (direct.protocolVersion === 4 && method === "request/submitted") observeCheckpoint(direct, "UNDERSTAND", a, "running", "요청 이해 및 Plan 필요 여부 판단 중");
+			if (direct.protocolVersion === 4 && method === "request/started") {
+				direct.turnId = a.nativeRefs.turnId ?? direct.turnId;
+				direct.status = "running";
+			}
+			if (direct.protocolVersion === 4 && (method === "request/failed" || method === "request/uncertain")) {
+				direct.status = method === "request/failed" ? "failed" : "blocked";
+				direct.completedAt = method === "request/failed" ? a.recordedAt : null;
+				const active = direct.checkpoints?.find(item => item.status === "running");
+				if (active) observeCheckpoint(direct, active.id, a, method === "request/failed" ? "failed" : "unobserved", method === "request/failed" ? "요청 전송 실패" : "요청 수신 미확인");
+				observeCheckpoint(direct, "RESULT", a, "unobserved", "결과 미관측");
+				continue;
+			}
+			if (direct.protocolVersion === 4) continue;
+			if (direct.protocolVersion === 3 && method === "request/submitted") observeCheckpoint(direct, "UNDERSTAND", a, "observed", "요청 접수 관측");
+			if (direct.protocolVersion === 3 && method === "request/started") {
+				direct.turnId = a.nativeRefs.turnId ?? direct.turnId;
+				direct.status = "running";
+				observeCheckpoint(direct, "WORK", a, "running", "Native 작업 시작 관측");
+			}
+			if (direct.protocolVersion === 3 && (method === "request/failed" || method === "request/uncertain")) {
+				const failed = method === "request/failed";
+				direct.status = failed ? "failed" : "blocked";
+				direct.completedAt = failed ? a.recordedAt : null;
+				observeCheckpoint(direct, "WORK", a, failed ? "failed" : "unobserved", failed ? "Native 요청 실패 관측" : "Native 요청 수신 미확인");
+				observeCheckpoint(direct, "RESULT", a, "unobserved", "결과 미관측");
+				event(direct, a, failed ? "request.failed" : "request.blocked");
+				continue;
+			}
+			if (direct.protocolVersion === 3) continue;
 			if (method === "request/started" && direct.stages[0].status === "pending") {
 				const firstStage = direct.stages[0];
 				firstStage.status = "running"; firstStage.startedAt = a.recordedAt;
@@ -370,10 +457,17 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 		const controlReport = method === "runtime/stage-report" && a.payload.authority === "runtime"             ;
 		const reportSource  = controlReport ? REQUEST_REPORT_PREFIX + JSON.stringify(a.payload.report) : message ;
 		if (reportSource && (controlReport || reportSource.startsWith(REQUEST_REPORT_PREFIX))) {
-			const report     = parseRequestStageReport(reportSource)     ;
-			const checkpoint = parseRequestCheckpointReport(reportSource) ;
-			const requestId  = report?.requestId ?? checkpoint?.requestId  ;
-			const r = requestId ? sameTurn.find(r => r.requestId === requestId) ?? sameTurn.at(-1) : sameTurn.at(-1);
+			const report      = parseRequestStageReport(reportSource)                                                          ;
+			const checkpoint  = parseRequestCheckpointReport(reportSource)                                                     ;
+			const phaseReport = parseRequestPhaseReport(reportSource)                                                          ;
+			const requestId   = report?.requestId ?? checkpoint?.requestId ?? phaseReport?.requestId                           ;
+			const r           = requestId ? sameTurn.find(r => r.requestId === requestId) ?? sameTurn.at(-1) : sameTurn.at(-1) ;
+			if (r?.protocolVersion === 3) continue;
+			if (r?.protocolVersion === 4) {
+				if (phaseReport && phaseReport.requestId === r.requestId) applyPhaseReport(r, phaseReport, a);
+				else reject(r, a, "공개 3단계 보고 형식이 올바르지 않습니다.");
+				continue;
+			}
 			if (r?.protocolVersion === 2 && !controlReport) reject(r, a, "runtime.propose 도구로 Stage 전환을 요청해야 합니다.");
 			else if (r?.actions.some(x => x.status === "unconfirmed")) reject(r, a, "실행 결과 미확인: read-back Receipt 확보 전에는 Stage를 진행할 수 없습니다.");
 			else if (r
@@ -387,16 +481,61 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 		}
 		for (const r of sameTurn) {
 			if (r.completedAt) continue;
+			if (r.protocolVersion === 4) {
+				observeRequiredPlan(r, a);
+				const item     = asRecord(asRecord(a.payload.params)?.item) ?? {} ;
+				const response = message && item.phase !== "commentary"           ;
+				if (response) {
+					if (checkpoint(r, "RESULT")?.status === "running") observeCheckpoint(r, "RESULT", a, "observed", message.slice(0, 240));
+					else reject(r, a, "REPORTING 시작 보고 없이 최종 응답이 도착했습니다.");
+				}
+				if (["turn/completed", "turn/failed", "turn/interrupted", "turn/cancelled", "turn/canceled"].includes(method)) {
+					r.status = method === "turn/failed" || a.phase === "failed" ? "failed" : method === "turn/completed" ? "completed" : "blocked";
+					r.completedAt = a.recordedAt;
+					for (const id of REQUEST_CHECKPOINTS) if (checkpoint(r, id)?.status === "pending" || checkpoint(r, id)?.status === "running") observeCheckpoint(r, id, a, "unobserved", `${id} 완료 미관측`);
+				}
+				continue;
+			}
+			if (r.protocolVersion === 3) {
+				const terminal = ["turn/completed", "turn/failed", "turn/interrupted", "turn/cancelled", "turn/canceled"].includes(method) ;
+				const item     = asRecord(asRecord(a.payload.params)?.item) ?? {}                                                          ;
+				const response = message && item.phase !== "commentary"                                                                    ;
+				if (["tool", "file-change"].includes(a.kind) && ["completed", "failed", "cancelled"].includes(a.phase) && !isReasoningActivityPayload(a.payload)) {
+					const work = checkpoint(r, "WORK");
+					if (work) {
+						work.activityIds = [...new Set([...work.activityIds, a.id])]     ;
+						work.summary     = `${work.activityIds.length}개 작업 활동 관측` ;
+						work.observedAt  = a.recordedAt                                  ;
+					}
+				}
+				if (response) observeCheckpoint(r, "RESULT", a, "observed", message.slice(0, 240));
+				if (terminal) {
+					const failed      = method === "turn/failed" || a.phase === "failed"                                                    ;
+					const interrupted = ["turn/interrupted", "turn/cancelled", "turn/canceled"].includes(method) || a.phase === "cancelled" ;
+					r.status = failed ? "failed" : interrupted ? "blocked" : "completed";
+					r.completedAt = a.recordedAt;
+					const work = checkpoint(r, "WORK");
+					if (work) {
+						work.status      = failed ? "failed" : "observed"                                                                                                     ;
+						work.summary     = work.activityIds.length ? `${work.activityIds.length}개 작업 활동 관측` : interrupted ? "작업 중단 관측" : "Native 작업 종료 관측" ;
+						work.activityIds = [...new Set([...work.activityIds, a.id])]                                                                                          ;
+						work.observedAt  = a.recordedAt                                                                                                                       ;
+					}
+					if (checkpoint(r, "RESULT")?.status !== "observed") observeCheckpoint(r, "RESULT", a, "unobserved", "최종 응답 미관측");
+					event(r, a, failed ? "request.failed" : interrupted ? "request.blocked" : "request.completed");
+				}
+				continue;
+			}
 			if (r === sameTurn.at(-1) && a.kind === "approval" && a.phase === "started") {
 				const stage = r.stages.find(s => s.status === "running");
-				if (stage) { stage.status = "blocked"; r.status = "blocked"; approvals.set(r.requestId, { stage, id: a.nativeRefs.approvalRequestId ?? record(a.payload.approval).requestId }); event(r, a, "stage.blocked", stage.id, "사용자 승인 대기"); }
+				if (stage) { stage.status = "blocked"; r.status = "blocked"; approvals.set(r.requestId, { stage, id: a.nativeRefs.approvalRequestId ?? asRecord(a.payload.approval)?.requestId }); event(r, a, "stage.blocked", stage.id, "사용자 승인 대기"); }
 			}
 			if (a.kind === "approval" && a.phase === "completed") {
 				const approval = approvals.get(r.requestId), stage = approval?.stage;
 				if (approval?.id !== undefined && approval.id === (a.nativeRefs.approvalRequestId ?? a.payload.requestId) && stage?.status === "blocked") { stage.status = "running"; r.status = "running"; approvals.delete(r.requestId); event(r, a, "stage.started", stage.id, "승인 요청 처리 확인"); }
 			}
-			const transportItem = record(record(a.payload.params).item);
-			const runtimeTransport = transportItem.type === "dynamicToolCall" && typeof transportItem.tool === "string" && transportItem.tool.startsWith("www_runtime_");
+			const transportItem    = asRecord(asRecord(a.payload.params)?.item) ?? {}                                                                                    ;
+			const runtimeTransport = transportItem.type === "dynamicToolCall" && typeof transportItem.tool === "string" && transportItem.tool.startsWith("www_runtime_") ;
 			if (r === sameTurn.at(-1) && ["tool", "file-change"].includes(a.kind) && !runtimeTransport) {
 				const stage = r.stages.find(s => s.status === "running");
 				if (stage) stage.evidence = [...stage.evidence.filter(e => e.activityId !== a.id), evidence(a)];
@@ -405,7 +544,7 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 				&& message
 				&& delivered(r)
 				&& !r.actions.some(x => x.status === "unconfirmed")
-				&& record(record(a.payload.params).item).phase !== "commentary"
+				&& asRecord(asRecord(a.payload.params)?.item)?.phase !== "commentary"
 				&& r.stages.slice(0, 6).every(settled)
 				&& r.stages[6].tasks.every(t => t.status === "completed")) {
 				const stage = r.stages[6];
@@ -417,8 +556,8 @@ export function projectRequestRuntime(journal: readonly ProjectActivity[], threa
 				event(r, a, "delivery.recorded", "DELIVER");
 			}
 			if (["turn/completed", "turn/failed", "turn/interrupted", "turn/cancelled", "turn/canceled"].includes(method)) {
-				const interrupted = ["turn/interrupted", "turn/cancelled", "turn/canceled"].includes(method) || a.phase === "cancelled";
-				const failed = method === "turn/failed" || a.phase === "failed";
+				const interrupted = ["turn/interrupted", "turn/cancelled", "turn/canceled"].includes(method) || a.phase === "cancelled" ;
+				const failed      = method === "turn/failed" || a.phase === "failed"                                                    ;
 				for (const stage of r.stages.filter(s => !settled(s))) {
 					stage.status = failed ? "failed" : "blocked";
 					stage.output = failed ? "Native 실행이 실패했습니다." : interrupted ? "Native 실행이 중단되었습니다." : "Native는 종료됐지만 이 단계의 공개 결과가 미관측입니다.";
