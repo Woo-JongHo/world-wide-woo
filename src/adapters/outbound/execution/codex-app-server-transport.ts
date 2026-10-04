@@ -1,7 +1,8 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { homedir }    from "node:os";
-import { join }       from "node:path";
-import { sanitizeTerminalText } from "@/core/domain/execution/terminal.js";
+import      { existsSync, readdirSync, statSync } from "node:fs"                             ;
+import      { createRequire                     } from "node:module"                         ;
+import      { homedir                           } from "node:os"                             ;
+import      { join                              } from "node:path"                           ;
+import      { sanitizeTerminalText              } from "@/core/domain/execution/terminal.js" ;
 
 const STDERR_TAIL_CODE_POINTS = 4_096;
 
@@ -13,14 +14,18 @@ export interface JsonLineTransport {
 }
 
 /**
- * codex 바이너리 해석 순서: PATH → 사용자 심링크 → ChatGPT 앱 번들 → homebrew·/usr/local.
+ * codex 바이너리 해석 순서: 프로젝트 의존성 → PATH → 사용자 심링크 → ChatGPT 앱 번들 → homebrew·/usr/local.
  * ChatGPT 앱 업데이트는 앱 내부 codex 경로를 바꾸거나 잠시 삭제하므로, 어떤 단계가 깨져도
  * 다음 후보로 이어가는 것이 방어선이다. existsSync는 깨진 심링크를 거르는 역할도 겸한다.
  */
 export function resolveCodexBinary(): string {
+	try {
+		const managed = createRequire(import.meta.url).resolve("@openai/codex/bin/codex.js");
+		if (existsSync(managed)) return managed;
+	} catch { /* 패키지가 없는 개발 환경은 기존 설치를 사용한다. */ }
 	if (Bun.which("codex")) return "codex";
-	const home  = homedir();
-	const appCli = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex";
+	const home   = homedir()                                                          ;
+	const appCli = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex" ;
 	const candidates = [
 		join(home, ".local/bin/codex"),
 		appCli,

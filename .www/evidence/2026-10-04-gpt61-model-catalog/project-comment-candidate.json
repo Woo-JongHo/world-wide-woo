@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.1",
+  "candidateId": "ARTIFACT-CANDIDATE-GPT61-MODEL-CATALOG-COMMENT",
+  "kind": "linear-project-comment",
+  "sourceRevision": "git:ebb36c2280d5ea8c51bf5cbaf7217942bb539354:dirty",
+  "intent": "Codex 6.1 모델 목록 수신과 0.0.24 출시 보류 상태를 기록한다",
+  "target": {
+    "projectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db"
+  },
+  "content": {
+    "changes": [
+      "WWW가 PATH의 구형 ChatGPT 번들 CLI 대신 프로젝트가 관리하는 Codex CLI 0.160.0을 우선 실행하도록 변경하고 버전 문자열을 0.0.24로 올렸다.",
+      "의존성 재설치 때 pi-tui 패치가 잘못 적용되는 문제를 패치 문맥 수정으로 복구했다."
+    ],
+    "impacts": [
+      "동일 계정의 Native model/list가 GPT-6.1 Sol을 반환하면 모델 선택 화면에 자동 반영한다. 현재 0.160.0에서 gpt-6.1-sol을 확인했다.",
+      "전체 테스트 90건 실패와 필수 Claude Opus 감사 한도 때문에 0.0.24 커밋·푸시는 보류했다."
+    ],
+    "categories": [
+      "fix",
+      "improvement",
+      "verification"
+    ],
+    "verification": [
+      "깨끗한 bun install 뒤 실제 WWW CodexAppServer.listModels에서 gpt-6.1-sol을 확인했다.",
+      "집중 테스트 13개, bun run check, bun run build, 아키텍처 테스트 17개, 가독성 검사와 git diff --check 통과.",
+      "전체 bun test: 1607 pass, 90 fail, 2 errors. Claude Opus 감사: 주간 한도 초과로 미실행."
+    ],
+    "connections": [
+      "[WOO-674](https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다) — 모델 선택을 포함한 Workbench 상위 책임",
+      ".www/evidence/2026-10-04-gpt61-model-catalog",
+      "src/adapters/outbound/execution/codex-app-server-transport.ts · test/codex-binary-selection.test.ts · package.json · bun.lock"
+    ]
+  },
+  "links": {
+    "linear": "https://linear.app/woo-world/issue/WOO-674/workbench-대화와-계획을-읽고-입력과-상태를-통제한다",
+    "evidence": ".www/evidence/2026-10-04-gpt61-model-catalog"
+  },
+  "expectedBefore": {
+    "latestCommentId": "e75cb05f-222d-4397-89bd-9fb5c4c1d331"
+  },
+  "validation": [
+    {
+      "id": "target",
+      "status": "pass",
+      "evidence": "live World Wide Woo Project UUID 및 WOO-674 부모 이슈 재조회 일치"
+    },
+    {
+      "id": "checks",
+      "status": "pass",
+      "evidence": "실제 model/list·집중 테스트·전체 테스트 실패와 Opus 미실행 상태를 모두 기록"
+    }
+  ],
+  "candidateDigest": "c06c102ced7155ead7d7e9d23ea4fbb733c4e7d6232316872d4d14e8fc7c6874"
+}

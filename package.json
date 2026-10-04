@@ -1,12 +1,16 @@
 {
 	"name": "world-wide-woo",
-	"version": "0.0.22",
+	"version": "0.0.24",
 	"private": true,
 	"type": "module",
 	"bin": {
 		"www": "./src/cli.ts"
 	},
 	"scripts": {
+		"project-view:dev": "npm --prefix apps/project-view run dev",
+		"project-view:build": "npm --prefix apps/project-view run build",
+		"project-view:check": "npm --prefix apps/project-view run check",
+		"project-view:test": "npm --prefix apps/project-view test",
 		"start": "bun src/cli.ts",
 		"build": "bun build src/cli.ts --target=bun --outdir dist",
 		"www:preview": "bun scripts/www-ui-preview.ts",
@@ -17,6 +21,8 @@
 		"traceability:rebuild": "bun scripts/traceability.ts rebuild",
 		"development-map:build": "bun scripts/traceability.ts map:build",
 		"development-map:check": "bun scripts/traceability.ts map:check",
+		"feature-map:build": "bun scripts/feature-map.ts build",
+		"feature-map:check": "bun scripts/feature-map.ts check",
 		"obsidian:check": "bun src/adapters/outbound/development/obsidian-contract-cli.ts check",
 		"obsidian:sync": "bun src/adapters/outbound/development/obsidian-contract-cli.ts",
 		"units:check": "bun scripts/local-units.ts check",
@@ -32,6 +38,7 @@
 		"traceability:receipt-check": "bun scripts/traceability.ts receipt-check --linear-snapshot .www/evidence/v020-traceability/linear-consistency-final-normalized.json --linear-receipt .www/evidence/v020-traceability/linear-consistency-final-receipt.json --vault-export-manifest .www/evidence/v020-traceability/obsidian-export-manifest.json"
 	},
 	"dependencies": {
+		"@openai/codex": "0.160.0",
 		"@earendil-works/pi-ai": "0.84.4",
 		"@earendil-works/pi-coding-agent": "0.84.4",
 		"@earendil-works/pi-tui": "0.84.4",

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "candidateId": "ARTIFACT-CANDIDATE-GPT61-MODEL-CATALOG-COMMENT",
+  "candidateDigest": "c06c102ced7155ead7d7e9d23ea4fbb733c4e7d6232316872d4d14e8fc7c6874",
+  "targetProjectId": "5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db",
+  "commentId": "a964f3de-e4b7-41e8-b7cd-bb52a5d9b1a6",
+  "url": "https://linear.app/woo-world/project/world-wide-woo-9c0e7963f1ff/activity#comment-a964f3de-e4b7-41e8-b7cd-bb52a5d9b1a6",
+  "author": "우종호",
+  "createdAt": "2026-10-04T08:53:48.875Z",
+  "expectedBefore": {
+    "latestCommentId": "e75cb05f-222d-4397-89bd-9fb5c4c1d331"
+  },
+  "readBack": "list_comments: latest ID, author, creation time, and complete rendered body matched",
+  "renderedBodySha256": "9a6ae731703d7a31c1dc4b40bba4cfa7a7b70df04bc014a27d1930d83fb8d608"
+}
