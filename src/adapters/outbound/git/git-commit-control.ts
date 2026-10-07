@@ -1,9 +1,9 @@
-import { execFileSync }                                               from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve }                                     from "node:path";
-import { randomUUID }                                                 from "node:crypto";
-import type { CommitCandidate, CommitPolicy }                         from "@/core/commit/commit-governance.js";
-import { candidateDigest, canonicalJson, CommitControlPlane, sha256 } from "@/core/commit/commit-governance.js";
+import      { execFileSync                                               } from "node:child_process"                 ;
+import      { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"                            ;
+import      { dirname, join, resolve                                     } from "node:path"                          ;
+import      { randomUUID                                                 } from "node:crypto"                        ;
+import type { CommitCandidate, CommitPolicy                              } from "@/core/commit/commit-governance.js" ;
+import      { candidateDigest, canonicalJson, CommitControlPlane, sha256 } from "@/core/commit/commit-governance.js" ;
 
 export interface CommitAuthorization {
 	schemaVersion   : 1      ;
@@ -19,18 +19,18 @@ export interface ActiveCommit {
 	candidateDigest: string
 }
 
-interface DevelopmentProjectIdentity {
+interface LocalProjectIdentity {
 	schemaVersion: 1;
 	id: string
 }
 
 function commitProjectId(root: string): string {
-	const path = join(root, ".www/control-ledger/development/project.json");
+	const path = join(root, ".www/project.json");
 	if (!existsSync(path)) throw new Error(`COMMIT_PROJECT_IDENTITY_MISSING: ${path}`);
 	let value: unknown;
 	try { value = JSON.parse(readFileSync(path, "utf8")); }
 	catch { throw new Error(`COMMIT_PROJECT_IDENTITY_INVALID: ${path}`); }
-	const identity = value as Partial<DevelopmentProjectIdentity>;
+	const identity = value as Partial<LocalProjectIdentity>;
 	if (identity?.schemaVersion !== 1 || typeof identity.id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(identity.id)) {
 		throw new Error(`COMMIT_PROJECT_IDENTITY_INVALID: ${path}`);
 	}
@@ -71,16 +71,16 @@ export function assertRepositoryReady(root: string): void {
 export function assertCandidateMatchesWorktree(root: string, candidate: CommitCandidate): void {
 	const head = String(git(root, ["rev-parse", "HEAD"])).trim();
 	if (candidate.baseHead !== head) throw new Error(`COMMIT_AUTH_STALE: base HEAD가 바뀌었습니다. expected=${candidate.baseHead} actual=${head}`);
-	const changed = new Set(changedPaths(root));
-	const missing = candidate.paths.filter(path => !changed.has(path));
+	const changed = new Set(changedPaths(root))                        ;
+	const missing = candidate.paths.filter(path => !changed.has(path)) ;
 	if (missing.length) throw new Error(`COMMIT_PATH_MISMATCH: 변경되지 않은 후보 경로 ${missing.join(", ")}`);
 	const content = candidateContentDigest(root, candidate.paths);
 	if (candidate.contentDigest !== content) throw new Error(`COMMIT_AUTH_STALE: 후보 파일 내용이 바뀌었습니다. expected=${candidate.contentDigest} actual=${content}`);
 }
 
 export function assertStagedBoundary(root: string, candidate: CommitCandidate): void {
-	const expected = [...candidate.paths].sort();
-	const staged = stagedPaths(root);
+	const expected = [...candidate.paths].sort() ;
+	const staged   = stagedPaths(root)           ;
 	if (canonicalJson(staged) !== canonicalJson(expected)) throw new Error(`COMMIT_STAGE_MISMATCH: expected=${expected.join(",")} actual=${staged.join(",")}`);
 	const partial = unstagedPaths(root).filter(path => expected.includes(path));
 	if (partial.length) throw new Error(`COMMIT_PARTIAL_STAGE: ${partial.join(", ")}`);
@@ -89,8 +89,8 @@ export function assertStagedBoundary(root: string, candidate: CommitCandidate): 
 export function authorize(root: string, candidate: CommitCandidate, actor: string): string {
 	if (!actor.trim()) throw new Error("COMMIT_AUTH_REQUIRED: 승인자 이름이 필요합니다.");
 	const directory = join(root, ".www/runtime/commit"); mkdirSync(directory, { recursive: true });
-	const path = join(directory, `${candidate.id}.authorization.json`);
-	const value: CommitAuthorization = { schemaVersion: 1, candidateId: candidate.id, candidateDigest: candidateDigest(candidate), actor: actor.trim(), authorizedAt: new Date().toISOString() };
+	const path                       = join(directory, `${candidate.id}.authorization.json`)                                                                                                     ;
+	const value: CommitAuthorization = { schemaVersion: 1, candidateId: candidate.id, candidateDigest: candidateDigest(candidate), actor: actor.trim(), authorizedAt: new Date().toISOString() } ;
 	writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
 	return path;
 }
@@ -165,11 +165,11 @@ export function executeCommit(root: string, candidatePath: string, authorization
 	const control   = new CommitControlPlane(policy)                                     ;
 	const errors = control.validate(candidate, true); if (errors.length) throw new Error(errors.join("\n"));
 	assertCandidateMatchesWorktree(root, candidate); const authorization = loadAuthorization(authorizationPath, candidate);
-	const tracked = new Set((git(root, ["ls-files", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean));
-	const updates = candidate.paths.filter(path => tracked.has(path));
+	const tracked = new Set((git(root, ["ls-files", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean)) ;
+	const updates = candidate.paths.filter(path => tracked.has(path))                                                         ;
 	if (updates.length) git(root, ["add", "-u", "--", ...updates]);
-	const untracked = new Set((git(root, ["ls-files", "--others", "--exclude-standard", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean));
-	const additions = candidate.paths.filter(path => untracked.has(path));
+	const untracked = new Set((git(root, ["ls-files", "--others", "--exclude-standard", "-z"], "buffer") as Buffer).toString("utf8").split("\0").filter(Boolean)) ;
+	const additions = candidate.paths.filter(path => untracked.has(path))                                                                                         ;
 	if (additions.length) git(root, ["add", "--", ...additions]);
 	assertStagedBoundary(root, candidate);
 	const directory = join(root, ".www/runtime/commit"); mkdirSync(directory, { recursive: true });

@@ -10,7 +10,7 @@ import      {
               renderLayoutFrame       ,
                                         } from "@earendil-works/pi-tui/dist/layout.js"                          ;
 import type { ProjectWorkbench          } from "../src/core/application/orchestration/project-workbench"        ;
-import type { RequestRuntimeRecord       } from "../src/core/domain/execution/request-runtime"                 ;
+import type { RequestRuntimeRecord      } from "../src/core/domain/execution/request-runtime"                   ;
 import type {
               WorkbenchCommand        ,
               WorkbenchCommandReceipt ,
@@ -163,8 +163,8 @@ test("production Www shell routes navigation, rejection, approval and shutdown t
 		terminal.input("\x10"); await tick(); expect(terminal.output.slice(paletteStart)).toContain("명령 찾기");
 		expect(showOverlay.mock.calls.at(-1)?.[1]).toMatchObject({ anchor: "bottom-center" });
 		terminal.input("\x1b"); await tick();
-		const slashPaletteStart = terminal.output.length;
-		const overlaysBeforeSlash = showOverlay.mock.calls.length;
+		const slashPaletteStart   = terminal.output.length        ;
+		const overlaysBeforeSlash = showOverlay.mock.calls.length ;
 		terminal.input("/"); await tick();
 		expect(showOverlay).toHaveBeenCalledTimes(overlaysBeforeSlash);
 		terminal.input("model"); await tick();
@@ -186,8 +186,7 @@ test("WWW CLI keeps resume selection, cancellation and execution-lane semantics"
 	const opened: unknown[] = []; let select: string | null = "selected";
 	const deps: CliDependencies = {
 		runApp: async () => { throw new Error("wrong shell"); }, runWww: async options => { opened.push(options); },
-		runRouter: async () => { throw new Error("wrong shell"); }, runAuth: async () => {}, listSessions: async () => [],
-		runDevelopment: async () => "", runWorkflow: async () => "",
+		runWorkflow: async () => "", runRouter: async () => { throw new Error("wrong shell"); }, runAuth: async () => {}, listSessions: async () => [],
 		listNativeThreads: async () => [{ id: "selected", cwd: "/test", updatedAt: 1, preview: "", status: "idle" }],
 		selectNativeThread: async () => select, writeOut: () => {}, writeError: () => {},
 	};

@@ -1,30 +1,29 @@
-import { describe, expect, test } from "bun:test";
-import {
-	TUI_FEATURES,
-	TUI_FEATURE_UNITS,
-	TUI_RETIRED_FEATURE_UNIT_IDS,
-	tuiFeatureById,
-	tuiFeaturesByProductGroup,
-	tuiFeatureUnitById,
-	tuiFeatureUnitsByFeatureId,
-} from "../src/adapters/inbound/tui/features/feature-registry.js";
+import      { describe, expect, test         } from "bun:test"                                                 ;
+import      {
+              TUI_FEATURES                 ,
+              TUI_FEATURE_UNITS            ,
+              TUI_RETIRED_FEATURE_UNIT_IDS ,
+              tuiFeatureById               ,
+              tuiFeaturesByProductGroup    ,
+              tuiFeatureUnitById           ,
+              tuiFeatureUnitsByFeatureId   ,
+                                             } from "../src/adapters/inbound/tui/features/feature-registry.js" ;
 import type {
-	TuiFeatureId,
-	TuiFeatureProductGroup,
-	TuiFeatureUnitId,
-} from "../src/adapters/inbound/tui/features/feature.types.js";
+              TuiFeatureId                 ,
+              TuiFeatureProductGroup       ,
+              TuiFeatureUnitId             ,
+                                             } from "../src/adapters/inbound/tui/features/feature.types.js"    ;
 
 const EXPECTED_COUNTS = {
 	"TUI-F001" : 2,
 	"TUI-F002" : 8,
-	"TUI-F003" : 2,
-	"TUI-F004" : 4,
+	"TUI-F003" : 1,
+	"TUI-F004" : 3,
 	"TUI-F005" : 2,
 	"TUI-F006" : 3,
 	"TUI-F007" : 3,
 	"TUI-F008" : 2,
 	"TUI-F009" : 2,
-	"TUI-F010" : 1,
 	"TUI-F011" : 1,
 	"TUI-F012" : 1,
 	"TUI-F013" : 1,
@@ -36,7 +35,7 @@ const EXPECTED_COUNTS = {
 } as const satisfies Record<TuiFeatureId, number>;
 
 const EXPECTED_TITLES = {
-	"TUI-F001-U01" : "첫 진입 프로젝트 요약",
+	"TUI-F001-U01" : "첫 진입 세션 요약",
 	"TUI-F001-U02" : "세션·프로젝트 관측 대시보드",
 	"TUI-F002-U01" : "질문·공개 응답 대화 흐름",
 	"TUI-F002-U02" : "첫 질문 시작 화면",
@@ -47,10 +46,8 @@ const EXPECTED_TITLES = {
 	"TUI-F002-U07" : "대화·실행 제어 명령",
 	"TUI-F002-U08" : "현재 공개 대화 Recap 조회",
 	"TUI-F003-U01" : "Native Plan·Todo 읽기",
-	"TUI-F003-U02" : "프로젝트 계획 초안 작성",
 	"TUI-F004-U01" : "질문별 완료 Note 읽기",
 	"TUI-F004-U02" : "Note 캡처",
-	"TUI-F004-U03" : "Note 정본 반영 승인",
 	"TUI-F004-U04" : "공개 Note 외부 검토",
 	"TUI-F005-U01" : "Plan·실행 Flow Tracer",
 	"TUI-F005-U02" : "정확한 Activity Source 선택",
@@ -59,12 +56,11 @@ const EXPECTED_TITLES = {
 	"TUI-F006-U03" : "미확인 동작 read-back 대조",
 	"TUI-F007-U01" : "Native thread 재개 선택",
 	"TUI-F007-U02" : "실행 권한·모드 전환",
-	"TUI-F007-U03" : "세션 Goal·WES 상태 다시 읽기",
+	"TUI-F007-U03" : "세션 Goal 상태 다시 읽기",
 	"TUI-F008-U01" : "Session Review·Diagnostics",
 	"TUI-F008-U02" : "Request 통계 상세 조사",
 	"TUI-F009-U01" : "Provider 잔여량·Context HUD",
 	"TUI-F009-U02" : "Provider·Session Usage Dashboard",
-	"TUI-F010-U01" : "프로젝트 구조·진척도 Map",
 	"TUI-F011-U01" : "세션 Context·권한·도구·위임 현황",
 	"TUI-F012-U01" : "질문별 검증 계획·근거 보기",
 	"TUI-F013-U01" : "Native 요청 승인·거절",
@@ -87,7 +83,6 @@ const EXPECTED_PRODUCT_GROUPS = {
 	"TUI-F007" : "control",
 	"TUI-F008" : "observability",
 	"TUI-F009" : "observability",
-	"TUI-F010" : "core-work",
 	"TUI-F011" : "control",
 	"TUI-F012" : "control",
 	"TUI-F013" : "control",
@@ -100,15 +95,14 @@ const EXPECTED_PRODUCT_GROUPS = {
 
 const EXPECTED_NON_ACTIVE_UNIT_STATUSES = {
 	"TUI-F002-U04" : "legacy",
-	"TUI-F003-U02" : "legacy",
 	"TUI-F016-U01" : "legacy",
 	"TUI-F016-U02" : "legacy",
 } as const;
 
 describe("TUI feature Unit catalog", () => {
 	test("contains the 18 features and exact 39 inventoried Units", () => {
-		expect(TUI_FEATURES                                                              ).toHaveLength(18             ) ;
-		expect(TUI_FEATURE_UNITS                                                         ).toHaveLength(39             ) ;
+		expect(TUI_FEATURES                                                              ).toHaveLength(17             ) ;
+		expect(TUI_FEATURE_UNITS                                                         ).toHaveLength(36             ) ;
 		expect(Object.fromEntries(TUI_FEATURE_UNITS.map((unit) => [unit.id, unit.title]))).toEqual     (EXPECTED_TITLES) ;
 	});
 
@@ -141,19 +135,19 @@ describe("TUI feature Unit catalog", () => {
 		}
 	});
 
-	test("numbers each feature from U01 without gaps and preserves the inventory counts", () => {
+	test("preserves stable unit IDs and the inventory counts after removals", () => {
 		for (const feature of TUI_FEATURES) {
 			const units = tuiFeatureUnitsByFeatureId(feature.id);
 			expect(units).toHaveLength(EXPECTED_COUNTS[feature.id]);
 			expect(units.map((unit) => String(unit.id))).toEqual(
-				Array.from({ length: units.length }, (_, index) => `${feature.id}-U${String(index + 1).padStart(2, "0")}`),
+				Object.keys(EXPECTED_TITLES).filter(id => id.startsWith(`${feature.id}-`)),
 			);
 		}
 	});
 
 	test("never reuses an ID reserved by a retired Unit", () => {
-		const currentIds = TUI_FEATURE_UNITS.map((unit) => unit.id);
-		const allKnownIds = [...currentIds, ...TUI_RETIRED_FEATURE_UNIT_IDS];
+		const currentIds  = TUI_FEATURE_UNITS.map((unit) => unit.id)         ;
+		const allKnownIds = [...currentIds, ...TUI_RETIRED_FEATURE_UNIT_IDS] ;
 		expect(new Set(allKnownIds).size).toBe(allKnownIds.length);
 		for (const retiredId of TUI_RETIRED_FEATURE_UNIT_IDS) {
 			expect(tuiFeatureUnitById(retiredId)).toBeUndefined();

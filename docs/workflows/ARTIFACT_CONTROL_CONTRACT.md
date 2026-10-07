@@ -1,66 +1,12 @@
 # Artifact Control Contract
 
-Linear Issue·Project Activity, Obsidian, GitHub Issue와 GitHub PR은 하나의 제어 흐름을 사용한다.
+GitHub Issue와 GitHub PR은 검증된 Candidate로 게시한다.
 
-```text
-Candidate → Validate → Render → Authorize → Apply → Read-back → Woo Receipt
-```
+1. 대상 저장소·기존 이슈/PR·base/head와 중복을 읽는다.
+2. 실제 변경·검증·로컬 근거·위험과 복구를 Candidate에 작성한다.
+3. `artifact:control validate`와 `render`로 전체 내용을 검증하고 digest를 고정한다.
+4. 사용자 승인은 해당 대상과 Candidate digest에만 결박한다. Push/Merge/Release는 별도 권한이다.
+5. 게시 직전 `expectedBefore`와 실제 상태를 대조하고 일치할 때 한 번 적용한다.
+6. 대상의 ID·본문·상태를 재조회해 Candidate와 일치하는지 확인하고 Receipt를 남긴다.
 
-## 정본과 경계
-
-- 구조화된 Candidate가 입력 정본이다. Markdown은 `artifact:control render`가 만드는 결정적 투영이다.
-- Issue·Update·Obsidian·GitHub 등 별도 승인이 필요한 artifact의 승인은 `candidateDigest` 한 값에만 결박된다. Project Comment는 사용자의 상시 사전 승인 범위이므로 별도 승인 질문 없이 게시할 수 있지만, 본문은 `candidateDigest`로 고정되고 게시 직전의 `expectedBefore`가 달라지면 새 Candidate가 필요하다.
-- `validate`와 `render`는 외부 상태를 바꾸지 않는다. Apply는 표면별 게시 스킬이 소유한다.
-- Apply 뒤 대상의 ID, URL, 본문 bytes와 관계를 재조회한다. 재조회가 불가능하거나 다르면 `uncertain`으로 끝낸다.
-- Receipt status는 `schemas/woo-receipt.schema.json`의 `succeeded | failed | blocked | canceled | uncertain`만 사용한다.
-
-## Skill 구조
-
-```text
-[Skills] WOO-747
-├─ [Linear] WOO-894
-│  ├─ 01 Candidate 작성 WOO-901
-│  ├─ 02 제목·번호·계층 검증 WOO-897
-│  └─ 03 승인 게시·재조회 WOO-902
-├─ [Obsidian] WOO-892
-│  ├─ 01 상세 정본 Candidate 작성 WOO-898
-│  ├─ 02 경로·identity·링크·digest 검증 WOO-899
-│  └─ 03 승인 게시·재조회 WOO-896
-├─ [GitHub] WOO-893
-│  ├─ 01 Issue 등록·재조회 WOO-903
-│  ├─ 02 Commit 실행 WOO-844
-│  ├─ 03 PR 생성·수정 WOO-900
-│  └─ 04 PR·Linear 재조회 WOO-904
-├─ [Traceability] WOO-895
-│  └─ 기존 연결 운영 WOO-749
-└─ [RPA] WOO-888
-   └─ 기존 01~07
-```
-
-## Candidate
-
-공통 필드는 `schemaVersion`, `candidateId`, `kind`, `sourceRevision`, `intent`, `target`, `content`, `links`, `expectedBefore`, `validation`, `candidateDigest`다. Shape는 `schemas/artifact-candidate.schema.json`, 의미 검증과 렌더링은 `src/core/domain/development/artifact-control.ts`가 소유한다.
-
-Project Activity Comment는 `linear-project-comment` Candidate schema `1.1`로 변경·영향·분류·검증·연결을 렌더한다. 상시 사전 승인은 Project Comment에만 적용한다. `expectedBefore.latestCommentId`는 게시 직전 Project Comment 목록의 마지막 ID와 같아야 하며, 연결 대상·본문 digest·최신 identity를 재검증한 뒤 한 번 게시하고 read-back한다. 기능 릴리스 Update는 `linear-project-update` Candidate로 직전 Update 뒤 Comment ID를 본문 `작업 Comment`에도 남기고 실제 연결을 수집한다. `expectedBefore.latestUpdateId`는 게시 직전 최신 Update ID와 같아야 한다. Comment와 Update 모두 `target.projectId`와 이 직전 identity를 고정해 게시 직전 대상이 바뀌면 재작성한다. schema `1.0` Comment는 이미 게시된 기록의 검증·렌더 호환에만 사용한다.
-
-RPA 고객 업무 Description은 [RPA Description 계약 v1](RPA_DESCRIPTION_CONTRACT.md)의 고정 프로필을 사용한다. Project는 `kind: linear-project`, Task는 `kind: linear-issue`의 `rpa-task-v1` 프로필이며, 구조화된 map에서 Description 본문을 생성한다. 이 경로는 CLI Candidate 검증·렌더와 게시 스킬에 적용되며 TUI의 자동 외부 실행 기능을 추가하지 않는다.
-
-```bash
-bun run artifact:control -- validate --candidate <candidate.json>
-bun run artifact:control -- validate --candidate <candidate.json> --actual-before <readback.json>
-bun run artifact:control -- render --candidate <candidate.json>
-```
-
-`--out`은 새 파일만 생성하며 기존 파일 덮어쓰기를 거부한다. 외부 Apply 권한으로 해석하지 않는다.
-
-## Receipt 판정
-
-| 상황 | status | stage |
-| --- | --- | --- |
-| Apply와 read-back 일치 | `succeeded` | `verify` |
-| 실행된 검증 실패 | `failed` | 실패 단계 |
-| 권한·입력·선행 결정 부족 | `blocked` | 중단 단계 |
-| 사용자가 실행을 중단 | `canceled` | `authorize` |
-| Apply 응답 또는 read-back 불확실 | `uncertain` | `verify` |
-
-과거 RPA 표현은 `PASS → succeeded`, `PARTIAL → uncertain`, `BLOCKED → blocked`로 읽는다. 새 Receipt에는 과거 표현을 쓰지 않는다.
+미실행·불확실한 결과는 성공으로 기록하지 않는다. 외부 업무 원장의 연결이나 상세 문서 게시를 GitHub 작업의 필수 조건으로 요구하지 않는다.

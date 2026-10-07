@@ -1,9 +1,16 @@
-import { describe, expect, test }               from "bun:test";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import type { ProjectActivity }                 from "../src/core/domain/execution/project-activity";
-import type { WorkFlowProjection }              from "../src/core/domain/work";
-import type { TodoDocument }                    from "../src/core/domain/work/todos";
-import { WorkspaceTodoView }                    from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
+import      {
+              describe               ,
+              expect                 ,
+              test                   ,
+                                       } from "bun:test"                                                                   ;
+import      {
+              stripTerminalSequences ,
+              visibleWidth           ,
+                                       } from "@earendil-works/pi-tui"                                                     ;
+import type { ProjectActivity          } from "../src/core/domain/execution/project-activity"                              ;
+import type { WorkFlowProjection       } from "../src/core/domain/work"                                                    ;
+import type { TodoDocument             } from "../src/core/domain/work/todos"                                              ;
+import      { WorkspaceTodoView        } from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views" ;
 
 function todo(items: TodoDocument["items"]): TodoDocument {
 	return {
@@ -46,25 +53,6 @@ describe("WorkspaceTodoView", () => {
 			expect(waiting).toContain("공개 계획을 기다리는 중");
 			expect(waiting).not.toContain("0/0");
 		}
-	});
-
-	test("projects the latest Linear Update when no native Todo is active", () => {
-		const output = stripTerminalSequences(new WorkspaceTodoView(
-			() => null,
-			undefined,
-			() => ({
-				state       : "ready",
-				projectName : "World Wide Woo",
-				fetchedAt   : "2026-09-09T00:00:00.000Z",
-				issues      : [],
-				update      : { body: "0.1.0의 최신 변경 사항", version: "0.1.0", createdAt: "2026-09-09T00:00:00.000Z" },
-				comments    : [],
-				milestones  : [],
-				error       : null,
-			}),
-		).render(80).join("\n"));
-		expect(output).toContain("Update · World Wide Woo");
-		expect(output).toContain("0.1.0의 최신 변경 사항");
 	});
 
 	test("keeps the Goal visible while the Native Plan is being prepared", () => {
@@ -113,8 +101,8 @@ describe("WorkspaceTodoView", () => {
 	});
 
 	test("keeps execution provenance out of the Todo checklist", () => {
-		const identity = "a".repeat(64);
-		const revision = { sourceRevisionKeyDigest: "b".repeat(64), activityId: "plan", sequence: 1, sourceDigest: "sha256:plan" };
+		const identity = "a".repeat(64)                                                                                            ;
+		const revision = { sourceRevisionKeyDigest: "b".repeat(64), activityId: "plan", sequence: 1, sourceDigest: "sha256:plan" } ;
 		const document: TodoDocument = {
 			...todo([]),
 			items: [{

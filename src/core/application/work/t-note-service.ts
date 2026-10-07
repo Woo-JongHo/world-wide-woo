@@ -1,6 +1,7 @@
 import      { createHash, randomUUID      } from "node:crypto"                                                 ;
 import type { OutputLanguage              } from "@/core/domain/execution/output-language.js"                  ;
 import      {
+              MAX_TNOTE_TEXT_BYTES      ,
               createTNotePacket         ,
               sanitizeTNoteText         ,
               tNoteSourceIdempotencyKey ,
@@ -96,9 +97,10 @@ export class TNoteService {
 			if (signal?.aborted) throw error;
 			throw operationError("generation", error);
 		}
-		const text          = result.text                                                                                          ;
-		const operationText = appendObservedOperationRows(text, packet.activities)                                                 ;
-		const persistedText = appendObservedTestSummary(operationText, packet.activities, input.outputLanguage ?? this.language()) ;
+		const text          = result.text                                                                                                                                   ;
+		const operationText = appendObservedOperationRows(text, packet.activities)                                                                                          ;
+		const persistedText = sanitizeTNoteText(appendObservedTestSummary(operationText, packet.activities, input.outputLanguage ?? this.language()), MAX_TNOTE_TEXT_BYTES) ;
+		if (!parseCanonicalTNoteReport(persistedText)) throw operationError("generation", new Error("Sanitized Note report is incomplete"));
 		return this.appendOrRecover(Object.freeze({
 			id: this.idFactory(),
 			createdAt: this.clock().toISOString(),

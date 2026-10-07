@@ -6,7 +6,7 @@ import      { isRecord                   } from "@/core/domain/value/record.js" 
 export const MAX_TNOTE_SOURCE_ACTIVITIES = 100                                    ;
 const MAX_ACTIVITY_BODY                  = 32 * 1024                              ;
 const MAX_PACKET_BYTES                   = 256 * 1024                             ;
-const MAX_NOTE_BYTES                     = 64 * 1024                              ;
+export const MAX_TNOTE_TEXT_BYTES        = 64 * 1024                              ;
 const ID_PATTERN                         = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/u ;
 const DIGEST_PATTERN                     = /^[a-f0-9]{64}$/u                      ;
 const NATIVE_IDENTIFIER_KEYS = new Set([
@@ -280,8 +280,8 @@ export function validateTNoteDraft(value: TNoteDraft, calculateDigest?: TNotePac
 	assertId(value.id, "Note id");
 	if (!Number.isSafeInteger(value.sequence) || value.sequence < 1) throw new Error("Invalid Note sequence");
 	assertDate(value.createdAt, "Note timestamp");
-	const packet = validateTNotePacket(value.packet, calculateDigest) ;
-	const text   = sanitizeTNoteText(value.text, MAX_NOTE_BYTES)      ;
+	const packet = validateTNotePacket(value.packet, calculateDigest)  ;
+	const text   = sanitizeTNoteText(value.text, MAX_TNOTE_TEXT_BYTES) ;
 	if (text.length === 0 || text !== value.text) throw new Error("Invalid Note text");
 	const provenance = validateProvenance(value.provenance);
 	return freezeDraft({

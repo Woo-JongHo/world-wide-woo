@@ -69,15 +69,6 @@ export class WwwContextView implements Component {
 		];
 		if (skills) rows.push(a.muted(`revision ${safe(skills.sourceRevision)}  ·  digest ${safe(skills.digest.slice(0, 12))}`));
 		for (const request of [...(s.requestRuntime ?? [])].reverse()) rows.push(...requestRuntimeRows(request, width));
-		const dashboard = s.linearDashboard;
-		if (dashboard) {
-			rows.push(...section(safe(dashboard.projectName), width, dashboard.state), kv("갱신 시각", dashboard.fetchedAt));
-			if (dashboard.error) rows.push(a.attention(safe(dashboard.error)));
-			if (dashboard.update) rows.push(...section("Project Update", width, safe(dashboard.update.createdAt)), ...new Markdown(safe(dashboard.update.body, 24_000), 0, 0, wwwMarkdownTheme).render(width));
-			for (const milestone of dashboard.milestones) rows.push(kv(safe(milestone.targetDate || "일정 미정"), milestone.name));
-			if (dashboard.issues.length) rows.push(...section("연결된 이슈", width));
-			for (const issue of dashboard.issues) rows.push(`${safe(issue.id)} ${safe(issue.title)}`, a.muted(`  ${safe(issue.status)} / ${safe(issue.dueDate || "기한 미정")}`));
-		}
 		if (s.hud?.showUsage !== false) {
 			rows.push(...section("Provider 사용량", width));
 			for (const u of this.usage()) {

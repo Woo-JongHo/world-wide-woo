@@ -7,8 +7,8 @@
 ```text
 src/
 ├── core/
-│   ├── domain/       # development·execution·observability·review·value·work
-│   ├── application/  # development·orchestration·review·routing·session·work
+│   ├── domain/       # execution·observability·review·value·work
+│   ├── application/  # orchestration·review·routing·session·work
 │   ├── ports/        # execution·persistence·integration·observability 계약
 │   ├── runtime/      # 실행 상태와 receipt
 │   ├── commit/       # commit control 계약
@@ -56,7 +56,7 @@ Inbound Adapter ──→ Core ←── Outbound Adapter
 |---|---|
 | `execution` | 실행 명령, request lifecycle, terminal command, Todo control |
 | `persistence` | session·settings·Todo·composer draft 저장 |
-| `integration` | model·auth·repository·Linear 같은 외부 기능 조회·제어 |
+| `integration` | model·auth·repository 같은 외부 기능 조회·제어 |
 | `observability` | usage·Git telemetry·관측 history 읽기 |
 
 `core/ports/index.ts`는 선언 없는 type-only 호환 barrel이다. 새 제품 코드는 책임별 Port 파일을 직접 import한다.
@@ -79,7 +79,7 @@ Inbound Adapter ──→ Core ←── Outbound Adapter
 - 외부 입력(`unknown`)의 구조 판별처럼 모든 계층이 같은 계약으로 쓰는 값 판별은 `core/domain/value`가 소유한다. 같은 판별 함수를 파일마다 다시 정의하지 않는다.
 - `core/agents`, `core/intents`, `core/skills`, `core/workflows`는 각각 WHEN·분류·HOW·실행 순서의 예약 경계다. 실제 코드가 생길 때만 만든다.
 
-제품 Feature와 Native 관측 계층은 다른 축이다. Feature registry는 18개 Feature·39개 Unit을 `core-work | observability | control | integration`으로 분류한다. Native 사건의 성능·완료 관측은 모든 Feature를 가로질러 다음 7경계를 유지한다.
+제품 Feature와 Native 관측 계층은 다른 축이다. Feature registry는 17개 Feature·36개 Unit을 `core-work | observability | control | integration`으로 분류한다. Native 사건의 성능·완료 관측은 모든 Feature를 가로질러 다음 7경계를 유지한다.
 
 ```text
 native-receive → event-queue → state-projection → snapshot-publish
@@ -103,4 +103,4 @@ native-receive → event-queue → state-projection → snapshot-publish
 - 상대 import cycle이 없다.
 - Core에서 Adapter로 향하는 import가 없다.
 - Inbound에서 Outbound로 향하는 직접 import가 없다.
-- 경로 이동 뒤 Code-ID와 추적성 원장이 실제 파일을 가리킨다.
+- 경로 이동 뒤 실제 import와 기능 등록 metadata가 파일을 가리킨다.

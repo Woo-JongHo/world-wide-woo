@@ -1,138 +1,51 @@
 /** @linear WOO-692 */
-import { describe, expect, test }               from "bun:test";
-import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
-import type { LayoutBox }                       from "@earendil-works/pi-tui/dist/layout.js";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import      {
+              describe                       ,
+              expect                         ,
+              test                           ,
+                                               } from "bun:test"                                                                       ;
+import      { renderLayoutFrame                } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import type { LayoutBox                        } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import      {
+              stripTerminalSequences         ,
+              visibleWidth                   ,
+                                               } from "@earendil-works/pi-tui"                                                         ;
 import chalk                                    from "chalk";
-import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
-import { createDashboardLayout }                from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import {
-	StatusLine,
-	WorkspaceTodoView,
-} from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
-import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
-import { EntryDashboardView }                   from "../src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
-import { TNotesSourceView }                     from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view";
-import { WorkbenchMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
-import { WorkbenchTracerView }                  from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
-import { boundedPublicProjection }              from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
-import {
-	approvalCardRows,
-	projectApprovalBackgroundState,
-} from "../src/adapters/inbound/tui/features/approval/view/approval-presentation";
-import { projectWorkFlow }                      from "../src/core/domain/work";
-import type { DplanHash }                       from "../src/core/domain/work";
+import type { WorkbenchSnapshot                } from "../src/core/domain/work/workbench"                                              ;
+import      { createDashboardLayout            } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout"                 ;
+import      {
+              StatusLine                     ,
+              WorkspaceTodoView              ,
+                                               } from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views"     ;
+import      { WorkbenchChatView                } from "../src/adapters/inbound/tui/features/chat/view/workbench-views"                 ;
+import      { TNotesSourceView                 } from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view"            ;
+import      { WorkbenchMonitorView             } from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view"    ;
+import      { WorkbenchTracerView              } from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view"          ;
+import      { boundedPublicProjection          } from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
+import      {
+              approvalCardRows               ,
+              projectApprovalBackgroundState ,
+                                               } from "../src/adapters/inbound/tui/features/approval/view/approval-presentation"       ;
+import      { projectWorkFlow                  } from "../src/core/domain/work"                                                        ;
+import type { DplanHash                        } from "../src/core/domain/work"                                                        ;
 
-import {
-	allScrollContent,
-	approvalPresentation,
-	fixtureWorkFlow,
-	hash,
-	renderChatWithDashboard,
-	snapshot,
-} from "./workbench-views.fixtures";
+import      {
+              allScrollContent               ,
+              approvalPresentation           ,
+              fixtureWorkFlow                ,
+              hash                           ,
+              renderChatWithDashboard        ,
+              snapshot                       ,
+                                               } from "./workbench-views.fixtures"                                                     ;
 
 describe("workbench dashboard views", () => {
-	test("shows the linked Linear project while the entry dashboard is connecting", () => {
-		const output = renderChatWithDashboard({
-			...snapshot,
-			chat: [],
-			linearDashboard: {
-				state       : "loading",
-				projectName : "World Wide Woo",
-				fetchedAt   : null,
-				issues      : [],
-				update      : null,
-				comments    : [],
-				milestones  : [],
-				error       : null,
-			},
-		});
-		expect(output).toContain("DASHBOARD · World Wide Woo"            ) ;
-		expect(output).toContain("연결 중"                               ) ;
-		expect(output).toContain("열린 이슈·최신 Update·Comment·마일스톤") ;
-	});
-
-	test("projects linked Linear issues into the empty Chat dashboard", () => {
-		const output = renderChatWithDashboard({
-			...snapshot,
-			chat: [],
-			linearDashboard: {
-				state       : "ready",
-				projectName : "World Wide Woo",
-				fetchedAt   : "2026-09-09T00:00:00.000Z",
-				issues      : [{ id: "WOO-999", title: "Linear 대시보드", status: "In Progress", dueDate: null }],
-				update      : null,
-				comments    : [],
-				milestones  : [],
-				error       : null,
-			},
-		});
-		expect(output).toContain("DASHBOARD · World Wide Woo") ;
-		expect(output).toContain("NOW"                       ) ;
-		expect(output).toContain("WOO-999"                   ) ;
-		expect(output).toContain("Linear 대시보드"           ) ;
-		expect(output).toContain("In Progress"               ) ;
-	});
-
-	test("keeps a failed Linear entry Dashboard visible with a recovery action", () => {
-		const output = renderChatWithDashboard({
-			...snapshot,
-			chat       : [],
-			activities : [],
-			workFlow   : projectWorkFlow([]),
-			linearDashboard: {
-				state       : "unavailable",
-				projectName : "World Wide Woo",
-				fetchedAt   : null,
-				issues      : [],
-				update      : null,
-				comments    : [],
-				milestones  : [],
-				error       : "Linear MCP 인증이 필요합니다.",
-			},
-		});
-		expect(output)    .toContain("DASHBOARD · World Wide Woo"   ) ;
-		expect(output)    .toContain("Linear Dashboard unavailable" ) ;
-		expect(output)    .toContain("Linear MCP 인증이 필요합니다.") ;
-		expect(output)    .toContain("조치 · .www/workbench.yaml"   ) ;
-		expect(output).not.toContain("프로젝트 Workbench"           ) ;
-	});
-
-	test("replaces the entry Dashboard with ordinary Chat after the first user message", () => {
-		const active: WorkbenchSnapshot = {
-			...snapshot,
-			chat: [{ ...snapshot.chat[0]!, role: "user", content: "첫 요청" }],
-			linearDashboard: {
-				state       : "ready",
-				projectName : "World Wide Woo",
-				fetchedAt   : "2026-09-09T00:00:00.000Z",
-				issues      : [{ id: "WOO-999", title: "숨겨질 요약", status: "Todo", dueDate: null }],
-				update      : null,
-				comments    : [],
-				milestones  : [],
-				error       : null,
-			},
-		};
-		const output = stripTerminalSequences(new WorkbenchChatView(active).render(100).join("\n"));
-		expect(output)    .toContain("첫 요청"       ) ;
-		expect(output).not.toContain("입장 Dashboard") ;
-		expect(output).not.toContain("WOO-999"       ) ;
-
-		const todo = stripTerminalSequences(new WorkspaceTodoView(
-			() => null,
-			() => ({ activeTurnId: null, activities: active.activities, workFlow: projectWorkFlow([]), hasConversation: true }),
-			() => active.linearDashboard,
-		).render(60).join("\n"));
+	test("shows local Chat and Todo without an external project dashboard", () => {
+		const active = { ...snapshot, chat: [{ ...snapshot.chat[0]!, role: "user" as const, content: "첫 요청" }] } ;
+		const output = stripTerminalSequences(new WorkbenchChatView(active).render(100).join("\n"))                 ;
+		expect(output).toContain("첫 요청");
+		expect(output).not.toContain("Linear");
+		const todo = stripTerminalSequences(new WorkspaceTodoView(() => null).render(60).join("\n"));
 		expect(todo).toBe("TODO · 현재 계획 없음");
-		expect(todo).not.toContain("Update · World Wide Woo");
-
-		const tracer = stripTerminalSequences(new WorkbenchTracerView(() => ({
-			...active,
-			workFlow: projectWorkFlow([]),
-		})).render(60).join("\n"));
-		expect(tracer).toBe("");
-		expect(tracer).not.toContain("일정 · World Wide Woo");
 	});
 
 	test("reuses the complete chat projection for scroll-only frames", () => {
@@ -186,8 +99,8 @@ describe("workbench dashboard views", () => {
 	});
 
 	test("keeps completed Notes in Dashboard and selected execution Source in Monitor", () => {
-		const notes = stripTerminalSequences(new TNotesSourceView(() => snapshot).render(100).join("\n"));
-		const monitor = stripTerminalSequences(new WorkbenchMonitorView(() => snapshot).render(100).join("\n"));
+		const notes   = stripTerminalSequences(new TNotesSourceView(() => snapshot).render(100).join("\n")    ) ;
+		const monitor = stripTerminalSequences(new WorkbenchMonitorView(() => snapshot).render(100).join("\n")) ;
 		expect(notes   )    .toContain("결정 요약"                ) ;
 		 expect(notes  ).not.toContain("Trace·Source"             ) ;
 		 expect(monitor)    .toContain("Trace·Source · activity-1") ;
@@ -361,9 +274,9 @@ describe("workbench dashboard views", () => {
 		const monitor = new WorkbenchMonitorView(() => current)   ;
 		const todo    = new WorkspaceTodoView(() => current.todo) ;
 
-		const dashboardOutput = stripTerminalSequences(chat.render(80).join("\n"))    ;
+		const dashboardOutput = stripTerminalSequences(chat.render(80).join("\n")   ) ;
 		const monitorOutput   = stripTerminalSequences(monitor.render(80).join("\n")) ;
-		const todoOutput      = stripTerminalSequences(todo.render(80).join("\n"))    ;
+		const todoOutput      = stripTerminalSequences(todo.render(80).join("\n")   ) ;
 
 		expect(dashboardOutput).toContain("streaming response" ) ;
 		expect(dashboardOutput).toContain("partial response"   ) ;

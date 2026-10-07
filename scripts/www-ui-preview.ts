@@ -1,9 +1,9 @@
 /** Interactive, offline Www UI showcase. No provider, credential, or project writes. */
-import type { ProjectWorkbench }    from "../src/core/application/orchestration/project-workbench";
-import type { WorkbenchSnapshot }   from "../src/core/domain/work/workbench";
-import type { UsageSnapshot }       from "../src/core/ports";
-import { runProjectWorkbenchShell } from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { wwwFixture }               from "../test/fixtures/www-snapshot";
+import type { ProjectWorkbench         } from "../src/core/application/orchestration/project-workbench" ;
+import type { WorkbenchSnapshot        } from "../src/core/domain/work/workbench"                       ;
+import type { UsageSnapshot            } from "../src/core/ports"                                       ;
+import      { runProjectWorkbenchShell } from "../src/adapters/inbound/tui/shell/workbench-shell"       ;
+import      { wwwFixture               } from "../test/fixtures/www-snapshot"                           ;
 
 const now = Date.now();
 const usageSnapshots: readonly UsageSnapshot[] = [
@@ -13,8 +13,8 @@ const usageSnapshots: readonly UsageSnapshot[] = [
 	{ provider : "zai"          , state : "ready" , fetchedAt : now , limits : [{ label: "Coding Plan 5 hours", remainingPercent: 57, resetsAt: now + 10_800_000, status: "ok" }, { label: "Coding Plan weekly", remainingPercent: 68, resetsAt: now + 518_400_000, status: "ok" }] },
 ];
 
-const base = wwwFixture("ready");
-export const previewCwd = "/preview/DEMO DATA";
+const base              = wwwFixture("ready")  ;
+export const previewCwd = "/preview/DEMO DATA" ;
 export const snapshot: WorkbenchSnapshot = {
 	...base,
 	sessionGoal  : { text: "DEMO DATA · synthetic fixtures · not live telemetry", sourceActivityId: "offline-preview", updatedAt: new Date(now).toISOString() },
@@ -32,27 +32,16 @@ export const snapshot: WorkbenchSnapshot = {
 		],
 		observationCoverage: { interactive: true, detached: true },
 	},
-	skillInventory: { count: 6, names: ["woo-entry", "woo-code-readability", "development-map", "rpa-build", "rpa-safety", "woo-commit"], sourceRevision: "preview", digest: "f".repeat(64) },
+	skillInventory: { count: 3, names: ["woo-entry", "woo-code-readability", "woo-commit"], sourceRevision: "preview", digest: "f".repeat(64) },
 	mcpServers: [
 		{ name : "figma"  , enabled : true , status : "connected" , tools : ["get_design_context", "get_screenshot"] },
-		{ name : "linear" , enabled : true , status : "connected" , tools : ["issues", "projects", "comments"]       },
 		{ name : "github" , enabled : true , status : "connected" , tools : ["issues", "pull_requests"]              },
 	],
 	cacheObservations: [
 		{ id : "context-projection" , state : "ready" , entries : 12                     , logicalBytes : 84_320 , hits : 96 , misses : 8 , evictions : 1 , latencyMs : 0.7 , lastAccessedAt : new Date(now - 2_000).toISOString()  },
 		{ id : "model-catalog"      , state : "ready" , entries : 14                     , logicalBytes : 18_200 , hits : 11 , misses : 2 , evictions : 0 , latencyMs : 42  , lastAccessedAt : new Date(now - 12_000).toISOString() },
-		{ id : "dashboard-data"     , state : "ready" , entries : 1                      , logicalBytes : 9_600  , hits : 18 , misses : 1 , evictions : 0 , latencyMs : 88  , lastAccessedAt : new Date(now - 5_000).toISOString()  },
 		{ id : "session-read"       , state : "ready" , entries : base.activities.length , logicalBytes : 32_400 , hits : 34 , misses : 2 , evictions : 0 , latencyMs : 1.2 , lastAccessedAt : new Date(now - 1_000).toISOString()  },
 	],
-	linearDashboard: {
-		state: "ready", projectName: "World Wide Woo", fetchedAt: new Date(now).toISOString(), error: null,
-		issues: [
-			{ id: "WOO-901", title: "Www monitoring surfaces", status: "In Progress", dueDate: null },
-			{ id: "WOO-902", title: "Cache telemetry contract", status: "Done", dueDate: null },
-		],
-		update: { body: "다섯 모니터링 화면 통합 검증", version: null, createdAt: new Date(now - 3_600_000).toISOString() },
-		comments: [], milestones: [],
-	},
 };
 
 const workbench = {

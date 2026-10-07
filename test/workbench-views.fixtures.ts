@@ -1,27 +1,33 @@
-import { describe, expect, test }               from "bun:test";
-import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
-import type { LayoutBox }                       from "@earendil-works/pi-tui/dist/layout.js";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import      {
+              describe                       ,
+              expect                         ,
+              test                           ,
+                                               } from "bun:test"                                                                       ;
+import      { renderLayoutFrame                } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import type { LayoutBox                        } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import      {
+              stripTerminalSequences         ,
+              visibleWidth                   ,
+                                               } from "@earendil-works/pi-tui"                                                         ;
 import chalk                                    from "chalk";
-import type { ChatFeatureProjection }           from "../src/core/application/orchestration/workbench-feature-reads";
-import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
-import { createDashboardLayout }                from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import {
-	StatusLine,
-	WorkspaceTodoView,
-} from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
-import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
-import { EntryDashboardView }                   from "../src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
-import { TNotesSourceView }                     from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view";
-import { WorkbenchMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
-import { WorkbenchTracerView }                  from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
-import { boundedPublicProjection }              from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
-import {
-	approvalCardRows,
-	projectApprovalBackgroundState,
-} from "../src/adapters/inbound/tui/features/approval/view/approval-presentation";
-import { projectWorkFlow }                      from "../src/core/domain/work";
-import type { DplanHash }                       from "../src/core/domain/work";
+import type { ChatFeatureProjection            } from "../src/core/application/orchestration/workbench-feature-reads"                  ;
+import type { WorkbenchSnapshot                } from "../src/core/domain/work/workbench"                                              ;
+import      { createDashboardLayout            } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout"                 ;
+import      {
+              StatusLine                     ,
+              WorkspaceTodoView              ,
+                                               } from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views"     ;
+import      { WorkbenchChatView                } from "../src/adapters/inbound/tui/features/chat/view/workbench-views"                 ;
+import      { TNotesSourceView                 } from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view"            ;
+import      { WorkbenchMonitorView             } from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view"    ;
+import      { WorkbenchTracerView              } from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view"          ;
+import      { boundedPublicProjection          } from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
+import      {
+              approvalCardRows               ,
+              projectApprovalBackgroundState ,
+                                               } from "../src/adapters/inbound/tui/features/approval/view/approval-presentation"       ;
+import      { projectWorkFlow                  } from "../src/core/domain/work"                                                        ;
+import type { DplanHash                        } from "../src/core/domain/work"                                                        ;
 
 export const hash: DplanHash = {
 	sha256Hex: (input) => new Bun.CryptoHasher("sha256").update(input).digest("hex"),
@@ -43,8 +49,8 @@ export function fixtureWorkFlow(activities: WorkbenchSnapshot["activities"]) {
 	const threadId = source?.nativeRefs.threadId
 		?? activities.find(activity => activity.nativeRefs.threadId)?.nativeRefs.threadId
 		?? "fixture-thread";
-	const turnId = source?.nativeRefs.turnId ?? "fixture-turn";
-	const hasPlan = activities.some(activity => activity.payload.method === "turn/plan/updated");
+	const turnId  = source?.nativeRefs.turnId ?? "fixture-turn"                                  ;
+	const hasPlan = activities.some(activity => activity.payload.method === "turn/plan/updated") ;
 	const hasTurnStart = activities.some(activity =>
 		activity.payload.method === "turn/start" || activity.payload.method === "turn/started",
 	);
@@ -140,6 +146,5 @@ export function allScrollContent(box: LayoutBox): string[] {
 export function renderChatWithDashboard(value: WorkbenchSnapshot, width = 100): string {
 	return stripTerminalSequences(new WorkbenchChatView(
 		value,
-		new EntryDashboardView(() => value.linearDashboard),
 	).render(width).join("\n"));
 }

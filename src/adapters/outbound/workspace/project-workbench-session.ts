@@ -1,75 +1,77 @@
-import { createLocalWorkflow }                        from "@/adapters/outbound/development/local-workflow.js";
-import type { DevelopmentService }                    from "@/core/application/development/development-service";
-import { createDevelopmentService }                   from "@/adapters/outbound/development/development-cli";
-import { randomUUID }                                 from "node:crypto";
-import { join }                                       from "node:path";
-import { stat }                                       from "node:fs/promises";
-import { McpLinearProjectDashboard }                  from "@/adapters/outbound/workspace/linear-project-dashboard.js";
-import { ProjectWorkbench }                           from "@/core/application/orchestration/project-workbench.js";
+import      { createLocalWorkflow                                      } from "@/adapters/outbound/development/local-workflow.js"           ;
+import      { randomUUID                                               } from "node:crypto"                                                 ;
+import      { join                                                     } from "node:path"                                                   ;
+import      { stat                                                     } from "node:fs/promises"                                            ;
+import      { ProjectWorkbench                                         } from "@/core/application/orchestration/project-workbench.js"       ;
 import type {
-	ProjectWorkbenchOptions,
-	WorkbenchActivityJournal,
-	WorkbenchTNoteSource,
-	WorkbenchTodoSource,
-} from "@/core/application/orchestration/project-workbench.js";
-import type { ExecutorPort }                          from "@/core/ports/execution/executor-port.js";
-import type { UsageMonitor }                          from "@/core/ports/observability/usage-monitor-port";
-import type { ComposerDraftController }               from "@/core/ports/persistence/composer-draft-port";
-import type { SessionRepository }                     from "@/core/ports/persistence/session-repository";
-import type { TodoStore }                             from "@/core/ports/persistence/todo-store";
-import { TNoteService }                               from "@/core/application/work/t-note-service.js";
-import type { ActivityNarrator }                      from "@/core/application/orchestration/activity-narrator.js";
-import { OutputLanguageSelection }                    from "@/core/domain/execution/output-language.js";
-import { loadOutputLanguagePreference }               from "@/adapters/outbound/workspace/output-language-preference.js";
-import { WooEntry }                                   from "@/core/application/orchestration/woo-entry.js";
-import { SessionModelUsageAccumulator }               from "@/core/application/session/session-model-usage.js";
-import type { SessionModelUsageObservation }          from "@/core/application/session/session-model-usage.js";
-import {
-	ThreadScopedActivityJournal,
-	ThreadScopedTNoteSource as CoreThreadScopedTNoteSource,
-	ThreadScopedTodoSource,
-} from "@/core/application/session/thread-scope-policy.js";
-import type { NativeThreadScope }                     from "@/core/application/session/thread-scope-policy.js";
-import { FileSkillRegistry }                          from "@/adapters/outbound/workspace/file-skill-registry.js";
-import type { SkillRegistrySnapshot }                 from "@/core/skills/skill-registry.js";
-import { TodoLedger }                                 from "@/core/application/work/todo-ledger.js";
-import type { WorkbenchModelSelection }               from "@/core/domain/work/workbench.js";
-import { CanonicalPromotionService }                  from "@/core/application/work/canonical-promotion.js";
-import { ReviewService }                              from "@/core/application/review/review-service.js";
-import {
-	digestActivitySource,
-	ActivityJournalStore,
-	nativeThreadJournalKey,
-} from "@/adapters/outbound/persistence/activity-journal-store.js";
-import type { ActivityJournalCacheTelemetry }         from "@/adapters/outbound/persistence/activity-journal-store.js";
-import { FileTraceStore }                             from "@/adapters/outbound/persistence/trace-store.js";
-import { FileRequestProjectionStore }                 from "@/adapters/outbound/persistence/request-projection-store";
-import { createNativeHarness }                        from "@/adapters/outbound/execution/factory.js";
-import type { ExecutionLane, NativeHarnessSelection } from "@/adapters/outbound/execution/factory.js";
-import { FileComposerDraftController }                from "@/adapters/outbound/persistence/composer-draft-store.js";
-import { PiDetachedCodexGenerator }                   from "@/adapters/outbound/execution/detached-codex-generator.js";
-import { PiActivityNarrator }                         from "@/adapters/outbound/execution/pi-activity-narrator.js";
-import { FileCredentialStore }                        from "@/adapters/outbound/authentication/credential-store.js";
-import { createModelRegistry }                        from "@/adapters/outbound/authentication/model-router.js";
-import { FileProjectWorkspace }                       from "@/adapters/outbound/workspace/project-workspace.js";
-import type { ProjectWorkspace, SessionLease }        from "@/adapters/outbound/workspace/project-workspace.js";
-import { SessionEventStore }                          from "@/adapters/outbound/persistence/session-store.js";
-import { FileTNoteStore }                             from "@/adapters/outbound/persistence/t-note-store.js";
-import { FileTodoStore, importLegacyTodo }            from "@/adapters/outbound/persistence/todo-store.js";
-import { FileCanonicalDocumentStore }                 from "@/adapters/outbound/persistence/canonical-document-store.js";
-import {
-	createProductionReviewAdapters,
-	installedClaudeCliVersion,
-	PiReviewGenerationClient,
-	sha256ReviewDigest,
-} from "@/adapters/outbound/review/review-adapters.js";
-import { FileReviewProvenanceStore }                  from "@/adapters/outbound/review/review-store.js";
-import { UsageService }                               from "@/adapters/outbound/observability/usage-service.js";
-import { WesEntryCollector }                          from "@/adapters/outbound/execution/wes-entry-collector.js";
-import { loadWorkbenchConfigWithSource }              from "@/adapters/outbound/workspace/workbench-config.js";
-import { DEFAULT_WORKBENCH_CONFIG }                   from "@/core/domain/execution/workbench-config.js";
-import type { WorkbenchConfig }                       from "@/core/domain/execution/workbench-config.js";
-import type { RequestRuntimeMode }                    from "@/core/application/orchestration/request-runtime-mode.js";
+              ProjectWorkbenchOptions                                ,
+              WorkbenchActivityJournal                               ,
+              WorkbenchTNoteSource                                   ,
+              WorkbenchTodoSource                                    ,
+                                                                       } from "@/core/application/orchestration/project-workbench.js"       ;
+import type { ExecutorPort                                             } from "@/core/ports/execution/executor-port.js"                     ;
+import type { UsageMonitor                                             } from "@/core/ports/observability/usage-monitor-port"               ;
+import type { ComposerDraftController                                  } from "@/core/ports/persistence/composer-draft-port"                ;
+import type { SessionRepository                                        } from "@/core/ports/persistence/session-repository"                 ;
+import type { TodoStore                                                } from "@/core/ports/persistence/todo-store"                         ;
+import      { TNoteService                                             } from "@/core/application/work/t-note-service.js"                   ;
+import type { ActivityNarrator                                         } from "@/core/application/orchestration/activity-narrator.js"       ;
+import      { OutputLanguageSelection                                  } from "@/core/domain/execution/output-language.js"                  ;
+import      { loadOutputLanguagePreference                             } from "@/adapters/outbound/workspace/output-language-preference.js" ;
+import      { SessionModelUsageAccumulator                             } from "@/core/application/session/session-model-usage.js"           ;
+import type { SessionModelUsageObservation                             } from "@/core/application/session/session-model-usage.js"           ;
+import      {
+              ThreadScopedActivityJournal                            ,
+              ThreadScopedTNoteSource as CoreThreadScopedTNoteSource ,
+              ThreadScopedTodoSource                                 ,
+                                                                       } from "@/core/application/session/thread-scope-policy.js"           ;
+import type { NativeThreadScope                                        } from "@/core/application/session/thread-scope-policy.js"           ;
+import      { FileSkillRegistry                                        } from "@/adapters/outbound/workspace/file-skill-registry.js"        ;
+import type { SkillRegistrySnapshot                                    } from "@/core/skills/skill-registry.js"                             ;
+import      { TodoLedger                                               } from "@/core/application/work/todo-ledger.js"                      ;
+import type { WorkbenchModelSelection                                  } from "@/core/domain/work/workbench.js"                             ;
+import      { ReviewService                                            } from "@/core/application/review/review-service.js"                 ;
+import      {
+              digestActivitySource                                   ,
+              ActivityJournalStore                                   ,
+              nativeThreadJournalKey                                 ,
+                                                                       } from "@/adapters/outbound/persistence/activity-journal-store.js"   ;
+import type { ActivityJournalCacheTelemetry                            } from "@/adapters/outbound/persistence/activity-journal-store.js"   ;
+import      { FileTraceStore                                           } from "@/adapters/outbound/persistence/trace-store.js"              ;
+import      { FileRequestProjectionStore                               } from "@/adapters/outbound/persistence/request-projection-store"    ;
+import      { createNativeHarness                                      } from "@/adapters/outbound/execution/factory.js"                    ;
+import type {
+              ExecutionLane                                          ,
+              NativeHarnessSelection                                 ,
+                                                                       } from "@/adapters/outbound/execution/factory.js"                    ;
+import      { FileComposerDraftController                              } from "@/adapters/outbound/persistence/composer-draft-store.js"     ;
+import      { PiDetachedCodexGenerator                                 } from "@/adapters/outbound/execution/detached-codex-generator.js"   ;
+import      { PiActivityNarrator                                       } from "@/adapters/outbound/execution/pi-activity-narrator.js"       ;
+import      { FileCredentialStore                                      } from "@/adapters/outbound/authentication/credential-store.js"      ;
+import      { createModelRegistry                                      } from "@/adapters/outbound/authentication/model-router.js"          ;
+import      { FileProjectWorkspace                                     } from "@/adapters/outbound/workspace/project-workspace.js"          ;
+import type {
+              ProjectWorkspace                                       ,
+              SessionLease                                           ,
+                                                                       } from "@/adapters/outbound/workspace/project-workspace.js"          ;
+import      { SessionEventStore                                        } from "@/adapters/outbound/persistence/session-store.js"            ;
+import      { FileTNoteStore                                           } from "@/adapters/outbound/persistence/t-note-store.js"             ;
+import      {
+              FileTodoStore                                          ,
+              importLegacyTodo                                       ,
+                                                                       } from "@/adapters/outbound/persistence/todo-store.js"               ;
+import      {
+              createProductionReviewAdapters                         ,
+              installedClaudeCliVersion                              ,
+              PiReviewGenerationClient                               ,
+              sha256ReviewDigest                                     ,
+                                                                       } from "@/adapters/outbound/review/review-adapters.js"               ;
+import      { FileReviewProvenanceStore                                } from "@/adapters/outbound/review/review-store.js"                  ;
+import      { UsageService                                             } from "@/adapters/outbound/observability/usage-service.js"          ;
+import      { loadWorkbenchConfigWithSource                            } from "@/adapters/outbound/workspace/workbench-config.js"           ;
+import      { DEFAULT_WORKBENCH_CONFIG                                 } from "@/core/domain/execution/workbench-config.js"                 ;
+import type { WorkbenchConfig                                          } from "@/core/domain/execution/workbench-config.js"                 ;
+import type { RequestRuntimeMode                                       } from "@/core/application/orchestration/request-runtime-mode.js"    ;
 
 const WORKBENCH_RUN_PREFIX = "workbench";
 /** Compatibility export; the source of truth is the validated config default. */
@@ -87,21 +89,18 @@ export interface ProjectWorkbenchSessionOptions {
 	systemPrompt? : string ;
 	model?        : string ;
 	effort?       : string ;
-	/** Opt in to local WES policy collection and Chat context injection. */
-	enableWooEntry?: boolean;
 	/** Refined plan activity is enabled by default; explicit false disables auxiliary interpretation. */
 	enableActivityNarrator?: boolean;
 	persistModelSelection?: (selection: WorkbenchModelSelection, catalog: import("@/core/domain/execution/model-settings").NativeModelCatalog) => Promise<void>;
 }
 
 export interface ProjectWorkbenchSession {
-	outputLanguage?: OutputLanguageSelection ;
-	workspace     : ProjectWorkspace        ;
-	projectId     : string                  ;
-	workbench     : ProjectWorkbench        ;
-	development?  : DevelopmentService      ;
-	composerDraft : ComposerDraftController ;
-	usage         : UsageMonitor            ;
+	outputLanguage? : OutputLanguageSelection ;
+	workspace       : ProjectWorkspace        ;
+	projectId       : string                  ;
+	workbench       : ProjectWorkbench        ;
+	composerDraft   : ComposerDraftController ;
+	usage           : UsageMonitor            ;
 	/** Called by the TUI after it has closed the workbench. */
 	releaseSessionLease(): Promise<void>;
 	/** Safe for errors before the TUI owns shutdown. */
@@ -119,20 +118,17 @@ export interface ProjectWorkbenchSessionFactories {
 	connectNative     (input: NativeHarnessSelection          ): Promise<ExecutorPort>;
 	createJournal     (directory: string                      ): WorkbenchActivityJournal;
 	createRequestProjection?(directory: string): NonNullable<ProjectWorkbenchOptions["requestProjection"]>;
-	createTodoStore    (path: string                                                                                        ): TodoStore;
-	createTodoLedger   (sessionId: string, store: TodoStore, events: SessionRepository                                      ): TodoLedger;
-	importLegacyTodo   (legacyPath: string, targetPath: string                                                              ): Promise<string | null>;
-	createSessionEvents(directory: string                                                                                   ): SessionRepository;
+	createTodoStore    (path: string                                                                                                                            ): TodoStore;
+	createTodoLedger   (sessionId: string, store: TodoStore, events: SessionRepository                                                                          ): TodoLedger;
+	importLegacyTodo   (legacyPath: string, targetPath: string                                                                                                  ): Promise<string | null>;
+	createSessionEvents(directory: string                                                                                                                       ): SessionRepository;
 	createTNoteSource  (directory: string, model: string, observeUsage?: (observation: SessionModelUsageObservation) => void, language?: OutputLanguageSelection): WorkbenchTNoteSource;
 	createActivityNarrator?(model: string, language?: OutputLanguageSelection): ActivityNarrator;
-	createPromotionService(root: string                                                                                                          ): CanonicalPromotionService;
 	createReviewService   (runtimeDirectory: string, observeUsage?: (observation: SessionModelUsageObservation) => void, config?: WorkbenchConfig): ReviewService;
 	createWorkbench       (native: ExecutorPort, journal: WorkbenchActivityJournal, options: ProjectWorkbenchOptions                             ): ProjectWorkbench;
 	createComposerDraft   (root: string, sessionId: string, directory: string                                                                    ): Promise<ComposerDraftController>;
 	createUsageMonitor    (native: ExecutorPort                                                                                                  ): UsageMonitor;
-	createWooEntry        ()                                                                                                                      : WooEntry;
 	loadSkillRegistry     (root: string                                                                                                          ): Promise<SkillRegistrySnapshot | undefined>;
-	createDevelopment?(root: string, runId: string): DevelopmentService;
 }
 
 interface WorkbenchExecutionSelection {
@@ -213,12 +209,11 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 	importLegacyTodo,
 	createSessionEvents: (directory) => new SessionEventStore(directory),
 	createTNoteSource: (directory, model, observeUsage, language) => {
-		const store = new FileTNoteStore(directory);
-		const generator = new PiDetachedCodexGenerator(createModelRegistry(new FileCredentialStore()), model, model, observeUsage, () => language?.get() ?? "ko");
+		const store     = new FileTNoteStore(directory)                                                                                                           ;
+		const generator = new PiDetachedCodexGenerator(createModelRegistry(new FileCredentialStore()), model, model, observeUsage, () => language?.get() ?? "ko") ;
 		return new TNoteService(generator, store, undefined, undefined, () => language?.get() ?? "ko");
 	},
 	createActivityNarrator: (model, language) => new PiActivityNarrator(createModelRegistry(new FileCredentialStore()), model, () => language?.get() ?? "ko"),
-	createPromotionService: (root) => new CanonicalPromotionService(new FileCanonicalDocumentStore(root)),
 	createReviewService: (runtimeDirectory, observeUsage, config = DEFAULT_WORKBENCH_CONFIG) => {
 		const registry = createModelRegistry(new FileCredentialStore());
 		return new ReviewService(
@@ -245,9 +240,7 @@ const productionFactories: ProjectWorkbenchSessionFactories = {
 			nativeAccountUsageReader(native),
 		);
 	},
-	createWooEntry    : () => new WooEntry(new WesEntryCollector()),
 	loadSkillRegistry : async (root) => await existingDirectory(join(root, ".agents/skills")) ? new FileSkillRegistry(root).load() : undefined,
-	createDevelopment : (projectRoot, runId) => createDevelopmentService({ projectRoot, runId }),
 };
 
 /**
@@ -267,24 +260,19 @@ export async function createProjectWorkbenchSession(
 	let native      : ExecutorPort | undefined                             ;
 	let todos       : ThreadScopedTodoSource | undefined                   ;
 	let workbench   : ProjectWorkbench | undefined                         ;
-	let development : DevelopmentService | undefined                       ;
 	let released    = false                                                ;
 	const release = async (): Promise<void> => {
 		if (released) return;
 		released = true;
 		todos?.dispose();
-		try {
-			await development?.close();
-		} finally {
-			try { await threadLease?.release(); } finally { await lease.release(); }
-		}
+		try { await threadLease?.release(); } finally { await lease.release(); }
 	};
 	try {
-		const projectId    = scopedProjectId(workspace.root)                                                          ;
-		const loadedConfig = await loadWorkbenchConfigWithSource(workspace.root)                                      ;
-		const config       = loadedConfig.config                                                                      ;
+		const projectId      = scopedProjectId(workspace.root)                                                                          ;
+		const loadedConfig   = await loadWorkbenchConfigWithSource(workspace.root)                                                      ;
+		const config         = loadedConfig.config                                                                                      ;
 		const outputLanguage = new OutputLanguageSelection(await loadOutputLanguagePreference(workspace.root, config.display.language)) ;
-		const traceRoot    = await existingDirectory(workspace.todosDirectory) ? workspace.todosDirectory : undefined ;
+		const traceRoot      = await existingDirectory(workspace.todosDirectory) ? workspace.todosDirectory : undefined                 ;
 		const journal = new ThreadBoundActivityJournal(
 			factories.createJournal(join(workspace.runtimeDirectory, "activity")),
 			traceRoot,
@@ -292,8 +280,8 @@ export async function createProjectWorkbenchSession(
 		);
 		if (options.resumeThreadId) await journal.bindThread(options.resumeThreadId);
 		const todoSource = new ThreadScopedTodoSource(resolveNativeThreadScope, scope => {
-			const todoPath       = join(workspace.todosDirectory, scope.workId, "Plan.md");
-			const previousPath   = join(workspace.todosDirectory, scope.workId, "Todo.md");
+			const todoPath     = join(workspace.todosDirectory, scope.workId, "Plan.md") ;
+			const previousPath = join(workspace.todosDirectory, scope.workId, "Todo.md") ;
 			const ledger   = factories.createTodoLedger(
 				scope.workId,
 				factories.createTodoStore(todoPath),
@@ -314,15 +302,9 @@ export async function createProjectWorkbenchSession(
 		const tnotes = new ThreadScopedTNoteSource(
 			factories.createTNoteSource(workspace.draftsDirectory, config.tnote.model, observeAuxiliaryUsage, outputLanguage),
 		);
-		const narrator = options.enableActivityNarrator !== false ? factories.createActivityNarrator?.(config.narrator.model, outputLanguage) : undefined;
-		// WES is an optional local policy source. Ordinary Chat sessions must not
-		// collect it or expose a WES loading/blocked state.
-		const wooEntry        = options.enableWooEntry ? factories.createWooEntry() : undefined ;
-		const skillRegistry   = await factories.loadSkillRegistry(workspace.root)               ;
-		const linearDashboard = await createLinearDashboard(connectedNative, config.linear)     ;
-		development = factories.createDevelopment?.(workspace.root, runId);
-		const activeDevelopment = development;
-		const localWorkflow = localWorkflowOptions(factories.createLocalWorkflow, workspace.root);
+		const narrator      = options.enableActivityNarrator !== false ? factories.createActivityNarrator?.(config.narrator.model, outputLanguage) : undefined ;
+		const skillRegistry = await factories.loadSkillRegistry(workspace.root)                                                                                ;
+		const localWorkflow = localWorkflowOptions(factories.createLocalWorkflow, workspace.root)                                                              ;
 		const requestCapabilities = options.requestCapabilityFactory?.(
 			connectedNative,
 			() => workbench?.snapshot.threadId ?? null,
@@ -358,7 +340,6 @@ export async function createProjectWorkbenchSession(
 			},
 			todos: todoSource,
 			tnotes,
-			promotions: factories.createPromotionService(workspace.root),
 			reviews: factories.createReviewService(workspace.runtimeDirectory, observeAuxiliaryUsage, config),
 			auxiliaryUsage,
 			...(requestCapabilities === undefined ? {} : { requestCapabilities }),
@@ -367,29 +348,23 @@ export async function createProjectWorkbenchSession(
 				? {}
 				: { requestProjection: factories.createRequestProjection(workspace.runtimeDirectory) }),
 			...localWorkflow,
-			...(activeDevelopment === undefined
-				? {}
-				: { developmentObserver: { capture: activity => activeDevelopment.observe(activity) } }),
 			...(options.persistModelSelection === undefined
 				? {}
 				: { persistModelSelection: options.persistModelSelection }),
 			...(options.resumeThreadId === undefined ? {} : { resumeThreadId: options.resumeThreadId }),
 			...(narrator === undefined ? {} : { narrator }),
-			...(wooEntry === undefined ? {} : { wooEntry }),
 			...(skillRegistry === undefined ? {} : { skillRegistry }),
-			...(linearDashboard === undefined ? {} : { linearDashboard }),
 		};
 		const activeWorkbench = factories.createWorkbench(connectedNative, journal, workbenchOptions);
 		workbench = activeWorkbench;
 		if (options.resumeThreadId) await activeWorkbench.waitUntilReady();
-		const composerDraft = await factories.createComposerDraft(workspace.root, runId, workspace.draftsDirectory);
-		const usage = factories.createUsageMonitor(connectedNative);
+		const composerDraft = await factories.createComposerDraft(workspace.root, runId, workspace.draftsDirectory) ;
+		const usage         = factories.createUsageMonitor(connectedNative)                                         ;
 		return {
 			outputLanguage,
 			workspace,
 			projectId,
 			workbench: activeWorkbench,
-			...(activeDevelopment === undefined ? {} : { development: activeDevelopment }),
 			composerDraft,
 			usage,
 			releaseSessionLease: release,
@@ -410,14 +385,6 @@ export async function createProjectWorkbenchSession(
 		}
 		throw error;
 	}
-}
-
-async function createLinearDashboard(native: ExecutorPort, linear: WorkbenchConfig["linear"]) {
-	const caller = native as Partial<{ callMcpTool(input: { server: string; threadId: string; tool: string; arguments?: unknown }): Promise<{ content: readonly unknown[]; structuredContent?: unknown; isError?: boolean | null }> }>;
-	if (typeof caller.callMcpTool !== "function") return undefined;
-	if (!linear) return undefined;
-	const dashboard = new McpLinearProjectDashboard(caller as Required<typeof caller>, linear);
-	return { refresh: (threadId: string) => dashboard.refresh(threadId) };
 }
 
 export function scopedProjectId(projectRoot: string): string {

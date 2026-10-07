@@ -1,69 +1,94 @@
 import legacyJournal                                          from "./fixtures/legacy-execution-receipt.json";
-import type { RuntimeToolHandler, RuntimeToolDefinition }     from "../src/core/ports/execution/runtime-tool-port";
-import { REQUEST_STAGES }                                     from "../src/core/domain/execution/request-runtime";
-import type { RequestRuntimeRecord }                          from "../src/core/domain/execution/request-runtime";
-import { projectRequestTodo }                                 from "../src/core/domain/work/request-projections";
-import { describe, expect, test }                             from "bun:test";
-import type { ExecutorPort }                                  from "../src/core/ports/execution/executor-port";
 import type {
-	ActivityNarrationRequest,
-	ActivityNarrator,
-} from "../src/core/application/orchestration/activity-narrator";
-import { ProjectWorkbench }                                   from "../src/core/application/orchestration/project-workbench";
+              RuntimeToolHandler             ,
+              RuntimeToolDefinition          ,
+                                               } from "../src/core/ports/execution/runtime-tool-port"                         ;
+import      { REQUEST_STAGES                   } from "../src/core/domain/execution/request-runtime"                          ;
+import type { RequestRuntimeRecord             } from "../src/core/domain/execution/request-runtime"                          ;
+import      { projectRequestTodo               } from "../src/core/domain/work/request-projections"                           ;
+import      {
+              describe                       ,
+              expect                         ,
+              test                           ,
+                                               } from "bun:test"                                                              ;
+import type { ExecutorPort                     } from "../src/core/ports/execution/executor-port"                             ;
 import type {
-	WorkbenchActivityJournal,
-	WorkbenchTNoteSource,
-	WorkbenchTodoSource,
-} from "../src/core/application/orchestration/project-workbench";
+              ActivityNarrationRequest       ,
+              ActivityNarrator               ,
+                                               } from "../src/core/application/orchestration/activity-narrator"               ;
+import      { ProjectWorkbench                 } from "../src/core/application/orchestration/project-workbench"               ;
+import      { projectChatFeature               } from "../src/core/application/orchestration/workbench-feature-reads"         ;
+import      { WwwTranscriptView                } from "../src/adapters/inbound/tui/features/chat/view/www-execution"          ;
 import type {
-	NativeApprovalResolution,
-	NativeHarnessEvent,
-	NativeThreadRead,
-	NativeThreadList,
-	NativeThreadResume,
-	NativeThreadSnapshot,
-	NativeThreadStart,
-	NativeThreadSummary,
-	NativeTurnInterrupt,
-	NativeTurnSnapshot,
-	NativeTurnStart,
-	NativeTurnSteer,
-	NativeTurnSteerResult,
-} from "../src/core/domain/execution/native-session";
+              WorkbenchActivityJournal       ,
+              WorkbenchTNoteSource           ,
+              WorkbenchTodoSource            ,
+                                               } from "../src/core/application/orchestration/project-workbench"               ;
 import type {
-	ProjectActivity,
-	ProjectActivityAppendResult,
-	ProjectActivityInput,
-} from "../src/core/domain/execution/project-activity";
-import { CanonicalPromotionService, digestCanonicalDocument } from "../src/core/application/work/canonical-promotion";
-import { ReviewService }                                      from "../src/core/application/review/review-service";
-import { SessionModelUsageAccumulator }                       from "../src/core/application/session/session-model-usage";
-import { TodoWriteConflictError }                             from "../src/core/application/work/todo-ledger";
-import { WooEntry }                                           from "../src/core/application/orchestration/woo-entry";
-import type { WooEntryCollection }                            from "../src/core/application/orchestration/woo-entry";
-import type { TodoDocument }                                  from "../src/core/domain/work/todos";
-import type { WorkFlowProjection }                            from "../src/core/domain/work";
-import { ProviderReviewAdapter, sha256ReviewDigest }          from "../src/adapters/outbound/review/review-adapters";
-import { TNoteService }                                       from "../src/core/application/work/t-note-service";
-import type { DetachedTextGenerator }                         from "../src/core/application/orchestration/detached-text-generator";
-import { FileTNoteStore }                                     from "../src/adapters/outbound/persistence/t-note-store";
-import { projectTNoteCompletionIndex, sanitizeTNoteText }     from "../src/core/domain/work/t-notes";
-import { mkdtemp, rm, writeFile, readFile, realpath }         from "node:fs/promises";
-import { createHash }                                         from "node:crypto";
-import { pinnedFileCapabilities }                             from "../src/adapters/outbound/workspace/pinned-file-capabilities";
-import { tmpdir }                                             from "node:os";
-import { join }                                               from "node:path";
+              NativeApprovalResolution       ,
+              NativeHarnessEvent             ,
+              NativeThreadRead               ,
+              NativeThreadList               ,
+              NativeThreadResume             ,
+              NativeThreadSnapshot           ,
+              NativeThreadStart              ,
+              NativeThreadSummary            ,
+              NativeTurnInterrupt            ,
+              NativeTurnSnapshot             ,
+              NativeTurnStart                ,
+              NativeTurnSteer                ,
+              NativeTurnSteerResult          ,
+                                               } from "../src/core/domain/execution/native-session"                           ;
+import type {
+              ProjectActivity                ,
+              ProjectActivityAppendResult    ,
+              ProjectActivityInput           ,
+                                               } from "../src/core/domain/execution/project-activity"                         ;
+import      { ReviewService                    } from "../src/core/application/review/review-service"                         ;
+import      { SessionModelUsageAccumulator     } from "../src/core/application/session/session-model-usage"                   ;
+import      { TodoWriteConflictError           } from "../src/core/application/work/todo-ledger"                              ;
+import type { TodoDocument                     } from "../src/core/domain/work/todos"                                         ;
+import type { WorkFlowProjection               } from "../src/core/domain/work"                                               ;
+import      {
+              ProviderReviewAdapter          ,
+              sha256ReviewDigest             ,
+                                               } from "../src/adapters/outbound/review/review-adapters"                       ;
+import      { TNoteService                     } from "../src/core/application/work/t-note-service"                           ;
+import type { DetachedTextGenerator            } from "../src/core/application/orchestration/detached-text-generator"         ;
+import      { FileTNoteStore                   } from "../src/adapters/outbound/persistence/t-note-store"                     ;
+import      {
+              projectTNoteCompletionIndex    ,
+              sanitizeTNoteText              ,
+                                               } from "../src/core/domain/work/t-notes"                                       ;
+import      {
+              mkdtemp                        ,
+              rm                             ,
+              writeFile                      ,
+              readFile                       ,
+              realpath                       ,
+                                               } from "node:fs/promises"                                                      ;
+import      { createHash                       } from "node:crypto"                                                           ;
+import      { pinnedFileCapabilities           } from "../src/adapters/outbound/workspace/pinned-file-capabilities"           ;
+import      { tmpdir                           } from "node:os"                                                               ;
+import      { join                             } from "node:path"                                                             ;
+import      { stripTerminalSequences           } from "@earendil-works/pi-tui"                                                ;
+import      { WwwMonitorView                   } from "../src/adapters/inbound/tui/features/monitoring/view/www-monitor-view" ;
+import      { projectRuntimeMonitor            } from "../src/core/domain/observability/runtime-monitor"                      ;
+import      {
+              projectWwwTestView             ,
+              renderWwwTestView              ,
+                                               } from "../src/adapters/inbound/tui/features/test/view/www-test-view"          ;
 
-import {
-	ApprovalPreparationGateJournal,
-	FakeActivityNarrator,
-	FakeNativeHarness,
-	MemoryJournal,
-	MessageCompletionGateJournal,
-	ToolObservationGateJournal,
-	ready,
-	todoDocument,
-} from "./project-workbench.fixtures";
+import      {
+              ApprovalPreparationGateJournal ,
+              FakeActivityNarrator           ,
+              FakeNativeHarness              ,
+              MemoryJournal                  ,
+              MessageCompletionGateJournal   ,
+              ToolObservationGateJournal     ,
+              ready                          ,
+              todoDocument                   ,
+                                               } from "./project-workbench.fixtures"                                          ;
 
 function requestReport(title: string, conclusion = "요청 범위와 실제 결과를 연결했고 관측되지 않은 변경은 주장하지 않았습니다."): string {
 	return [
@@ -75,7 +100,7 @@ function requestReport(title: string, conclusion = "요청 범위와 실제 결�
 		"모델·토큰:\n관측 없음",
 		`업무 자체평가:\n${conclusion}`,
 		"다음 유사 요청:\n초기에 관측 범위와 검증 기준을 고정하고 변경과 근거를 함께 추적합니다.",
-		"변경 상태:\n코드·문서·GitHub·Linear 변경 관측 없음",
+		"변경 상태:\n코드·문서·GitHub 변경 관측 없음",
 		"Commit·Evidence:\n관측 없음",
 	].join("\n\n");
 }
@@ -172,9 +197,9 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await resumed.close();
 	});
 
-	test("narrates reading and tests inside the runtime stage without inventing a Native plan", async () => {
-		const native = new FakeNativeHarness();
-		const narrator = new FakeActivityNarrator();
+	test("explains a completed verification without code changes and interprets read commands", async () => {
+		const native   = new FakeNativeHarness()    ;
+		const narrator = new FakeActivityNarrator() ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -190,7 +215,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 			params : { item: { id: "read-1", type: "commandExecution", command: "rg -n 'workFlow' src" } },
 		});
 		await Bun.sleep(10);
-		expect(narrator.calls.map(call => call.kind)).toEqual(["plan-progress", "tool-action"]);
+		expect(narrator.calls.some(call => call.kind === "test-action")).toBe(false);
 		expect(workbench.snapshot.workFlow.steps).toEqual([]);
 
 		native.emit({
@@ -199,26 +224,120 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 			refs   : { threadId: "thread-1", turnId: "turn-1", itemId: "test-1" },
 			params: {
 				item: {
-					id       : "test-1",
-					type     : "commandExecution",
-					command  : "bun test test/work-flow.test.ts",
-					exitCode : 0,
+					id               : "test-1",
+					type             : "commandExecution",
+					command          : "bun test test/work-flow.test.ts",
+					exitCode         : 0,
+					aggregatedOutput : "(pass) 입력 경로를 유지한다 [1ms]\n1 pass\n0 fail",
 				},
 			},
 		});
 		await Bun.sleep(20);
 
-		expect(narrator.calls.filter(call => call.kind === "plan-progress")).toHaveLength(2);
-		expect(narrator.calls.filter(call => call.kind === "tool-action")).toHaveLength(2);
-		expect(workbench.snapshot.planActivities).toHaveLength(1 ) ;
-		expect(workbench.snapshot.toolActions).toHaveLength(2 ) ;
-		expect(workbench.snapshot.workFlow.steps).toEqual     ([]) ;
+		expect(narrator.calls.filter(call => call.kind === "test-action")                      )    .toHaveLength (1                                                                                     ) ;
+		expect(narrator.calls.find(call => call.kind === "test-action")?.inputSummary.join(" "))    .toContain    ("입력 경로를 유지한다"                                                                ) ;
+		expect(workbench.snapshot.toolActions?.find(action => action.id === "turn-1:test-1")   )    .toMatchObject({ id: "turn-1:test-1", summary: "의미 Step과 Live Notes의 회귀 테스트를 실행합니다." }) ;
+		expect(workbench.snapshot.workFlow.steps                                               )    .toEqual      ([]                                                                                    ) ;
+		const testRows = renderWwwTestView(projectWwwTestView(workbench.snapshot), 80, null, "ko", workbench.snapshot.toolActions ?? []);
+		expect(stripTerminalSequences(testRows.join("\n"))).toContain("이 테스트가 확인하는 것");
+		expect(stripTerminalSequences(testRows.join("\n"))).toContain("의미 Step과 Live Notes의 회귀 테스트를 실행합니다.");
+		const reason = "Read 작업은 숨기고 실제 검증만 단계로 남는지 확인하기 위해서입니다.";
+		expect(workbench.snapshot.toolActions?.find(item => item.id === "turn-1:test-1")?.why).toBe(reason);
+		const rail = new WwwMonitorView(() => projectRuntimeMonitor(workbench.snapshot), Date.now, false, () => workbench.snapshot, true, null, () => "ko", false, "test").render(120);
+		for (const rows of [testRows, rail]) {
+			expect(stripTerminalSequences(rows.join("\n"))).toContain("선택 이유(모델 해석)");
+			expect(stripTerminalSequences(rows.join("\n"))).toContain(reason);
+		}
+		await workbench.close();
+	});
+
+	for (const requestRuntimeMode of ["observe", "off"] as const) test(`interprets a running shell without a Plan and coalesces completion (${requestRuntimeMode})`, async () => {
+		const native                               = new FakeNativeHarness() ;
+		const requests: ActivityNarrationRequest[] = []                      ;
+		let finish!: (result: { what: string; why: string; inputSummary: string[] }) => void;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project", cwd: "/workspace/sample", requestRuntimeMode,
+			narrator: { narrate: request => { requests.push(request); return new Promise(resolve => { finish = resolve; }); } },
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "진행 표시 누락을 조사해줘" });
+		const item = { id: "read-1", type: "commandExecution", command: "rg -n workFlow src", aggregatedOutput: "PRIVATE OUTPUT" } ;
+		const refs = { threadId: "thread-1", turnId: "turn-1", itemId: "read-1" }                                                  ;
+		native.emit({ type: "notification", method: "item/started", refs, params: { item } });
+		await Bun.sleep(10);
+		expect(requests[0]?.goal                                                            )    .toBe         ("진행 표시 누락을 조사해줘"                                        ) ;
+		expect(requests                                                                     )    .toHaveLength (1                                                                  ) ;
+		expect(requests[0]?.kind                                                            )    .toBe         ("tool-action"                                                      ) ;
+		expect(requests[0]?.inputSummary.join(" ")                                          ).not.toContain    ("PRIVATE OUTPUT"                                                   ) ;
+		expect(workbench.snapshot.toolActions?.find(action => action.id === "turn-1:read-1"))    .toMatchObject({ status: "running", summary: "텍스트·파일 검색: -n workFlow src" }) ;
+		finish({ what: "진행 표시를 만드는 코드를 찾습니다.", why: "표시가 누락되는 조건을 확인하기 위해서입니다.", inputSummary: [] });
+		await Bun.sleep(10);
+		const transcriptView = new WwwTranscriptView(projectChatFeature(workbench.snapshot)) ;
+		const rows           = transcriptView.render(100)                                    ;
+		const transcript     = stripTerminalSequences(rows.join("\n"))                       ;
+		expect(transcript).toContain("진행 표시를 만드는 코드를 찾습니다."          ) ;
+		expect(transcript).toContain("표시가 누락되는 조건을 확인하기 위해서입니다.") ;
+		expect(transcript).toContain("rg -n workFlow src"                           ) ;
+		native.emit({ type: "notification", method: "item/completed", refs, params: { item: { ...item, exitCode: 0 } } });
+		await Bun.sleep(10);
+		expect(requests                                                                       ).toHaveLength (1                                                                                                                            ) ;
+		expect(workbench.snapshot.toolActions?.find(action => action.id === "turn-1:read-1")  ).toMatchObject({ status: "completed", summary: "진행 표시를 만드는 코드를 찾습니다.", why: "표시가 누락되는 조건을 확인하기 위해서입니다." }) ;
+		expect(workbench.snapshot.toolActions?.filter(action => action.id === "turn-1:read-1")).toHaveLength (1                                                                                                                            ) ;
+		transcriptView.dispose();
+		await workbench.close();
+	});
+
+	test("bounds shell narration history without retrying evicted items on snapshot replay", async () => {
+		const native                               = new FakeNativeHarness() ;
+		const requests: ActivityNarrationRequest[] = []                      ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project", cwd: "/workspace/sample",
+			narrator: { narrate: async request => { requests.push(request); return { what: "작업에 필요한 코드를 찾습니다.", inputSummary: [] }; } },
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "표시 경로를 조사해줘" });
+		for (let index = 0; index < 24; index++) {
+			const itemId = `read-${index}`;
+			native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId }, params: { item: { id: itemId, type: "commandExecution", command: `rg term-${index} src`, exitCode: 0 } } });
+		}
+		await Bun.sleep(30);
+		const calls = requests.length;
+		for (let index = 0; index < 5; index++) workbench.snapshot;
+		await Bun.sleep(10);
+		expect(requests.length                       ).toBe               (calls) ;
+		expect(requests.length                       ).toBeLessThanOrEqual(24   ) ;
+		expect(workbench.snapshot.toolActions?.length).toBeLessThanOrEqual(20   ) ;
+		await workbench.close();
+	});
+
+	test("waits for observed redirected test names before explaining a verification", async () => {
+		const native   = new FakeNativeHarness()    ;
+		const narrator = new FakeActivityNarrator() ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
+			projectId: "sample-project", cwd: "/workspace/sample", narrator,
+		});
+		await ready(workbench);
+		await workbench.dispatch({ type: "chat.send", text: "입력 경로를 검증해줘" });
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "change-1" }, params: {
+			item: { id: "change-1", type: "fileChange", changes: [{ path: "src/input.ts", kind: "update" }] },
+		} });
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "test-1" }, params: {
+			item: { id: "test-1", type: "commandExecution", command: "bun test test/input.test.ts > /tmp/input-test.log 2>&1", aggregatedOutput: "", exitCode: 0 },
+		} });
+		await Bun.sleep(10);
+		expect(narrator.calls.some(call => call.kind === "test-action")).toBe(false);
+		native.emit({ type: "notification", method: "item/completed", refs: { threadId: "thread-1", turnId: "turn-1", itemId: "read-log" }, params: {
+			item: { id: "read-log", type: "commandExecution", command: "tail -n 100 /tmp/input-test.log", aggregatedOutput: "test/input.test.ts:\n(pass) 입력 경로를 유지한다 [1ms]\n1 pass\n0 fail\nRan 1 test across 1 file. [1ms]", exitCode: 0 },
+		} });
+		await Bun.sleep(20);
+		expect(narrator.calls.filter(call => call.kind === "test-action")).toHaveLength(1);
+		expect(narrator.calls.find(call => call.kind === "test-action")?.inputSummary.join(" ")).toContain("입력 경로를 유지한다");
 		await workbench.close();
 	});
 
 	test("narrates a selected plan with sanitized goal and bounded action evidence", async () => {
-		const native = new FakeNativeHarness();
-		const narrator = new FakeActivityNarrator();
+		const native   = new FakeNativeHarness()    ;
+		const narrator = new FakeActivityNarrator() ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId          : "sample-project",
 			cwd                : "/workspace/sample",
@@ -242,12 +361,12 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await Bun.sleep(20);
 
 		const planCall = narrator.calls.find(call => call.kind === "plan-progress")!;
-		expect(narrator.calls.map(call => call.kind)).toEqual(["plan-progress", "tool-action"]);
-		expect(planCall                         )    .toMatchObject({ stepTitle: "변경 검증" }) ;
-		expect(planCall.goal                    )    .toContain    ("[redacted:local-path]"   ) ;
-		expect(planCall.inputSummary            )    .toHaveLength (1                         ) ;
-		expect(planCall.inputSummary.join(" ")).not.toContain    ("/private/"               ) ;
-		expect(workbench.snapshot.workFlow.steps[0]!.narration.inputSummary)    .toEqual      (["work-flow 관련 테스트"] ) ;
+		expect(narrator.calls.map(call => call.kind)                       )    .toEqual      (["plan-progress", "tool-action"]) ;
+		expect(planCall                                                    )    .toMatchObject({ stepTitle: "변경 검증" }      ) ;
+		expect(planCall.goal                                               )    .toContain    ("[redacted:local-path]"         ) ;
+		expect(planCall.inputSummary                                       )    .toHaveLength (1                               ) ;
+		expect(planCall.inputSummary.join(" ")                             ).not.toContain    ("/private/"                     ) ;
+		expect(workbench.snapshot.workFlow.steps[0]!.narration.inputSummary)    .toEqual      (["work-flow 관련 테스트"]       ) ;
 		await workbench.close();
 	});
 
@@ -257,8 +376,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
 		await ready(workbench);
 
-		const first = await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
-		const followUp = await workbench.dispatch({ type: "chat.send", text: "방향을 이렇게 바꿔줘" });
+		const first    = await workbench.dispatch({ type: "chat.send", text: "첫 요청"             }) ;
+		const followUp = await workbench.dispatch({ type: "chat.send", text: "방향을 이렇게 바꿔줘"}) ;
 
 		expect(first                ).toMatchObject({ state: "accepted" }) ;
 		expect(followUp             ).toMatchObject({ state: "accepted" }) ;
@@ -290,7 +409,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("asks a queued observe Runtime to preserve Goal continuity in INTENT", async () => {
-		const native    = new FakeNativeHarness()                                                                          ;
+		const native    = new FakeNativeHarness()                                                                                      ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 
@@ -303,15 +422,15 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 			entry?        : { kind: string; currentGoal: string | null } ;
 			instructions? : string[]                                    ;
 		};
-		expect(context.entry                   ).toEqual  ({ kind: "queued-follow-up", currentGoal: "진입 대시보드를 완성한다" }) ;
-		expect(context.instructions?.join("\n")).toContain("preserve entry.currentGoal"                                         ) ;
+		expect(context.entry                   ).toEqual  ({ kind: "queued-follow-up", currentGoal: "진입 대시보드를 완성한다" } ) ;
+		expect(context.instructions?.join("\n")).toContain("preserve entry.currentGoal"                                          ) ;
 		expect(context.instructions?.join("\n")).toContain("otherwise set a revised goal in INTENT"                              ) ;
-		expect(context.instructions?.join("\n")).toContain("three public checkpoints"                                           ) ;
+		expect(context.instructions?.join("\n")).toContain("three public checkpoints"                                            ) ;
 		await workbench.close();
 	});
 
 	test("keeps the prior Plan across a queued follow-up until the next Plan arrives", async () => {
-		const native    = new FakeNativeHarness()                                                                          ;
+		const native    = new FakeNativeHarness()                                                                                      ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 
@@ -344,7 +463,7 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("releases a Plan-less queued turn before the following queued turn starts", async () => {
-		const native    = new FakeNativeHarness()                                                                          ;
+		const native    = new FakeNativeHarness()                                                                                      ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 
@@ -611,17 +730,17 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		});
 		await Bun.sleep(10);
 
-		expect(createCalls                 ).toHaveLength(1                                            ) ;
-		expect(createCalls[0]?.range       ).toEqual     ({ startSequence: 4, endSequence: 12 }        ) ;
-		expect(createCalls[0]?.instruction ).toContain   ("완료 요청: 이 세션의 구현과 검증을 진행해줘") ;
-		expect(createCalls[0]?.instruction ).toContain   ("요청 목적·접근:"                            ) ;
-		expect(createCalls[0]?.instruction ).toContain   ("장시간·차단 작업:"                          ) ;
-		expect(createCalls[0]?.instruction ).toContain   ("Commit·Evidence:"                           ) ;
-		expect(createCalls[0]?.instruction ).toContain   ("충분히 상세하게"                            ) ;
-		expect(native.startTurnCalls       ).toBe        (2                                            ) ;
-		expect(workbench.snapshot.chatQueue).toEqual     ([]                                           ) ;
-		expect(workbench.snapshot.tnotes   ).toEqual     ([]                                           ) ;
-		expect(workbench.snapshot.actionResult?.kind).not.toBe("tnote");
+		expect(createCalls                          )    .toHaveLength(1                                            ) ;
+		expect(createCalls[0]?.range                )    .toEqual     ({ startSequence: 4, endSequence: 12 }        ) ;
+		expect(createCalls[0]?.instruction          )    .toContain   ("완료 요청: 이 세션의 구현과 검증을 진행해줘") ;
+		expect(createCalls[0]?.instruction          )    .toContain   ("요청 목적·접근:"                            ) ;
+		expect(createCalls[0]?.instruction          )    .toContain   ("장시간·차단 작업:"                          ) ;
+		expect(createCalls[0]?.instruction          )    .toContain   ("Commit·Evidence:"                           ) ;
+		expect(createCalls[0]?.instruction          )    .toContain   ("충분히 상세하게"                            ) ;
+		expect(native.startTurnCalls                )    .toBe        (2                                            ) ;
+		expect(workbench.snapshot.chatQueue         )    .toEqual     ([]                                           ) ;
+		expect(workbench.snapshot.tnotes            )    .toEqual     ([]                                           ) ;
+		expect(workbench.snapshot.actionResult?.kind).not.toBe        ("tnote"                                      ) ;
 
 		releaseSummary();
 		await Bun.sleep(10);
@@ -635,8 +754,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("keeps one immutable Note per completed question instead of replacing a cumulative summary", async () => {
-		const native = new FakeNativeHarness();
-		const createCalls: Parameters<WorkbenchTNoteSource["create"]>[0][] = [];
+		const native                                                       = new FakeNativeHarness() ;
+		const createCalls: Parameters<WorkbenchTNoteSource["create"]>[0][] = []                      ;
 		const tnotes: WorkbenchTNoteSource = {
 			readAll: async () => [],
 			create: async (input) => {
@@ -739,8 +858,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 			["$session-goal 목표", "SESSION_GOAL: one\nSESSION_GOAL: duplicate"],
 			["$session-goal 목표", `SESSION_GOAL: ${"x".repeat(161)}`],
 		]) {
-			const native = new FakeNativeHarness();
-			const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+			const native    = new FakeNativeHarness()                                                                                      ;
+			const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 			await ready(workbench);
 			await workbench.dispatch({ type: "chat.send", text: question });
 			native.emit({
@@ -814,8 +933,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("permits user-owned Git/Bun/error/path questions and normal explanatory fields", async () => {
-		let appendCount = 0;
-		const question = "Git과 Bun 오류, src/app.ts 경로를 확인해줘";
+		let appendCount = 0                                            ;
+		const question  = "Git과 Bun 오류, src/app.ts 경로를 확인해줘" ;
 		const service = new TNoteService({
 			async generate() {
 				return {
@@ -883,6 +1002,35 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 			expect(note.text).toContain(`제목:\n${expectedQuestion}`);
 			expect((await service.readAll("project-1"))[0]?.text).toBe(note.text);
 		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+
+	test("automatically stores and reads a completed Report with a generated local path", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "workbench-automatic-report-")) ;
+		const native    = new FakeNativeHarness()                                      ;
+		const service = new TNoteService({
+			async generate() {
+				return {
+					text       : requestReport("자동 완료 보고").replace("선택 범위의 조사, 결정, 변경과 검증을 시간 순서로 확인했습니다.", "로컬 /Users/example/private/report.txt를 확인했습니다."),
+					provenance : { provider: "test", model: "test", version: "test" },
+					isolation  : { appliedPolicy: { cwd: "", noTools: true, network: false, readOnly: true, ephemeral: true }, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 },
+				};
+			},
+		}, new FileTNoteStore(directory));
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample", tnotes: service });
+		try {
+			await ready(workbench);
+			await workbench.dispatch({ type: "chat.send", text: "완료 보고를 만들어줘" });
+			native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
+			for (let attempt = 0; attempt < 40 && workbench.snapshot.tnotes.length === 0 && workbench.snapshot.actionResult?.title !== "완료 보고 생성 실패"; attempt += 1) await Bun.sleep(5);
+			expect(workbench.snapshot.actionResult?.title).not.toBe("완료 보고 생성 실패");
+			expect(workbench.snapshot.tnotes).toHaveLength(1);
+			const persisted = await service.readAll("sample-project");
+			expect(persisted).toHaveLength(1);
+			expect(persisted[0]?.text).toContain("[redacted:local-path]");
+		} finally {
+			await workbench.close();
 			await rm(directory, { recursive: true, force: true });
 		}
 	});
@@ -969,8 +1117,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		const answerId        = journal.records.at(-2)!.id ;
 		const turnCompletedId = journal.records.at(-1)!.id ;
 
-		let generatedSourceIds: readonly string[] = [];
-		const drafts: import("../src/core/domain/work/t-notes").TNoteDraft[] = [];
+		let generatedSourceIds : readonly string[]                                      = [] ;
+		const drafts           : import("../src/core/domain/work/t-notes").TNoteDraft[] = [] ;
 		const service = new TNoteService({
 			async generate(request) {
 				generatedSourceIds = request.packet.activities.map((activity) => activity.id);
@@ -997,19 +1145,19 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await ready(workbench);
 		await Bun.sleep(10);
 
-		expect(generatedSourceIds                    ).toHaveLength(100            ) ;
-		expect(generatedSourceIds                    ).toContain   (questionId     ) ;
-		expect(generatedSourceIds                    ).toContain   (turnStartId    ) ;
-		expect(generatedSourceIds                    ).toContain   (answerId       ) ;
-		expect(generatedSourceIds                    ).toContain   (turnCompletedId) ;
-		expect(workbench.snapshot.tnotes             ).toHaveLength(1              ) ;
-		expect(workbench.snapshot.actionResult?.kind).not.toBe("tnote");
+		expect(generatedSourceIds                   )    .toHaveLength(100            ) ;
+		expect(generatedSourceIds                   )    .toContain   (questionId     ) ;
+		expect(generatedSourceIds                   )    .toContain   (turnStartId    ) ;
+		expect(generatedSourceIds                   )    .toContain   (answerId       ) ;
+		expect(generatedSourceIds                   )    .toContain   (turnCompletedId) ;
+		expect(workbench.snapshot.tnotes            )    .toHaveLength(1              ) ;
+		expect(workbench.snapshot.actionResult?.kind).not.toBe        ("tnote"        ) ;
 		await workbench.close();
 	});
 
 	test("rejects pre-completion and cross-turn manual Note ranges", async () => {
-		const native = new FakeNativeHarness();
-		const creates: unknown[] = [];
+		const native             = new FakeNativeHarness() ;
+		const creates: unknown[] = []                      ;
 		const tnotes: WorkbenchTNoteSource = {
 			async readAll() { return []; },
 			async create(input) {
@@ -1039,8 +1187,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("다음 자동 Note가 성공하면 이전 완료 보고 실패 알림을 지운다", async () => {
-		const native = new FakeNativeHarness();
-		let attempts = 0;
+		const native = new FakeNativeHarness() ;
+		let attempts = 0                       ;
 		const tnotes: WorkbenchTNoteSource = {
 			readAll: async () => [],
 			create: async (input) => {
@@ -1048,10 +1196,10 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 				if (attempts === 1) throw new Error("첫 완료 보고 생성 오류");
 				return {
 					schemaVersion: 1, id: "next-note", sequence: 1,
-					createdAt: "2026-09-01T00:00:01.000Z",
-					packet: { schemaVersion: 1, projectId: input.projectId, range: input.range, createdAt: "2026-09-01T00:00:01.000Z", activities: input.activities.map(({ nativeRefs: _, ...activity }) => activity), digest: "e".repeat(64) },
-					text: `질문: ${input.expectedQuestion}\n왜: 완료 범위를 확인했습니다.\n결과: 요약을 저장했습니다.`,
-					provenance: { provider: "test", model: "test", version: "test" },
+					createdAt  : "2026-09-01T00:00:01.000Z",
+					packet     : { schemaVersion: 1, projectId: input.projectId, range: input.range, createdAt: "2026-09-01T00:00:01.000Z", activities: input.activities.map(({ nativeRefs: _, ...activity }) => activity), digest: "e".repeat(64) },
+					text       : `질문: ${input.expectedQuestion}\n왜: 완료 범위를 확인했습니다.\n결과: 요약을 저장했습니다.`,
+					provenance : { provider: "test", model: "test", version: "test" },
 				};
 			},
 		};
@@ -1065,9 +1213,9 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await workbench.dispatch({ type: "chat.send", text: "둘째 질문" });
 		native.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-2" }, params: {} });
 		await Bun.sleep(10);
-		expect(attempts).toBe(2);
-		expect(workbench.snapshot.tnotes).toHaveLength(1);
-		expect(workbench.snapshot.actionResult?.title).not.toBe("완료 보고 생성 실패");
+		expect(attempts                              )    .toBe        (2                    ) ;
+		expect(workbench.snapshot.tnotes             )    .toHaveLength(1                    ) ;
+		expect(workbench.snapshot.actionResult?.title).not.toBe        ("완료 보고 생성 실패") ;
 		await workbench.close();
 	});
 
@@ -1100,15 +1248,15 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 				return draft;
 			},
 		};
-		const firstNative = new FakeNativeHarness();
-		const first = new ProjectWorkbench(firstNative, journal, { projectId: "sample-project", cwd: "/workspace/sample", tnotes });
+		const firstNative = new FakeNativeHarness()                                                                                       ;
+		const first       = new ProjectWorkbench(firstNative, journal, { projectId: "sample-project", cwd: "/workspace/sample", tnotes }) ;
 		await ready(first);
 		await first.dispatch({ type: "chat.send", text: "복구 질문" });
 		firstNative.emit({ type: "notification", method: "turn/completed", refs: { threadId: "thread-1", turnId: "turn-1" }, params: {} });
 		await Bun.sleep(10);
-		expect(attempts).toBe(1);
-		expect(persisted).toEqual([]);
-		expect(first.snapshot.actionResult?.title).toBe("완료 보고 생성 실패");
+		expect(attempts                          ).toBe   (1                    ) ;
+		expect(persisted                         ).toEqual([]                   ) ;
+		expect(first.snapshot.actionResult?.title).toBe   ("완료 보고 생성 실패") ;
 		await first.close();
 
 		const resumed = new ProjectWorkbench(new FakeNativeHarness(), journal, {
@@ -1142,8 +1290,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 		await append("message", "completed", { threadId: "thread-2", turnId: "turn-2" }, { text: "외부 thread 활동" });
 		await append("progress", "completed", { threadId: "thread-1", turnId: "turn-1" }, { method: "turn/completed" });
 
-		const persisted: import("../src/core/domain/work/t-notes").TNoteDraft[] = [];
-		let attempts = 0;
+		const persisted: import("../src/core/domain/work/t-notes").TNoteDraft[] = [] ;
+		let attempts                                                            = 0  ;
 		const tnotes: WorkbenchTNoteSource = {
 			readAll: async () => persisted,
 			create: async (input) => {
@@ -1193,8 +1341,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("retries a target-thread note after a foreign outbound question interleaves before its turn", async () => {
-		const directory = await mkdtemp(join(tmpdir(), "workbench-sparse-tnote-"));
-		const journal = new MemoryJournal();
+		const directory = await mkdtemp(join(tmpdir(), "workbench-sparse-tnote-")) ;
+		const journal   = new MemoryJournal()                                      ;
 		const append = (nativeRefs: ProjectActivity["nativeRefs"], payload: ProjectActivity["payload"], kind: ProjectActivity["kind"] = "message", phase: ProjectActivity["phase"] = "completed") =>
 			journal.append({
 				projectId: "sample-project", kind, phase, provider: "test", nativeRefs,
@@ -1358,8 +1506,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("merges detached Luna and Claude usage into the live WWW session totals", async () => {
-		const native = new FakeNativeHarness();
-		const auxiliaryUsage = new SessionModelUsageAccumulator();
+		const native         = new FakeNativeHarness()            ;
+		const auxiliaryUsage = new SessionModelUsageAccumulator() ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId : "sample-project",
 			cwd       : "/workspace/sample",
@@ -1415,8 +1563,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("persists an idle Codex selection and uses it for the next native turn", async () => {
-		const native = new FakeNativeHarness();
-		const persisted: Array<{ model: string; effort: string }> = [];
+		const native                                              = new FakeNativeHarness() ;
+		const persisted: Array<{ model: string; effort: string }> = []                      ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId             : "sample-project",
 			cwd                   : "/workspace/sample",
@@ -1457,8 +1605,8 @@ describe("ProjectWorkbench · Todo, narration, and Notes", () => {
 	});
 
 	test("keeps the current model when persistence fails or a turn is active", async () => {
-		const native = new FakeNativeHarness();
-		let persistCalls = 0;
+		const native     = new FakeNativeHarness() ;
+		let persistCalls = 0                       ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), {
 			projectId : "sample-project",
 			cwd       : "/workspace/sample",

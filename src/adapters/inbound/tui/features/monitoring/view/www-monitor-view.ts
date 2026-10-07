@@ -96,8 +96,11 @@ export class WwwMonitorView implements Component {
 		if (this.compactSection === "plan") return rows;
 		const progressStart = rows.length;
 		rows.push("", idleHeader("PROGRESS", width, a.info));
-		if (planProgress.length) for (const item of planProgress) rows.push(...prose(stageInk(item.status)(`${stageMark(item.status)} ${safe(item.summary)}`), width));
-		else if (progress.length) for (const item of progress) rows.push(...prose(stageInk(item.status)(`${stageMark(item.status)} ${safe(item.summary)}`), width));
+		const work = request?.checkpoints?.find(item => item.id === "WORK");
+		if (work?.status === "observed" && work.summary) rows.push(...prose(a.info(safe(work.summary)), width));
+		else if (planProgress.length) for (const item of planProgress) rows.push(...prose(stageInk(item.status)(`${stageMark(item.status)} ${safe(item.summary)}`), width));
+		else if (work?.summary) rows.push(...prose(a.info(safe(work.summary)), width));
+		else if (!request && progress.length) for (const item of progress) rows.push(...prose(stageInk(item.status)(`${stageMark(item.status)} ${safe(item.summary)}`), width));
 		else rows.push(a.muted(this.label("Native 진행 보고 대기 · Chat에서 실행 내용 확인", "Awaiting Native progress · see Chat for execution")));
 		if (this.compactSection === "progress") return rows.slice(progressStart + 1);
 		const testStart = rows.length;
@@ -107,6 +110,7 @@ export class WwwMonitorView implements Component {
 		if (testRuns.length) {
 			const latestNarration = testRuns.at(-1)?.turnId ? snapshot?.toolActions?.find(item => item.id === `${testRuns.at(-1)!.turnId}:${testRuns.at(-1)!.id}`) : undefined;
 			rows.push(...prose(a.info(`${this.label("테스트 설명", "Test purpose")} · ${safe(latestNarration?.summary || this.label("미관측", "Unobserved"))}`), width));
+			rows.push(...prose(`${this.label("선택 이유(모델 해석)", "Selection reason (model interpretation)")} · ${safe(latestNarration?.why || this.label("미관측", "Unobserved"))}`, width));
 			const pass      = observedSum(testRuns.map(run => run.pass))                                                      ;
 			const fail      = observedSum(testRuns.map(run => run.fail))                                                      ;
 			const passWidth = Math.max(3, String(pass ?? "—").length, ...testRuns.map(run => String(run.pass ?? "—").length)) ;
@@ -184,7 +188,7 @@ export class WwwMonitorView implements Component {
 	private testRunsFor(snapshot: WorkbenchSnapshot, turnId: string | null | undefined): ReturnType<typeof projectRequestTestWorkspace>["runs"] {
 		if (!turnId) return [];
 		if (this.testRunsCache?.activities === snapshot.activities && (this.testRunsCache.immutable || this.testRunsCache.revision === snapshot.revision) && this.testRunsCache.turnId === turnId) return this.testRunsCache.runs;
-		const runs = projectRequestTestWorkspace({ activities: snapshot.activities.filter(activity => activity.nativeRefs.turnId === turnId), requireCodeChange: true }).runs;
+		const runs = projectRequestTestWorkspace({ activities: snapshot.activities.filter(activity => activity.nativeRefs.turnId === turnId) }).runs;
 		this.testRunsCache = { immutable: this.immutableTestInput(snapshot.activities), activities: snapshot.activities, revision: snapshot.revision, turnId, runs };
 		return runs;
 	}

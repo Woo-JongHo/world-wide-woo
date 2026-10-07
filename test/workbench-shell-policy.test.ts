@@ -1,42 +1,54 @@
-import { describe, expect, test }                                         from "bun:test";
-import { stripTerminalSequences }                                         from "@earendil-works/pi-tui";
-import type { Component }                                                 from "@earendil-works/pi-tui";
-import { renderLayoutFrame }                                              from "@earendil-works/pi-tui/dist/layout.js";
-import {
-	workbenchActivityIndicator,
-	composerModelHeader,
-	workbenchFrameTitle,
-} from "../src/adapters/inbound/tui/shell/workbench-shell";
-import {
-	isBareSlashCommandInput,
-	loginProviderFromInput,
-	nextWorkbenchRuntimeMode,
-	workbenchModelSettings,
-	workbenchPaneNotice,
-	workbenchReceiptClearsComposer,
-	workbenchReceiptNotice,
-	workbenchRuntimeConfiguration,
-	workbenchRuntimeMode,
-} from "../src/adapters/inbound/tui/shell/workbench-input.controller";
-import {
-	ComponentSlot,
-	createWorkbenchViewHost,
-	directObservabilityView,
-	rotateObservabilityView,
-	shouldHandleObservabilityShortcut,
-	workbenchDashboardSessionIndex,
-	workbenchEscapeView,
-	workbenchStatsTargetCommand,
-	workbenchViewModeCommand,
-} from "../src/adapters/inbound/tui/shell/workbench-navigation.controller";
-import { RenderScheduler }                                                from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler";
-import { composerBorderColor, composerBorderHex }                         from "../src/adapters/inbound/tui/foundation/theme/theme";
-import { workbenchApprovalIdentity, workbenchExternalMutationCandidates } from "../src/core/domain/work/workbench";
-import { createDashboardLayout }                                          from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import {
-	parseWorkbenchShellCommand,
-	WORKBENCH_SLASH_COMMANDS,
-} from "../src/adapters/inbound/tui/commands/slash-commands";
+import      {
+              describe                            ,
+              expect                              ,
+              test                                ,
+                                                    } from "bun:test"                                                          ;
+import      { stripTerminalSequences                } from "@earendil-works/pi-tui"                                            ;
+import type { Component                             } from "@earendil-works/pi-tui"                                            ;
+import      { renderLayoutFrame                     } from "@earendil-works/pi-tui/dist/layout.js"                             ;
+import      {
+              workbenchActivityIndicator          ,
+              composerModelHeader                 ,
+              wwwMotionRenderDelay                ,
+              wwwRenderHealthRefreshVisible       ,
+              workbenchFrameTitle                 ,
+                                                    } from "../src/adapters/inbound/tui/shell/workbench-shell"                 ;
+import      {
+              isBareSlashCommandInput             ,
+              loginProviderFromInput              ,
+              nextWorkbenchRuntimeMode            ,
+              workbenchModelSettings              ,
+              workbenchPaneNotice                 ,
+              workbenchReceiptClearsComposer      ,
+              workbenchReceiptNotice              ,
+              workbenchRuntimeConfiguration       ,
+              workbenchRuntimeMode                ,
+                                                    } from "../src/adapters/inbound/tui/shell/workbench-input.controller"      ;
+import      {
+              ComponentSlot                       ,
+              createWorkbenchViewHost             ,
+              directObservabilityView             ,
+              rotateObservabilityView             ,
+              shouldHandleObservabilityShortcut   ,
+              workbenchDashboardSessionIndex      ,
+              workbenchEscapeView                 ,
+              workbenchStatsTargetCommand         ,
+              workbenchViewModeCommand            ,
+                                                    } from "../src/adapters/inbound/tui/shell/workbench-navigation.controller" ;
+import      { RenderScheduler                       } from "../src/adapters/inbound/tui/foundation/rendering/render-scheduler" ;
+import      {
+              composerBorderColor                 ,
+              composerBorderHex                   ,
+                                                    } from "../src/adapters/inbound/tui/foundation/theme/theme"                ;
+import      {
+              workbenchApprovalIdentity           ,
+              workbenchExternalMutationCandidates ,
+                                                    } from "../src/core/domain/work/workbench"                                 ;
+import      { createDashboardLayout                 } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout"    ;
+import      {
+              parseWorkbenchShellCommand          ,
+              WORKBENCH_SLASH_COMMANDS            ,
+                                                    } from "../src/adapters/inbound/tui/commands/slash-commands"               ;
 
 const workingSnapshot = {
 	phase           : "working",
@@ -52,8 +64,25 @@ const workingSnapshot = {
 } as const;
 
 describe("native workbench shell receipt policy", () => {
+	test("backs off decorative motion after slow frames without hiding live state", () => {
+		expect(wwwMotionRenderDelay(Number.NaN)).toBe(120  ) ;
+		expect(wwwMotionRenderDelay(0         )).toBe(120  ) ;
+	expect(wwwMotionRenderDelay    (40        )).toBe(120  ) ;
+		expect(wwwMotionRenderDelay(100       )).toBe(200  ) ;
+		expect(wwwMotionRenderDelay(300       )).toBe(600  ) ;
+		expect(wwwMotionRenderDelay(900       )).toBe(1_000) ;
+	});
+
+	test("refreshes Render Health only while an observability surface is visible", () => {
+		expect(wwwRenderHealthRefreshVisible("workbench", "execution")).toBe(false) ;
+		expect(wwwRenderHealthRefreshVisible("workbench", "dashboard")).toBe(true ) ;
+		expect(wwwRenderHealthRefreshVisible("dashboard", "execution")).toBe(false) ;
+		expect(wwwRenderHealthRefreshVisible("monitor"  , "execution")).toBe(true ) ;
+		expect(wwwRenderHealthRefreshVisible("stats"    , "dashboard")).toBe(false) ;
+	});
+
 	test("keeps a bare slash in the command composer instead of sending chat", () => {
-		expect(isBareSlashCommandInput("/")    ).toBe(true ) ;
+		expect(isBareSlashCommandInput("/"    )).toBe(true ) ;
 		expect(isBareSlashCommandInput("  /  ")).toBe(true ) ;
 		expect(isBareSlashCommandInput("/help")).toBe(false) ;
 	});
@@ -96,16 +125,16 @@ describe("native workbench shell receipt policy", () => {
 
 	test("resolves login Provider names from ordinary Chat input", () => {
 		expect(loginProviderFromInput("ChatGPT")).toBe("openai-codex") ;
-		expect(loginProviderFromInput("Claude") ).toBe("anthropic"   ) ;
-		expect(loginProviderFromInput("Gemini") ).toBe("google"      ) ;
+		expect(loginProviderFromInput("Claude" )).toBe("anthropic"   ) ;
+		expect(loginProviderFromInput("Gemini" )).toBe("google"      ) ;
 		expect(loginProviderFromInput("unknown")).toBeNull();
 	});
 
 	test("keeps completed Notes separate from selected execution Trace and current Todo", () => {
 		expect(workbenchPaneNotice("tnotes"))    .toContain("완료 질문 Report · Note"    ) ;
 		expect(workbenchPaneNotice("tnotes")).not.toContain("Trace"                      ) ;
-		expect(workbenchPaneNotice("chat")  )    .toContain("질문과 공개 응답"           ) ;
-		expect(workbenchPaneNotice("todo")  )    .toContain("현재 GOAL · PLAN · PROGRESS") ;
+		expect(workbenchPaneNotice("chat"  ))    .toContain("질문과 공개 응답"           ) ;
+		expect(workbenchPaneNotice("todo"  ))    .toContain("현재 GOAL · PLAN · PROGRESS") ;
 	});
 
 	test("selects Trace only by exact activity id and rejects mutable legacy Todo commands", () => {
@@ -189,9 +218,9 @@ describe("native workbench shell receipt policy", () => {
 	test("routes dashboard, monitor, map, and stats to distinct local view modes", () => {
 		expect(workbenchViewModeCommand("/dashboard")).toBe("dashboard") ;
 		expect(workbenchViewModeCommand(" /monitor ")).toBe("monitor"  ) ;
-		expect(workbenchViewModeCommand(" /map ")    ).toBe("map"      ) ;
-		expect(workbenchViewModeCommand(" /stats ")  ).toBe("stats"    ) ;
-		expect(workbenchViewModeCommand(" /Test ")   ).toBe("test"     ) ;
+		expect(workbenchViewModeCommand(" /map "    )).toBeNull() ;
+		expect(workbenchViewModeCommand(" /stats "  )).toBe("stats"    ) ;
+		expect(workbenchViewModeCommand(" /Test "   )).toBe("test"     ) ;
 		expect(workbenchViewModeCommand("/monitor details")).toBeNull();
 		expect(workbenchStatsTargetCommand("/stats")                                             ).toBe   ("session"                                            ) ;
 		expect(workbenchStatsTargetCommand("/stats diagnostics")                                 ).toBe   ("diagnostics"                                        ) ;
@@ -203,7 +232,7 @@ describe("native workbench shell receipt policy", () => {
 	});
 
 	test("treats observability views as siblings with one workspace return target", () => {
-		for (const mode of ["map", "stats", "dashboard", "monitor", "source"] as const) expect(workbenchEscapeView(mode, "workbench")).toBe("workbench");
+		for (const mode of ["stats", "dashboard", "monitor", "source"] as const) expect(workbenchEscapeView(mode, "workbench")).toBe("workbench");
 		expect(workbenchEscapeView("workbench", "workbench")).toBeNull();
 		expect(rotateObservabilityView("stats", 1)                ).toBe   ("dashboard"                            ) ;
 		expect(rotateObservabilityView("dashboard", 1)            ).toBe   ("monitor"                              ) ;
@@ -238,13 +267,12 @@ describe("native workbench shell receipt policy", () => {
 			{ color: value => value, component: text("dashboard-trace") },
 			{ color: value => value, component: text("dashboard-todo") },
 		);
-		const aggregate                                                              = text("aggregate-dashboard")                                                                      ;
-		const monitor                                                                = text("live-monitor")                                                                             ;
-		const map                                                                    = text("INIT-001 → EP-010 → ST-010-01")                                                            ;
-		const stats                                                                  = text("PURPOSE · ACTION · RESULT")                                                                ;
-		const source                                                                 = text("source-detail")                                                                            ;
-		let mode: "workbench" | "dashboard" | "monitor" | "source" | "map" | "stats" = "workbench"                                                                                      ;
-		const host                                                                   = createWorkbenchViewHost(() => mode, dashboard.component, aggregate, monitor, source, map, stats) ;
+		const aggregate                                                      = text("aggregate-dashboard")                                                                 ;
+		const monitor                                                        = text("live-monitor")                                                                        ;
+		const stats                                                          = text("PURPOSE · ACTION · RESULT")                                                           ;
+		const source                                                         = text("source-detail")                                                                       ;
+		let mode: "workbench" | "dashboard" | "monitor" | "source" | "stats" = "workbench"                                                                                 ;
+		const host                                                           = createWorkbenchViewHost(() => mode, dashboard.component, aggregate, monitor, source, stats) ;
 
 		let frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(frame.primaryScrollView).toBe(dashboard.leftScroll);
@@ -257,10 +285,6 @@ describe("native workbench shell receipt policy", () => {
 		mode = "dashboard";
 		frame = renderLayoutFrame(host, 120, 24, () => undefined);
 		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("aggregate-dashboard");
-
-		mode = "map";
-		frame = renderLayoutFrame(host, 120, 24, () => undefined);
-		expect(stripTerminalSequences(frame.lines.join("\n"))).toContain("INIT-001 → EP-010 → ST-010-01");
 
 		mode = "stats";
 		frame = renderLayoutFrame(host, 120, 24, () => undefined);

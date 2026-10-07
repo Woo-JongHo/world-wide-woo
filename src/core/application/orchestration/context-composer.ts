@@ -1,26 +1,25 @@
-import type { NativeTurnStart }       from "@/core/domain/execution/native-session.js";
-import type { WooEntrySnapshot }      from "@/core/application/orchestration/woo-entry.js";
-import type { SkillRegistrySnapshot } from "@/core/skills/skill-registry.js";
-import type { OutputLanguageSelection } from "@/core/domain/execution/output-language.js";
+import type { NativeTurnStart         } from "@/core/domain/execution/native-session.js"  ;
+import type { SkillRegistrySnapshot   } from "@/core/skills/skill-registry.js"            ;
+import type { OutputLanguageSelection } from "@/core/domain/execution/output-language.js" ;
 
 const CONTEXT_POLICY_KEY  = "www_context_policy"  ;
 const CONTEXT_SOURCES_KEY = "www_context_sources" ;
 const SKILL_REGISTRY_KEY  = "www_skill_registry"  ;
 
 export interface ContextSourceResult {
-	readonly repository      : Readonly<{ id: "WES" | "WWW"; root: string }> ;
-	readonly revision        : string                                        ;
-	readonly included        : boolean                                       ;
-	readonly exclusionReason : string | null                                 ;
-	readonly payload         : Readonly<Record<string, unknown>>             ;
+	readonly repository      : Readonly<{ id: "WWW"; root: string }> ;
+	readonly revision        : string                                ;
+	readonly included        : boolean                               ;
+	readonly exclusionReason : string | null                         ;
+	readonly payload         : Readonly<Record<string, unknown>>     ;
 }
 
 /** Builds the model context independently of any display projection. */
 export class ContextComposer {
 	public constructor(private readonly contextLimit = 4_000, private readonly outputLanguage?: OutputLanguageSelection) {}
-	compose(input: NativeTurnStart, wooEntry: WooEntrySnapshot | undefined, skillRegistry?: SkillRegistrySnapshot): NativeTurnStart {
-		const sources = [this.wooEntrySource(wooEntry), this.wwwSource(input.cwd)];
-		const context = JSON.stringify({ protocol: "www-context-composer", version: 1, sources });
+	compose(input: NativeTurnStart, skillRegistry?: SkillRegistrySnapshot): NativeTurnStart {
+		const sources = [this.wwwSource(input.cwd)]                                               ;
+		const context = JSON.stringify({ protocol: "www-context-composer", version: 1, sources }) ;
 		if (context.length > this.contextLimit) throw new Error("Composed chat context exceeds the context budget.");
 		return {
 			...input,
@@ -40,38 +39,6 @@ export class ContextComposer {
 				},
 				[CONTEXT_SOURCES_KEY]: { kind: "untrusted", value: context },
 				...(skillRegistry ? { [SKILL_REGISTRY_KEY]: { kind: "application" as const, value: JSON.stringify({ protocol: "www-skill-registry", version: 1, sourceRevision: skillRegistry.sourceRevision, registryDigest: skillRegistry.digest, skills: skillRegistry.skills.map(skill => ({ name: skill.name, digest: skill.digest })) }) } } : {}),
-			},
-		};
-	}
-
-	private wooEntrySource(snapshot: WooEntrySnapshot | undefined): ContextSourceResult {
-		if (!snapshot) return {
-			repository      : { id: "WES", root: "unavailable" },
-			revision        : "absent",
-			included        : false,
-			exclusionReason : "No WES snapshot is connected to this workbench.",
-			payload         : {},
-		};
-		if (snapshot.state !== "ready") return {
-			repository      : { id: "WES", root: "unavailable" },
-			revision        : String(snapshot.revision),
-			included        : false,
-			exclusionReason : snapshot.state === "blocked" ? snapshot.reason : "WES collection is still loading.",
-			payload         : { state: snapshot.state, collectedAt: snapshot.collectedAt },
-		};
-		return {
-			repository      : { id: "WES", root: snapshot.source.root },
-			revision        : String(snapshot.revision),
-			included        : true,
-			exclusionReason : null,
-			payload: {
-				collectedAt : snapshot.collectedAt,
-				source      : snapshot.source,
-				status      : snapshot.payload.status,
-				git         : snapshot.payload.git,
-				authority   : snapshot.payload.authority,
-				signals     : snapshot.payload.signals,
-				nextActions : snapshot.payload.nextActions,
 			},
 		};
 	}

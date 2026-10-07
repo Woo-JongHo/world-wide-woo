@@ -2,7 +2,8 @@
 
 ## 작업 진입
 
-- 작업 시작·재개 시 [woo-entry](.agents/skills/woo-entry/SKILL.md)로 저장소 위치와 Linear 프로젝트 연결을 확인한 뒤 요청에 맞는 스킬을 적용한다.
+- 작업 시작·재개 시 [woo-entry](.agents/skills/woo-entry/SKILL.md)로 저장소 위치·브랜치·기존 변경을 확인한다.
+- 2026-10-07 사용자 결정에 따라 Linear·WES·Obsidian 작업 관리 연결과 강제 기록 절차를 사용하지 않는다. 설계와 결정은 `docs/`, 구현은 Git, 검증 증거는 로컬 Evidence에 남긴다. 과거 기록은 현재 작업의 게시 의무가 아니다.
 
 ## 코드 구조
 
@@ -13,31 +14,22 @@
 ## 산출물 위치
 
 - 사람이 다시 읽는 문서(연구·설계·분석·감사 결과)는 `docs/`에 둔다. `.www` 숨김폴더는 제어·기록 평면이므로 새 문서를 만들지 않는다.
-- 증거 Receipt·이슈 후보·read-back 기록은 `.www/evidence/`, 제어 원장은 `.www/control-ledger/`, 계획 소스는 `.www/planning/`에 둔다.
+- 검증 증거·필요한 Receipt는 `.www/evidence/`에 둔다. 실행 계획은 Native PLAN, 설계 문서는 `docs/`가 소유한다.
 - 버릴 수 있는 작업 중간 산출물은 `.www/scratchpad/`에 두고, 문서 지위를 얻으면 `docs/`로 승격한다. 세션 상태(`runtime`·`sessions`·`todos`)는 gitignored 영역에만 둔다.
 
 ## 조회 경계
 
-- Linear·GitHub·증거 JSON을 조회할 때는 필터와 필요 필드로 범위를 제한한다. 같은 대상을 다시 읽을 때는 재조회 대신 이미 기록된 조회 결과(`issues-before`, Receipt 등)를 재사용한다.
+- GitHub·증거 JSON을 조회할 때는 필터와 필요 필드로 범위를 제한한다. 같은 대상을 다시 읽을 때는 재조회 대신 이미 기록된 조회 결과(`issues-before`, Receipt 등)를 재사용한다.
 - 하위 에이전트에 폭넓은 조사를 맡길 때는 `.www/runtime`·`.www/sessions`·`.www/scratchpad`를 전수 탐색 대상에서 제외하고, 필요한 파일은 경로를 지정해 직접 읽게 한다.
 
-## Linear 이슈
+## 설계와 검증
 
-- Project Activity에 작업 경과 Comment를 남기거나 Project Update를 게시하기 전에는 [woo-linear-activity](.agents/skills/woo-linear-activity/SKILL.md)를 읽고 적용한다. Comment는 작업 단위 기록, Update는 직전 Update 뒤 Comment를 종합한 기능 릴리스 기록이다.
-- 사용자의 상시 지시에 따라 Project Activity Comment는 live 대상·중복·최신 Activity 확인과 Candidate 검증 뒤 즉시 게시하고 read-back한다. Comment별 AskUserQuestion 승인을 다시 요구하지 않으며, Candidate만 준비한 상태는 완료가 아니다. 이 사전 승인은 Project Comment에만 적용하고 Issue·Update·Obsidian·GitHub·commit 쓰기는 별도 승인 경계를 유지한다.
-- `0.0.N` 기능 릴리스의 Project Update를 만들거나 갱신할 때는 [woo-linear-version-update](.agents/skills/woo-linear-version-update/SKILL.md)를 적용한다. 개선·리팩터링은 단독 버전으로 만들지 않고 기능 릴리스에 묶는다.
-- Linear 제목·번호·하위 구조를 생성·정리하거나 이슈를 삭제할 때는 [woo-linear-title-hierarchy](.agents/skills/woo-linear-title-hierarchy/SKILL.md)를 읽고 적용한다.
-- Linear 이슈를 생성·분할·이동하거나 본문을 수정하기 전에 프로젝트 로컬 [woo-linear-issue-intake](.agents/skills/woo-linear-issue-intake/SKILL.md)를 읽고 적용한다. 기존 계층·중복·가이드를 대조해 위치를 정한 뒤 작성한다.
-- 승인된 Linear Candidate를 실제 반영할 때는 [woo-linear-publish](.agents/skills/woo-linear-publish/SKILL.md)를 적용해 현재 상태 대조와 read-back Receipt를 남긴다.
-
-## Obsidian 정본
-
-- Obsidian 상세 정본을 작성할 때는 [woo-obsidian-canonical](.agents/skills/woo-obsidian-canonical/SKILL.md), 계약을 검증하거나 게시할 때는 [woo-obsidian-publish](.agents/skills/woo-obsidian-publish/SKILL.md)를 적용한다.
-- 새 capability나 되돌리기 어려운 계약 변경은 [Design Document Contract](docs/workflows/DESIGN_DOCUMENT_CONTRACT.md)로 설계 문서 필요성과 깊이를 판정한다. 별도 경쟁 정본을 만들지 않고 Obsidian 상세 정본의 `draft`에서 설계한다.
+- 여러 모듈의 계약·저장 형식·책임 경계를 바꾸는 작업은 [Design Document Contract](docs/workflows/DESIGN_DOCUMENT_CONTRACT.md)에 따라 저장소 `docs/`에 설계하고 독립된 패스로 검토한다.
+- PLAN·PROGRESS·TEST·WORKING은 실제 실행 상태에서 표시한다. 외부 업무 원장이나 게시 성공 여부를 표시 조건으로 사용하지 않는다.
 
 ## Git 기록
 
 - 커밋을 준비하거나 실행할 때는 프로젝트 로컬 `$woo-commit`을 사용한다.
 - GitHub Issue를 생성하거나 수정할 때는 프로젝트 로컬 `$woo-github-issue-intake`를 사용한다.
-- GitHub PR을 생성·수정하거나 Linear 연결을 검증할 때는 `$woo-github-pr`을 사용한다. Push·Merge·Release는 별도 권한이다.
+- GitHub PR을 생성·수정할 때는 `$woo-github-pr`을 사용한다. Push·Merge·Release는 별도 권한이다.
 - 제목은 한국어 문제·요청·결과 문장으로 쓴다. `feat:`, `fix(scope):` 같은 Conventional Commits 유형·범위 접두어는 사용하지 않으며, Issue 유형은 `bug` 또는 `enhancement` 라벨이 소유한다.

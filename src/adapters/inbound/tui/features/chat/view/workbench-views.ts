@@ -1,14 +1,14 @@
 /** @linear WOO-679 WOO-683 WOO-686 WOO-687 WOO-688 WOO-689 */
-import type { Component }                from "@earendil-works/pi-tui";
-import type { ChatFeatureProjection }    from "@/core/application/orchestration/workbench-feature-reads";
-import type { WorkbenchChatMessage }     from "@/core/domain/work/workbench";
-import { ChatDurableTranscript }         from "@/adapters/inbound/tui/features/chat/view/chat-durable-transcript";
-import type { ChatApprovalPresentation } from "@/adapters/inbound/tui/features/chat/view/chat-durable-transcript";
-import { ChatLiveActivity }              from "@/adapters/inbound/tui/features/chat/view/chat-live-activity";
-import type { ChatActivityIndicator }    from "@/adapters/inbound/tui/features/chat/view/chat-live-activity";
-import { ChatMessageRenderer }           from "@/adapters/inbound/tui/features/chat/view/chat-message-renderer";
-import { isVisibleWorkStep }             from "@/adapters/inbound/tui/features/chat/view/work-step-card";
-import { WorkbenchWelcomeView }          from "@/adapters/inbound/tui/features/chat/view/workbench-welcome";
+import type { Component                } from "@earendil-works/pi-tui"                                            ;
+import type { ChatFeatureProjection    } from "@/core/application/orchestration/workbench-feature-reads"          ;
+import type { WorkbenchChatMessage     } from "@/core/domain/work/workbench"                                      ;
+import      { ChatDurableTranscript    } from "@/adapters/inbound/tui/features/chat/view/chat-durable-transcript" ;
+import type { ChatApprovalPresentation } from "@/adapters/inbound/tui/features/chat/view/chat-durable-transcript" ;
+import      { ChatLiveActivity         } from "@/adapters/inbound/tui/features/chat/view/chat-live-activity"      ;
+import type { ChatActivityIndicator    } from "@/adapters/inbound/tui/features/chat/view/chat-live-activity"      ;
+import      { ChatMessageRenderer      } from "@/adapters/inbound/tui/features/chat/view/chat-message-renderer"   ;
+import      { isVisibleWorkStep        } from "@/adapters/inbound/tui/features/chat/view/work-step-card"          ;
+import      { WorkbenchWelcomeView     } from "@/adapters/inbound/tui/features/chat/view/workbench-welcome"       ;
 
 export type { ChatApprovalPresentation } from "@/adapters/inbound/tui/features/chat/view/chat-durable-transcript";
 
@@ -29,7 +29,6 @@ export class WorkbenchChatView implements Component {
 
 	constructor(
 		snapshot: ChatFeatureProjection,
-		private readonly entryDashboard: Component | null = null,
 		approvalPresentation: ChatApprovalPresentation | null = null,
 	) {
 		this.snapshot = snapshot;
@@ -81,10 +80,6 @@ export class WorkbenchChatView implements Component {
 
 	render(width: number): string[] {
 		const contentWidth = Math.max(1, width);
-		const showEntryDashboard = !hasVisibleChatContent(this.snapshot);
-		if (showEntryDashboard && this.snapshot.linearDashboard && this.entryDashboard) {
-			return this.entryDashboard.render(contentWidth);
-		}
 		if (!hasVisibleChatContent(this.snapshot)) return this.welcome.render(contentWidth);
 		if (
 			this.cachedRows

@@ -10,7 +10,6 @@ import      { todoProgress             } from "@/core/domain/work/todos"        
 import type { TodoDocument, TodoItem   } from "@/core/domain/work/todos"                                        ;
 import type { WorkFlowProjection       } from "@/core/domain/work"                                              ;
 import type { WorkbenchTodoSyncState   } from "@/core/domain/work/workbench"                                    ;
-import type { LinearProjectDashboard   } from "@/core/domain/work/linear-dashboard"                             ;
 import      { colors                   } from "@/adapters/inbound/tui/foundation/theme/theme"                   ;
 import      {
               DASHBOARD_PANEL_SYSTEM ,
@@ -62,7 +61,6 @@ export class WorkspaceTodoView implements Component {
 			activities   : [],
 			workFlow     : emptyWorkFlow(),
 		}),
-		private readonly linearDashboard: () => LinearProjectDashboard | undefined = () => undefined,
 	) {}
 	invalidate(): void {}
 	render(width: number): string[] {
@@ -73,28 +71,9 @@ export class WorkspaceTodoView implements Component {
 		const document = this.todo() ;
 		const live     = this.live() ;
 		if (!document || document.items.length === 0) {
-			const dashboard          = this.linearDashboard()                                               ;
-			const showEntryDashboard = !live.hasConversation && !live.activeTurnId && !live.workFlow.source ;
 			const goalRows = live.goal
 				? wrapTextWithAnsi(colors.highlight(`Goal · ${live.goal}`), width)
 				: [];
-			if (showEntryDashboard && dashboard?.state === "loading") return [
-				...goalRows,
-				...wrapTextWithAnsi(colors.secondary(`Update · ${dashboard.projectName}`), width),
-				...wrapTextWithAnsi(colors.muted("Linear Project Update를 가져오는 중입니다."), width),
-			];
-			if (showEntryDashboard && (dashboard?.state === "ready" || dashboard?.state === "stale")) return [
-				...goalRows,
-				...wrapTextWithAnsi(colors.secondary(`Update · ${dashboard.projectName}`), width),
-				...(dashboard.state === "stale" ? wrapTextWithAnsi(colors.warning("갱신 실패 · 마지막 성공 값"), width) : []),
-				...wrapTextWithAnsi(dashboard.update?.body || "게시된 Project Update가 없습니다.", width),
-				...(dashboard.update?.createdAt ? wrapTextWithAnsi(colors.muted(`갱신 · ${dashboard.update.createdAt}`), width) : []),
-			];
-			if (showEntryDashboard && dashboard?.state === "unavailable") return [
-				...goalRows,
-				...wrapTextWithAnsi(colors.secondary(`Update · ${dashboard.projectName}`), width),
-				...wrapTextWithAnsi(colors.warning("Linear Project Update를 불러오지 못했습니다."), width),
-			];
 			return [
 				...goalRows,
 				...wrapTextWithAnsi(colors.secondary(live.activeTurnId ? "TODO · 공개 계획을 기다리는 중" : "TODO · 현재 계획 없음"), width),

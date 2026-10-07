@@ -3,7 +3,7 @@
 - 상태: draft — Codex Astra 1·2차 검토 반영([1차](../audit/2026-10-03-codex-astra-structure-review.md), [2차](../audit/2026-10-03-codex-astra-structure-review-2.md))
 - 적용 대상: `src`에 새 기능을 추가하거나 기존 기능의 책임을 옮기는 변경, 기존 기능을 같은 형식으로 정리하는 작업
 - 실행 스킬: [woo-feature-template](../../.agents/skills/woo-feature-template/SKILL.md)
-- 관련 정본: [LAYERS.md](../../LAYERS.md)(의존 방향), [가독성 계약](../../.agents/skills/woo-code-readability/references/readability-contract.md)(파일 안의 행·열), [Design Document Contract](DESIGN_DOCUMENT_CONTRACT.md)(설계 문서와 Obsidian `12. Implementation Map`)
+- 관련 정본: [LAYERS.md](../../LAYERS.md)(의존 방향), [가독성 계약](../../.agents/skills/woo-code-readability/references/readability-contract.md)(파일 안의 행·열), [Design Document Contract](DESIGN_DOCUMENT_CONTRACT.md)(설계 문서와 구현 지도 절)
 
 ## 목적
 
@@ -25,7 +25,7 @@
 2. **장은 생략할 수 있지만 순서는 바꾸지 않는다.**
 3. **의존 방향은 장 번호가 아니라 LAYERS.md가 정한다.** 장 번호는 읽기 순서일 뿐이다(예: 2장 흐름은 3장 경계를 쓴다). 다만 정의는 화면을 모르고, 해석은 색을 모르며, 표현은 원본 데이터를 해석하지 않는다.
 4. **규칙은 한 곳이 소유한다.** 두 번째 구현이 필요해지면 복사하지 않는다. 입력·출력·실패 계약이 같은지 확인한 뒤 소유 장으로 올린다.
-5. **기능 설명은 생성한다.** 기능별 장 지도는 코드의 직접 import에서 추정한 후보 투영이다. `미발견`은 책임이 없다는 뜻이 아니다. 손으로 쓴 설명을 별도 정본으로 만들지 않고, 설계 판단은 Obsidian 상세 정본이 소유한다.
+5. **기능 설명은 생성한다.** 기능별 장 지도는 코드의 직접 import에서 추정한 후보 투영이다. `미발견`은 책임이 없다는 뜻이 아니다. 손으로 쓴 설명을 별도 정본으로 만들지 않고, 설계 판단은 저장소 docs 설계 문서이 소유한다.
 6. **실행 순서가 절 순서보다 우선한다.** 모듈 초기화에 쓰이는 값, `extends`·static 필드·static 블록·computed key가 있는 클래스, 최상위 호출이 참조하는 `const`·`let`·`class` 선언은 옮기지 않고 이유를 기록한다. `function` 선언은 본문까지 호이스팅되므로 최상위 호출이 참조하더라도 옮길 수 있다.
 
 ## 기능 단위: 장 순서

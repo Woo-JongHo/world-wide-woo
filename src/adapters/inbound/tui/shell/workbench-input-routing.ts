@@ -70,7 +70,7 @@ export interface WorkbenchInputRoutingDependencies {
 	readonly enterObservability         : (mode: ObservabilityViewMode) => Promise<void>                             ;
 	readonly moveTestSelection          : (offset: number) => void                                                   ;
 	readonly openTestRunInMonitor       : () => void                                                                 ;
-	readonly dashboardRequestSelection  : (action: "up" | "down" | "open") => boolean                         ;
+	readonly dashboardRequestSelection  : (action: "up" | "down" | "open") => boolean                                ;
 	readonly status                     : ShellNotice                                                                ;
 	readonly exitKeys                   : ExitKeyPolicy                                                              ;
 	readonly shutdown                   : () => Promise<void>                                                        ;
@@ -118,7 +118,7 @@ export function installWorkbenchInputRouting(dependencies: WorkbenchInputRouting
 				overlays.dismiss();
 				status.setNotice(closing === "approval"
 					? www ? "승인 보류. /approval 다시 읽기 /approve 승인 /decline 거절" : "승인 창을 닫았습니다. /approve 로 다시 결정할 수 있습니다."
-					: closing === "development" ? "개발 연결 창을 닫았습니다." : closing === "views" ? "화면 이동을 닫았습니다." : closing === "commands" ? "명령 찾기를 닫았습니다." : "모델 변경을 취소했습니다.");
+					: closing === "views" ? "화면 이동을 닫았습니다." : closing === "commands" ? "명령 찾기를 닫았습니다." : "모델 변경을 취소했습니다.");
 				tui.requestRender();
 				return { consume: true };
 			}

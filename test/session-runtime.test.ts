@@ -1,22 +1,25 @@
-import { describe, expect, test }                           from "bun:test";
-import { mkdtemp, writeFile }                               from "node:fs/promises";
-import { tmpdir }                                           from "node:os";
-import { join }                                             from "node:path";
-import { createModels }                                     from "@earendil-works/pi-ai";
-import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
-import { Type }                                             from "typebox";
-import type { WwwSettings }                                 from "../src/core/domain/execution/model-settings";
-import { ModelRouter }                                      from "../src/adapters/outbound/authentication/model-router";
-import { buildSessionSystemPrompt, SessionRuntime }         from "../src/core/application/session/session-runtime";
-import { SessionEventStore }                                from "../src/adapters/outbound/persistence/session-store";
-import type { AgentTool }                                   from "../src/core/ports/execution/agent-tool-port";
-import type { TerminalCommandExecutor }                     from "../src/core/ports/execution/terminal-command-port";
-import type { ModelClient }                                 from "../src/core/ports/integration/model-client-port";
-import { TodoLedger }                                       from "../src/core/application/work/todo-ledger";
-import { createProjectAgentTools }                          from "../src/adapters/outbound/execution/agent-tools";
-import { FileTodoStore }                                    from "../src/adapters/outbound/persistence/todo-store";
-import { createPlanningSnapshot }                           from "../src/core/domain/work/planning";
-import type { TerminalCommandResult }                       from "../src/core/domain/execution/terminal";
+import      { describe, expect, test                   } from "bun:test"                                             ;
+import      { mkdtemp, writeFile                       } from "node:fs/promises"                                     ;
+import      { tmpdir                                   } from "node:os"                                              ;
+import      { join                                     } from "node:path"                                            ;
+import      { createModels                             } from "@earendil-works/pi-ai"                                ;
+import      {
+              fauxAssistantMessage                   ,
+              fauxProvider                           ,
+              fauxToolCall                           ,
+                                                       } from "@earendil-works/pi-ai/providers/faux"                 ;
+import      { Type                                     } from "typebox"                                              ;
+import type { WwwSettings                              } from "../src/core/domain/execution/model-settings"          ;
+import      { ModelRouter                              } from "../src/adapters/outbound/authentication/model-router" ;
+import      { buildSessionSystemPrompt, SessionRuntime } from "../src/core/application/session/session-runtime"      ;
+import      { SessionEventStore                        } from "../src/adapters/outbound/persistence/session-store"   ;
+import type { AgentTool                                } from "../src/core/ports/execution/agent-tool-port"          ;
+import type { TerminalCommandExecutor                  } from "../src/core/ports/execution/terminal-command-port"    ;
+import type { ModelClient                              } from "../src/core/ports/integration/model-client-port"      ;
+import      { TodoLedger                               } from "../src/core/application/work/todo-ledger"             ;
+import      { createProjectAgentTools                  } from "../src/adapters/outbound/execution/agent-tools"       ;
+import      { FileTodoStore                            } from "../src/adapters/outbound/persistence/todo-store"      ;
+import type { TerminalCommandResult                    } from "../src/core/domain/execution/terminal"                ;
 
 const settings: WwwSettings = { provider: "openai", model: "gpt-5.4", effort: "high" };
 
@@ -25,14 +28,14 @@ async function runtimeWithResponse(response: string) {
 	faux.setResponses([fauxAssistantMessage(response)]);
 	const models = createModels();
 	models.setProvider(faux.provider);
-	const directory = await mkdtemp(join(tmpdir(), "www-runtime-"));
-	const store = new SessionEventStore(directory);
+	const directory = await mkdtemp(join(tmpdir(), "www-runtime-")) ;
+	const store     = new SessionEventStore(directory)              ;
 	return { runtime: new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "session-test"), store };
 }
 
 async function runtimeWithTerminal(executor: TerminalCommandExecutor, sessionId = "terminal-session") {
-	const faux = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] });
-	const models = createModels();
+	const faux   = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] }) ;
+	const models = createModels()                                                                     ;
 	models.setProvider(faux.provider);
 	const router    = new ModelRouter(models)                                ;
 	const directory = await mkdtemp(join(tmpdir(), "www-runtime-terminal-")) ;
@@ -45,7 +48,6 @@ async function runtimeWithTerminal(executor: TerminalCommandExecutor, sessionId 
 		sessionId,
 		[],
 		undefined,
-		null,
 		executor,
 	);
 	return { runtime, store, router };
@@ -96,8 +98,8 @@ describe("SessionRuntime", () => {
 		faux.setResponses([fauxAssistantMessage("/workspace/world-wide-woo")]);
 		const models = createModels();
 		models.setProvider(faux.provider);
-		const base = new ModelRouter(models);
-		let systemPrompt = "";
+		const base       = new ModelRouter(models) ;
+		let systemPrompt = ""                      ;
 		const router: ModelClient = {
 			checkAuth: settings => base.checkAuth(settings),
 			stream: (selection, context, signal) => {
@@ -114,19 +116,6 @@ describe("SessionRuntime", () => {
 			"cwd-test",
 		);
 		await runtime.initialize();
-		runtime.updatePlanning(createPlanningSnapshot(2, [{
-			id: "EP-010",
-			title: "Planning Package",
-			goal: "private goal",
-			createdAt: "2026-08-31T11:24:24.000Z",
-		}], [{
-			id: "ST-010-01",
-			epicId: "EP-010",
-			title: "Context projection",
-			acceptance: "private acceptance",
-			createdAt: "2026-08-31T11:24:24.000Z",
-			supersedes: null,
-		}]));
 		await runtime.submit("지금 경로 위치가 어디야?");
 
 		expect(systemPrompt)    .toContain('현재 작업 디렉토리는 "/workspace/world-wide-woo"'               ) ;
@@ -134,8 +123,6 @@ describe("SessionRuntime", () => {
 		expect(systemPrompt)    .toContain("pwd 실행을 사용자에게 요구하지 마세요"                          ) ;
 		expect(systemPrompt)    .toContain("ChatGPT라고 뭉뚱그리거나 모델 ID를 볼 수 없다고 답하지 마세요"  ) ;
 		expect(systemPrompt)    .toContain("물리적 위치나 GPS를 명시적으로 물은 경우에만"                   ) ;
-		expect(systemPrompt)    .toContain("Epic EP-010: Planning Package"                                  ) ;
-		expect(systemPrompt)    .toContain("Story ST-010-01 (EP-010): Context projection"                   ) ;
 		expect(systemPrompt).not.toContain("private acceptance"                                             ) ;
 		expect((await store.readAll("cwd-test"))[0]?.metadata).toMatchObject({
 			workspace: { cwd: "/workspace/world-wide-woo" },
@@ -204,7 +191,6 @@ describe("SessionRuntime", () => {
 			"terminal-session",
 			[],
 			undefined,
-			null,
 			executor,
 		);
 		await restored.initialize({ resume: true });
@@ -298,8 +284,8 @@ describe("SessionRuntime", () => {
 		]);
 		const models = createModels();
 		models.setProvider(faux.provider);
-		const directory = await mkdtemp(join(tmpdir(), "www-runtime-tool-"));
-		const store = new SessionEventStore(directory);
+		const directory = await mkdtemp(join(tmpdir(), "www-runtime-tool-")) ;
+		const store     = new SessionEventStore(directory)                   ;
 		const tool: AgentTool = {
 			definition: {
 				name        : "read",
@@ -438,8 +424,8 @@ describe("SessionRuntime", () => {
 				snapshot     : { id: crypto.randomUUID(), toolName: name, status: "passed", input: "", output: "", startedAt: 1, durationMs: 1, error: undefined },
 			}),
 		});
-		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-summary-")));
-		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "summary", [tool("read"), tool("search")]);
+		const store   = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-summary-")))                                                           ;
+		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "summary", [tool("read"), tool("search")]) ;
 		await runtime.initialize();
 		await runtime.submit("확인");
 
@@ -453,15 +439,15 @@ describe("SessionRuntime", () => {
 	});
 
 	test("migrates legacy narration events by event order and rejects duplicate persisted steps", async () => {
-		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-legacy-narration-")));
-		const timestamp = new Date(1).toISOString();
+		const store     = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-legacy-narration-"))) ;
+		const timestamp = new Date(1).toISOString()                                                             ;
 		await store.append("legacy-narration", {
 			category: "action", type: "narration.recorded", status: "running", title: "작업 설명", body: "파일 확인 · src/a.ts",
 			turnId: "turn-1", itemId: "tool-1",
 			metadata: { narration: { id: "legacy-1", turnId: "turn-1", toolCallId: "tool-1", timestamp, label: "파일 확인 · src/a.ts" } },
 		});
-		const models = createModels();
-		const faux = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] });
+		const models = createModels()                                                                     ;
+		const faux   = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] }) ;
 		models.setProvider(faux.provider);
 		const runtime = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "legacy-narration");
 		await runtime.initialize({ resume: true });
@@ -594,8 +580,8 @@ describe("SessionRuntime", () => {
 		]);
 		const models = createModels();
 		models.setProvider(faux.provider);
-		const store = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-incomplete-tool-")));
-		const turnId = "turn-incomplete";
+		const store  = new SessionEventStore(await mkdtemp(join(tmpdir(), "www-runtime-incomplete-tool-"))) ;
+		const turnId = "turn-incomplete"                                                                    ;
 		const assistant = fauxAssistantMessage([
 			fauxToolCall("read", { path: "one" }, { id: "call-one" }),
 			fauxToolCall("read", { path: "two" }, { id: "call-two" }),
@@ -671,8 +657,8 @@ describe("SessionRuntime", () => {
 		models.setProvider(faux.provider);
 		const root = await mkdtemp(join(tmpdir(), "www-runtime-live-todo-"));
 		await writeFile(join(root, "sample.txt"), "evidence\n");
-		const store = new SessionEventStore(join(root, "sessions"));
-		const todos = new TodoLedger("live-todo", new FileTodoStore(join(root, "Todo.md")), store);
+		const store = new SessionEventStore(join(root, "sessions"))                                ;
+		const todos = new TodoLedger("live-todo", new FileTodoStore(join(root, "Todo.md")), store) ;
 		await todos.initialize();
 		const tools = createProjectAgentTools(root, { todos, sshConfigPath: join(root, "missing-ssh-config") });
 		const runtime = new SessionRuntime(
@@ -694,16 +680,16 @@ describe("SessionRuntime", () => {
 		]);
 		expect(runtime.snapshot.turns.at(-1)?.content).toContain("첫 항목을 완료했습니다.");
 		expect(runtime.snapshot.turns.at(-1)?.content).toContain("관찰한 사실:");
-		const events = await store.readAll("live-todo");
-		const evidence = events.find(event => event.type === "command.completed" && event.itemId === "read-evidence");
+		const events   = await store.readAll("live-todo")                                                             ;
+		const evidence = events.find(event => event.type === "command.completed" && event.itemId === "read-evidence") ;
 		if (!evidence) throw new Error("Missing read evidence event");
 		expect(todos.snapshot?.items[0]?.evidenceIds).toEqual([evidence.id]);
 		expect(events.filter(event => event.type === "todo.updated")).toHaveLength(4);
 	});
 
 	test("blocks unauthenticated turns before they enter the transcript", async () => {
-		const directory = await mkdtemp(join(tmpdir(), "www-runtime-auth-"));
-		const store = new SessionEventStore(directory);
+		const directory = await mkdtemp(join(tmpdir(), "www-runtime-auth-")) ;
+		const store     = new SessionEventStore(directory)                   ;
 		const router = {
 			checkAuth: async () => ({ configured: false }),
 			stream: () => {
@@ -732,8 +718,8 @@ describe("SessionRuntime", () => {
 		await runtime.initialize();
 		await runtime.submit("저장해 줘");
 
-		const models = createModels();
-		const faux = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] });
+		const models = createModels()                                                                     ;
+		const faux   = fauxProvider({ provider: "openai", models: [{ id: "gpt-5.4", reasoning: true }] }) ;
 		models.setProvider(faux.provider);
 		const resumed = new SessionRuntime(settings, new ModelRouter(models), store, { cwd: "/workspace/project" }, "session-test");
 		await resumed.initialize({ resume: true });

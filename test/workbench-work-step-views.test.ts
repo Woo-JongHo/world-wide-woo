@@ -1,35 +1,41 @@
-import { describe, expect, test }               from "bun:test";
-import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
-import type { LayoutBox }                       from "@earendil-works/pi-tui/dist/layout.js";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import      {
+              describe                       ,
+              expect                         ,
+              test                           ,
+                                               } from "bun:test"                                                                       ;
+import      { renderLayoutFrame                } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import type { LayoutBox                        } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import      {
+              stripTerminalSequences         ,
+              visibleWidth                   ,
+                                               } from "@earendil-works/pi-tui"                                                         ;
 import chalk                                    from "chalk";
-import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
-import { createDashboardLayout }                from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import {
-	StatusLine,
-	WorkspaceTodoView,
-} from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
-import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
-import { EntryDashboardView }                   from "../src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
-import { TNotesSourceView }                     from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view";
-import { WorkbenchMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
-import { WorkbenchTracerView }                  from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
-import { boundedPublicProjection }              from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
-import {
-	approvalCardRows,
-	projectApprovalBackgroundState,
-} from "../src/adapters/inbound/tui/features/approval/view/approval-presentation";
-import { projectWorkFlow }                      from "../src/core/domain/work";
-import type { DplanHash }                       from "../src/core/domain/work";
+import type { WorkbenchSnapshot                } from "../src/core/domain/work/workbench"                                              ;
+import      { createDashboardLayout            } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout"                 ;
+import      {
+              StatusLine                     ,
+              WorkspaceTodoView              ,
+                                               } from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views"     ;
+import      { WorkbenchChatView                } from "../src/adapters/inbound/tui/features/chat/view/workbench-views"                 ;
+import      { TNotesSourceView                 } from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view"            ;
+import      { WorkbenchMonitorView             } from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view"    ;
+import      { WorkbenchTracerView              } from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view"          ;
+import      { boundedPublicProjection          } from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
+import      {
+              approvalCardRows               ,
+              projectApprovalBackgroundState ,
+                                               } from "../src/adapters/inbound/tui/features/approval/view/approval-presentation"       ;
+import      { projectWorkFlow                  } from "../src/core/domain/work"                                                        ;
+import type { DplanHash                        } from "../src/core/domain/work"                                                        ;
 
-import {
-	allScrollContent,
-	approvalPresentation,
-	fixtureWorkFlow,
-	hash,
-	renderChatWithDashboard,
-	snapshot,
-} from "./workbench-views.fixtures";
+import      {
+              allScrollContent               ,
+              approvalPresentation           ,
+              fixtureWorkFlow                ,
+              hash                           ,
+              renderChatWithDashboard        ,
+              snapshot                       ,
+                                               } from "./workbench-views.fixtures"                                                     ;
 
 describe("workbench plan, Todo, and work-step views", () => {
 	test("renders model-interpreted what and why on the shared Step card", () => {
@@ -136,8 +142,8 @@ describe("workbench plan, Todo, and work-step views", () => {
 				{ id: "todo-2", content: "현재 진행 항목", status: "in_progress", evidenceIds: [], details: [] },
 			],
 		}));
-		const lines = view.render(48);
-		const output = stripTerminalSequences(lines.join("\n"));
+		const lines  = view.render(48)                          ;
+		const output = stripTerminalSequences(lines.join("\n")) ;
 
 		expect(lines.every((line) => visibleWidth(line) <= 48))    .toBe                  (true ) ;
 		expect(output                                         )    .toContain             ("✓"  ) ;
@@ -207,7 +213,7 @@ describe("workbench plan, Todo, and work-step views", () => {
 				queuedAt: "2026-09-01T00:00:03.000Z",
 			}],
 		};
-		const output = stripTerminalSequences(new WorkbenchChatView(pending, null, approvalPresentation).render(100).join("\n"));
+		const output = stripTerminalSequences(new WorkbenchChatView(pending, approvalPresentation).render(100).join("\n"));
 
 		expect(output).toContain("승인 필요 · 명령"                                 ) ;
 		expect(output).toContain("명령 · bun test test/workbench-views.test.ts"     ) ;
@@ -247,7 +253,7 @@ describe("workbench plan, Todo, and work-step views", () => {
 					{ id: "queued-1", content: "첫 번째 대기 메시지", queuedAt: "2026-09-01T00:00:02.000Z" },
 					{ id: "queued-2", content: "두 번째 대기 메시지", queuedAt: "2026-09-01T00:00:03.000Z" },
 				],
-			}, null, approvalPresentation).render(36).join("\n"));
+			}, approvalPresentation).render(36).join("\n"));
 			expect(output).toContain(`백그라운드 작업 · ${expected}`);
 			expect(output).toContain("대기 메시지 2개");
 			for (const line of output.split("\n")) expect(visibleWidth(line)).toBeLessThanOrEqual(36);
@@ -662,8 +668,8 @@ describe("workbench plan, Todo, and work-step views", () => {
 	});
 
 	test("preserves completed Markdown while bounding only the live draft", () => {
-		const completed = Array.from({ length: 200 }, (_, index) => `completed-line-${String(index + 1).padStart(3, "0")}`).join("\n");
-		const draft = Array.from({ length: 200 }, (_, index) => `draft-line-${String(index + 1).padStart(3, "0")}`).join("\n");
+		const completed = Array.from({ length: 200 }, (_, index) => `completed-line-${String(index + 1).padStart(3, "0")}`).join("\n") ;
+		const draft     = Array.from({ length: 200 }, (_, index) => `draft-line-${String(index + 1).padStart(3, "0")}`).join("\n")     ;
 		const large: WorkbenchSnapshot = {
 			...snapshot,
 			chat: [{ ...snapshot.chat[0]!, content: completed }],
@@ -742,8 +748,8 @@ describe("workbench plan, Todo, and work-step views", () => {
 			selectedActivityId: activities.at(-1)?.id ?? null,
 		};
 
-		const view = new WorkbenchChatView(longSession);
-		const output = stripTerminalSequences(view.render(80).join("\n"));
+		const view   = new WorkbenchChatView(longSession)                 ;
+		const output = stripTerminalSequences(view.render(80).join("\n")) ;
 		expect(output).not.toContain("이전 활동"            ) ;
 		expect(output)    .toContain("assistant-message-001") ;
 		expect(output)    .toContain("assistant-message-100") ;

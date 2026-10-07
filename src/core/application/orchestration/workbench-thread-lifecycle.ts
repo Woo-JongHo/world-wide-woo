@@ -1,9 +1,12 @@
-import type { NativeThreadSnapshot, NativeThreadStart } from "@/core/domain/execution/native-session.js";
-import type { ExecutorPort }                            from "@/core/ports/execution/executor-port.js";
 import type {
-	BlockedChatDeliveryState,
-	NativeTurnCoordinator,
-} from "@/core/application/orchestration/native-turn-coordinator.js";
+              NativeThreadSnapshot     ,
+              NativeThreadStart        ,
+                                         } from "@/core/domain/execution/native-session.js"                   ;
+import type { ExecutorPort               } from "@/core/ports/execution/executor-port.js"                     ;
+import type {
+              BlockedChatDeliveryState ,
+              NativeTurnCoordinator    ,
+                                         } from "@/core/application/orchestration/native-turn-coordinator.js" ;
 
 interface ThreadLifecycleOptions {
 	readonly cwd            : string                                                                 ;
@@ -32,8 +35,8 @@ export class WorkbenchThreadLifecycle {
 
 	public async resume(threadId: string): Promise<ResumedThread> {
 		await this.options.acquireLease(threadId);
-		const model = this.options.model();
-		const effort = this.options.effort();
+		const model  = this.options.model()  ;
+		const effort = this.options.effort() ;
 		const resumed = await this.native.resumeThread({
 			threadId,
 			cwd: this.options.cwd,
@@ -52,20 +55,4 @@ export class WorkbenchThreadLifecycle {
 		return { resumed, read, delivery };
 	}
 
-	public async startForDashboard(): Promise<NativeThreadSnapshot | null> {
-		const model = this.options.model();
-		const effort = this.options.effort();
-		const thread = await this.native.startThread({
-			cwd: this.options.cwd,
-			...(model === undefined ? {} : { model }),
-			...(effort === undefined ? {} : { effort }),
-			approvalPolicy: this.options.approvalPolicy(),
-			sandbox: this.options.sandbox(),
-		});
-		if (this.options.closed()) return null;
-		await this.options.acquireLease(thread.id);
-		if (this.options.closed()) return null;
-		await this.options.bindSources(thread.id);
-		return this.options.closed() ? null : thread;
-	}
 }

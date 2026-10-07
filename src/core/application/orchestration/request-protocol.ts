@@ -1,5 +1,5 @@
-import { LEGACY_REQUEST_CHECKPOINTS, REQUEST_STAGES } from "@/core/domain/execution/request-runtime";
-import type { NativeAdditionalContextEntry }   from "@/core/domain/execution/native-session";
+import      { LEGACY_REQUEST_CHECKPOINTS, REQUEST_STAGES } from "@/core/domain/execution/request-runtime" ;
+import type { NativeAdditionalContextEntry               } from "@/core/domain/execution/native-session"  ;
 
 export interface RequestProtocolEntryDecision {
 	readonly kind        : "queued-follow-up" ;
@@ -57,7 +57,7 @@ export function requestProtocolContext(requestId: string, version: 1 | 2 | 4 = 1
 			example       : { requestId, stage: "UNDERSTAND", status: "completed", summary: "Public intent, constraints and success", goal: "Concise outcome derived from the understood request", input: ["user request"], agents: [], tools: [], evidence: [] },
 			planShape     : [{ stage: "VERIFY", tasks: [{ id: "blackbox", title: "Run the real user command", status: "pending", dependsOn: [], verification: { kind: "black-box", purpose: "Prove the requested behavior through the public interface" } }] }],
 			decisionShape : { decision: "public choice", rationale: "brief justification", selectedApproach: "approach", rejectedAlternatives: [], executionPlan: ["action"] },
-			deliveryShape : { deliveries: [{ target: "linear | github | obsidian | files | another target", artifact: "actual identity", evidence: ["actual item ID"] }] },
+			deliveryShape : { deliveries: [{ target: "github | files | another target", artifact: "actual identity", evidence: ["actual item ID"] }] },
 		}),
 	}) };
 }

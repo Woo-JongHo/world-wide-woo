@@ -24,6 +24,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun test
+      - name: Verify WWW in a PTY
+        if: runner.os != 'Windows'
+        run: python3 scripts/pty-smoke.py
       - name: Verify platform file/process boundary
         run: bun run release:gate -- --platform-check
 

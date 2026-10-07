@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 
-import { PRODUCT_VERSION } from "@/product-version"; // 배포 버전 출력
-import { wwwHelpText }     from "@/adapters/inbound/cli/www-help"; // CLI 도움말 표현
+import      { PRODUCT_VERSION        } from "@/product-version"                           ; // 배포 버전 출력
+import      { wwwHelpText            } from "@/adapters/inbound/cli/www-help"             ; // CLI 도움말 표현
 
-import type { RunAppOptions }          from "@/app"; // Workbench 실행 옵션
-import type { NativeThreadSummary }    from "@/core/domain/execution/native-session"; // Native thread 목록 항목
-import type { RecentSessionSummary }   from "@/core/ports/persistence/session-repository"; // 레거시 세션 목록 항목
-import type { RunLegacyRouterOptions } from "@/legacy-router-app"; // 호환 Router 실행 옵션
+import type { RunAppOptions          } from "@/app"                                       ; // Workbench 실행 옵션
+import type { NativeThreadSummary    } from "@/core/domain/execution/native-session"      ; // Native thread 목록 항목
+import type { RecentSessionSummary   } from "@/core/ports/persistence/session-repository" ; // 레거시 세션 목록 항목
+import type { RunLegacyRouterOptions } from "@/legacy-router-app"                         ; // 호환 Router 실행 옵션
 
 // GROUP     | FUNCTION                 | INPUT              | RETURN                      | CALLS                                                                                                                           | ROLE
 // BOOTSTRAP | writeWorkbenchBootstrap  | write, isTTY       | void                        | -                                                                                                                               | Workbench 첫 화면 문구 출력
@@ -23,7 +23,7 @@ import type { RunLegacyRouterOptions } from "@/legacy-router-app"; // 호환 Rou
 // SESSIONS  | writeSessions            | dependencies       | Promise                     | listSessions, writeOut                                                                                                          | 세션 목록 출력
 // SESSIONS  | writeThreads             | dependencies       | Promise                     | listNativeThreads, writeOut                                                                                                     | native thread 목록 출력
 // WWW       | resumeWww                | args, dependencies | Promise                     | selectResumeThread, runWww                                                                                                      | 스레드 재개
-// RUN       | dispatchCommand          | args, dependencies | Promise                     | runWww, writeOut, runDevelopment, runAuth, runWorkflow, runWwwCommand, runRouterCommand, writeSessions, writeThreads, resumeWww | 명령 분기
+// RUN       | dispatchCommand          | args, dependencies | Promise                     | runWww, writeOut, runAuth, runWorkflow, runWwwCommand, runRouterCommand, writeSessions, writeThreads, resumeWww | 명령 분기
 // RUN       | runCli                   | args, dependencies | exit code                   | writeInformationalOutput, dispatchCommand, writeError                                                                           | CLI 진입점
 
 type AppOptions      = RunAppOptions;                   // Workbench·WWW 선택 입력. 생략한 항목은 애플리케이션 기본값 사용
@@ -39,7 +39,6 @@ export interface CLIDependencies {
 	runWww             : ( options : AppOptions    ) => Promise<void>;             // 기본 WWW 실행
 	runRouter          : ( options : RouterOptions ) => Promise<void>;             // Multi-provider Router 실행
 	runAuth            : ( args    : string[]      ) => Promise<void>;             // 인증 명령 실행
-	runDevelopment     : ( args    : string[]      ) => Promise<string>;           // 개발 기록 명령 실행
 	runWorkflow        : ( args    : string[]      ) => Promise<string>;           // 로컬 Workflow 명령 실행
 
 	// List
@@ -64,7 +63,6 @@ const productionDependencies: CLIDependencies = {
 	runRouter          : async (options) => { writeRouterBootstrap();      const { runLegacyRouter     } = await import("@/legacy-router-app");                                          await  runLegacyRouter(options); },
 	runAuth            : async ( args  ) => {                              const { runAuth             } = await import("@/app");                                                        await  runAuth(args); },
 	runWorkflow        : async ( args  ) => {                              const { runLocalWorkflowCli } = await import("@/adapters/outbound/development/local-workflow-cli");           return runLocalWorkflowCli(args, process.cwd()); },
-	runDevelopment     : async ( args  ) => {                              const { runDevelopmentCli   } = await import("@/adapters/outbound/development/development-cli");              return runDevelopmentCli(args); },
 	listSessions       : async ()        => {                              const { listSessions        } = await import("@/app");                                                        return listSessions(); },
 	listNativeThreads  : async ()        => {                              const { listNativeThreads   } = await import("@/app");                                                        return listNativeThreads(); },
 	selectNativeThread : async (threads) => {                              const { selectNativeThread  } = await import("@/adapters/inbound/tui/features/session/view/native-thread-picker"); return selectNativeThread(threads, "www"); },
@@ -124,12 +122,12 @@ function writeInformationalOutput(
 	args         : string[],
 	dependencies : CLIDependencies,
 ): boolean {
-	if (args[0] !== "development" && (args.includes("--help") || args.includes("-h"))) {
+	if (args.includes("--help") || args.includes("-h")) {
 		dependencies.writeOut(wwwHelpText());
 		return true;
 	}
 
-	if (args[0] !== "development" && (args.includes("--version") || args.includes("-v"))) {
+	if (args.includes("--version") || args.includes("-v")) {
 		dependencies.writeOut(PRODUCT_VERSION);
 		return true;
 	}
@@ -138,14 +136,14 @@ function writeInformationalOutput(
 }
 
 function parseWwwOptions(args: string[]): { options: AppOptions; selectResumeThread: boolean } {
-	const options : AppOptions  = {};
-	const seen    : Set<string> = new Set<string>();
+	const options : AppOptions  = {}                ;
+	const seen    : Set<string> = new Set<string>() ;
 
 	let selectResumeThread = false;
 
 	for (let index = 1; index < args.length; index += 1) {
-		const flag  = args[index];
-		const value = args[index + 1];
+		const flag  = args[index    ] ;
+		const value = args[index + 1] ;
 
 		if (flag === undefined) break;
 
@@ -244,8 +242,8 @@ async function writeThreads(dependencies: CLIDependencies): Promise<void> {
 	}
 
 	for (const thread of threads) {
-		const updatedAt : string = new Date(thread.updatedAt * 1_000).toLocaleString("ko-KR");
-		const preview   : string = thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)";
+		const updatedAt : string = new Date(thread.updatedAt * 1_000).toLocaleString("ko-KR")       ;
+		const preview   : string = thread.preview.replace(/\s+/gu, " ").trim() || "(미리보기 없음)" ;
 
 		dependencies.writeOut(`${thread.id}  ${thread.status}  ${updatedAt}  ${preview}`);
 	}
@@ -283,7 +281,6 @@ async function dispatchCommand(
 	}
 
 	switch (command) {
-	case "development" : dependencies.writeOut     (await dependencies.runDevelopment(args.slice(1))); return;
 	case "auth"        : await dependencies.runAuth(args.slice(1));                                    return;
 	case "workflow"    : dependencies.writeOut     (await dependencies.runWorkflow   (args.slice(1))); return;
 	case "astra"       : await runWwwCommand       (args, dependencies);                               return;

@@ -1,34 +1,43 @@
-import { executeDevelopmentShellCommand }                          from "@/core/application/development/development-service";
-import type { DevelopmentService }                                 from "@/core/application/development/development-service";
-import type { ProjectWorkbench }                                   from "@/core/application/orchestration/project-workbench";
-import { nativeModelEfforts }                                      from "@/core/domain/execution/model-settings";
-import type { Provider, WwwSettings }                              from "@/core/domain/execution/model-settings";
-import type { OutputLanguage }                                     from "@/core/domain/execution/output-language";
-import { sanitizeTerminalTextUnbounded }                           from "@/core/domain/execution/terminal";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot }         from "@/core/domain/work/workbench";
-import type { AuthController }                                     from "@/core/ports/integration/auth-controller-port";
-import type { UsageMonitor, UsageSnapshot }                        from "@/core/ports/observability/usage-monitor-port";
-import { parseWorkbenchShellCommand, WORKBENCH_SLASH_COMMANDS }    from "@/adapters/inbound/tui/commands/slash-commands";
-import { getActiveTuiTheme, setActiveTuiTheme, TUI_THEME_OPTIONS } from "@/adapters/inbound/tui/foundation/theme/theme";
-import type { WwwPage }                                            from "@/adapters/inbound/tui/shell/www-surface";
-import { workbenchModelSettings, workbenchPaneNotice }             from "@/adapters/inbound/tui/shell/workbench-input.controller";
-import {
-	workbenchStatsTargetCommand,
-	workbenchViewModeCommand,
-} from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
+import type { ProjectWorkbench              } from "@/core/application/orchestration/project-workbench"           ;
+import      { nativeModelEfforts            } from "@/core/domain/execution/model-settings"                       ;
+import type { Provider, WwwSettings         } from "@/core/domain/execution/model-settings"                       ;
+import type { OutputLanguage                } from "@/core/domain/execution/output-language"                      ;
 import type {
-	ObservabilityViewMode,
-	WorkbenchViewMode,
-} from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
+              WorkbenchCommandReceipt     ,
+              WorkbenchSnapshot           ,
+                                            } from "@/core/domain/work/workbench"                                 ;
+import type { AuthController                } from "@/core/ports/integration/auth-controller-port"                ;
+import type { UsageMonitor, UsageSnapshot   } from "@/core/ports/observability/usage-monitor-port"                ;
+import      {
+              parseWorkbenchShellCommand  ,
+              WORKBENCH_SLASH_COMMANDS    ,
+                                            } from "@/adapters/inbound/tui/commands/slash-commands"               ;
+import      {
+              getActiveTuiTheme           ,
+              setActiveTuiTheme           ,
+              TUI_THEME_OPTIONS           ,
+                                            } from "@/adapters/inbound/tui/foundation/theme/theme"                ;
+import type { WwwPage                       } from "@/adapters/inbound/tui/shell/www-surface"                     ;
+import      {
+              workbenchModelSettings      ,
+              workbenchPaneNotice         ,
+                                            } from "@/adapters/inbound/tui/shell/workbench-input.controller"      ;
+import      {
+              workbenchStatsTargetCommand ,
+              workbenchViewModeCommand    ,
+                                            } from "@/adapters/inbound/tui/shell/workbench-navigation.controller" ;
+import type {
+              ObservabilityViewMode       ,
+              WorkbenchViewMode           ,
+                                            } from "@/adapters/inbound/tui/shell/workbench-navigation.controller" ;
 
 type StatsTarget = "session" | "diagnostics" | "latest" | number;
 
 export interface WorkbenchCommandRouterDependencies {
-	readonly selectOutputLanguage?     : (language: OutputLanguage) => Promise<void>                        ;
+	readonly selectOutputLanguage?   : (language: OutputLanguage) => Promise<void>                          ;
 	readonly hasWww                  : boolean                                                              ;
 	readonly snapshot                : () => WorkbenchSnapshot                                              ;
 	readonly workbench               : ProjectWorkbench                                                     ;
-	readonly development?            : DevelopmentService                                                   ;
 	readonly usage                   : UsageMonitor                                                         ;
 	readonly auth                    : AuthController                                                       ;
 	readonly enterDemo               : () => void                                                           ;
@@ -37,7 +46,6 @@ export interface WorkbenchCommandRouterDependencies {
 	readonly selectMonitorRequest    : (index: number | null) => boolean                                    ;
 	readonly updateUsage             : (snapshots: readonly UsageSnapshot[]) => void                        ;
 	readonly openApproval            : (request: NonNullable<WorkbenchSnapshot["pendingApproval"]>) => void ;
-	readonly showDevelopmentNotice   : (notice: string) => void                                             ;
 	readonly selectStatsTarget       : (target: StatsTarget) => void                                        ;
 	readonly openCommandView         : (mode: WorkbenchViewMode) => void                                    ;
 	readonly openWorkbench           : () => void                                                           ;
@@ -61,8 +69,8 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 	};
 
 	return async (text: string): Promise<boolean> => {
-		const normalized = text.trim();
-		const languageCommand = /^\/language\s+(ko|en)$/iu.exec(normalized);
+		const normalized      = text.trim()                                 ;
+		const languageCommand = /^\/language\s+(ko|en)$/iu.exec(normalized) ;
 		if (dependencies.hasWww && /^\/language(?:\s|$)/iu.test(normalized)) {
 			if (languageCommand) await dependencies.selectOutputLanguage?.(languageCommand[1]!.toLowerCase() as OutputLanguage);
 			else notice("사용법: /language ko 또는 /language en");
@@ -124,12 +132,6 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			return true;
 		}
 
-		const developmentNotice = await executeDevelopmentShellCommand(text, dependencies.development);
-		if (developmentNotice !== null) {
-			dependencies.showDevelopmentNotice(sanitizeTerminalTextUnbounded(developmentNotice));
-			return true;
-		}
-
 		const requestedStatsTarget = workbenchStatsTargetCommand(text);
 		if (requestedStatsTarget !== null) {
 			if (requestedStatsTarget === "invalid") {
@@ -155,8 +157,6 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 				? "Dashboard · 전체 Session과 Project 관측"
 				: requestedViewMode === "monitor"
 					? "Monitor · 현재 runtime 실행 관측"
-					: requestedViewMode === "map"
-						? "Development Map · 전체 구조와 진척도 · 자동 갱신"
 						: requestedViewMode === "test"
 							? "VERIFY · 실제 실행 명령과 테스트 결과"
 							: "Session Stats · 목적·행동·결과와 오케스트레이션 효율");
@@ -164,8 +164,8 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 		}
 
 		if (/^\/model\s+\S/u.test(normalized)) await dependencies.workbench.refreshModels();
-		const snapshot = dependencies.snapshot();
-		const command = parseWorkbenchShellCommand(text, snapshot.modelCatalog);
+		const snapshot = dependencies.snapshot()                                 ;
+		const command  = parseWorkbenchShellCommand(text, snapshot.modelCatalog) ;
 		if (!command) return false;
 		if (command.type === "exit") {
 			dependencies.shutdown();
@@ -229,8 +229,8 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			return true;
 		}
 		if (command.type === "model.set") {
-			const current = workbenchModelSettings(snapshot);
-			const efforts = nativeModelEfforts(command.model, snapshot.modelCatalog);
+			const current = workbenchModelSettings(snapshot)                         ;
+			const efforts = nativeModelEfforts(command.model, snapshot.modelCatalog) ;
 			const inherited = efforts.includes(current.effort)
 				? current.effort
 				: snapshot.modelCatalog?.models.find(entry => entry.model === command.model)?.defaultEffort ?? "medium";
@@ -267,13 +267,13 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			notice(snapshot.sessionGoal?.text ? `Goal · ${snapshot.sessionGoal.text}` : "아직 Goal이 없습니다. 첫 작업을 입력하면 자동으로 설정됩니다.");
 			return true;
 		}
-		if (command.type === "goal.set" || command.type === "woo-entry.refresh") {
+		if (command.type === "goal.set") {
 			dependencies.showReceipt(await dependencies.workbench.dispatch(command));
 			return true;
 		}
 		if (command.type === "activity.select") {
-			const activityId = command.activityId === "latest" ? snapshot.activities.at(-1)?.id ?? null : command.activityId;
-			const receipt = await dependencies.workbench.dispatch({ type: "activity.select", activityId });
+			const activityId = command.activityId === "latest" ? snapshot.activities.at(-1)?.id ?? null : command.activityId ;
+			const receipt    = await dependencies.workbench.dispatch({ type: "activity.select", activityId })                ;
 			dependencies.showReceipt(receipt);
 			if (receipt.state === "accepted" && activityId) dependencies.openSource();
 			return true;
@@ -305,11 +305,7 @@ export function createWorkbenchCommandRouter(dependencies: WorkbenchCommandRoute
 			dependencies.showReceipt(await dependencies.workbench.dispatch(command));
 			return true;
 		}
-		if (command.type === "promotion.accept") {
-			dependencies.showReceipt(await dependencies.workbench.dispatch({ type: "promotion.accept", noteId: command.noteId, acceptedBy: "human:local" }));
-			return true;
-		}
-		if (command.type === "promotion.confirm" || command.type === "review.send" || command.type === "chat.cancel"
+		if (command.type === "review.send" || command.type === "chat.cancel"
 			|| command.type === "mcp.enable" || command.type === "mcp.disable") {
 			dependencies.showReceipt(await dependencies.workbench.dispatch(command));
 			return true;

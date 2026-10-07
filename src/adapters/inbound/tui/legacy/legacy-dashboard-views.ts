@@ -1,9 +1,19 @@
-import { Markdown, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { Component }                                            from "@earendil-works/pi-tui";
-import type { SessionSnapshot }                                      from "@/core/application/session/session-runtime";
-import type { Effort }                                               from "@/core/domain/execution/model-settings";
-import { BashResultCard, GenericToolResultCard }                     from "@/adapters/inbound/tui/features/chat/view/result-cards";
-import { colors, gradientLines, markdownTheme, semantic }            from "@/adapters/inbound/tui/foundation/theme/theme";
+import      {
+              Markdown                            ,
+              truncateToWidth                     ,
+              visibleWidth                        ,
+              wrapTextWithAnsi                    ,
+                                                    } from "@earendil-works/pi-tui"                                 ;
+import type { Component                             } from "@earendil-works/pi-tui"                                 ;
+import type { SessionSnapshot                       } from "@/core/application/session/session-runtime"             ;
+import type { Effort                                } from "@/core/domain/execution/model-settings"                 ;
+import      { BashResultCard, GenericToolResultCard } from "@/adapters/inbound/tui/features/chat/view/result-cards" ;
+import      {
+              colors                              ,
+              gradientLines                       ,
+              markdownTheme                       ,
+              semantic                            ,
+                                                    } from "@/adapters/inbound/tui/foundation/theme/theme"          ;
 export { UsageStripView } from "@/adapters/inbound/tui/features/usage/view/usage-strip-view";
 
 export const EFFORT_LABEL: Record<Effort, string> = {
@@ -61,8 +71,8 @@ export class RouterModelView implements Component {
 }
 
 function transcriptProjectionKey(snapshot: SessionSnapshot): string {
-	const lastTurn = snapshot.turns.at(-1);
-	const lastNarration = snapshot.narrations.at(-1);
+	const lastTurn      = snapshot.turns.at(-1)      ;
+	const lastNarration = snapshot.narrations.at(-1) ;
 	const tools = snapshot.tools.map(tool => {
 		const outputLength = "shell" in tool
 			? tool.stdout.length + tool.stderr.length
@@ -132,13 +142,13 @@ export class TranscriptView implements Component {
 	}
 
 	render(width: number): string[] {
-		const contentWidth = Math.max(1, width);
-		const stable = this.stableRows(contentWidth);
+		const contentWidth = Math.max(1, width)            ;
+		const stable       = this.stableRows(contentWidth) ;
 		if (this.snapshot.phase !== "streaming" && !this.snapshot.error) return stable;
 		const rows = [...stable];
 		if (this.snapshot.phase === "streaming" && !this.snapshot.activity?.label.startsWith("Terminal")) {
-			const frame = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length];
-			const activity = this.snapshot.activity?.label ?? "응답 준비 중";
+			const frame    = ACTIVITY_FRAMES[Math.floor(performance.now() / 80) % ACTIVITY_FRAMES.length] ;
+			const activity = this.snapshot.activity?.label ?? "응답 준비 중"                              ;
 			rows.push(...surfaceRows([
 				`${semantic.assistantLabel("🐙 Wooni")}  ${semantic.toolRunning(`${frame} ${activity}`)}`,
 				...(this.snapshot.draft ? this.draft.render(contentWidth) : [colors.muted("응답을 준비하는 중…")]),
@@ -260,7 +270,7 @@ export class TranscriptView implements Component {
 		if (width >= 21) rows.push(...gradientLines(LANDMARK).map((line) => center(line, width)), "");
 		rows.push(
 			center(colors.accent("WWW · World Wide Woo"), width),
-			center(colors.muted("전 세계 어디서나 에이전트를 지켜보고 함께 판단하는 WES 콘솔"), width),
+			center(colors.muted("전 세계 어디서나 에이전트를 지켜보고 함께 판단하는 WWW 콘솔"), width),
 			"",
 			center(modelPill, width),
 			center(effortPill, width),

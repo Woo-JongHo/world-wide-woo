@@ -1,23 +1,29 @@
 import type {
-	NativeApprovalDecision,
-	NativeApprovalRequest,
-	NativeApprovalResponse,
-	NativeRefs,
-} from "@/core/domain/execution/native-session.js";
-import type { Effort }                                                          from "@/core/domain/execution/model-settings.js";
-import type { ProjectActivity }                                                 from "@/core/domain/execution/project-activity.js";
-import type { TodoDocument }                                                    from "@/core/domain/work/todos.js";
-import type { ReviewProvider }                                                  from "@/core/domain/review/review.js";
-import type { WorkFlowProjection }                                              from "@/core/domain/work/index.js";
-import type { ExecutionRunState }                                               from "@/core/domain/execution/execution-run-contract.js";
-import type { RequestRuntimeRecord }                                            from "@/core/domain/execution/request-runtime";
-import type { ActivitySelectionResult }                                         from "@/core/domain/work/trace-selection.js";
-import type { LinearProjectDashboard }                                          from "@/core/domain/work/linear-dashboard.js";
-import type { PerformanceProjection }                                           from "@/core/domain/work/performance.js";
-import type { NativeDelegatedTask, NativeDelegationProjection }                 from "@/core/domain/work/delegation.js";
-import type { CacheLayerObservation }                                           from "@/core/domain/observability/cache-telemetry.js";
-import type { PerformanceTrace, PerformanceWindow }                             from "@/core/domain/observability/layer-performance.js";
-import type { TNoteCompletionMetadata, TNoteModelProvenance, TNoteSourceRange } from "@/core/domain/work/t-notes.js";
+              NativeApprovalDecision            ,
+              NativeApprovalRequest             ,
+              NativeApprovalResponse            ,
+              NativeRefs                        ,
+                                                  } from "@/core/domain/execution/native-session.js"         ;
+import type { Effort                              } from "@/core/domain/execution/model-settings.js"         ;
+import type { ProjectActivity                     } from "@/core/domain/execution/project-activity.js"       ;
+import type { TodoDocument                        } from "@/core/domain/work/todos.js"                       ;
+import type { ReviewProvider                      } from "@/core/domain/review/review.js"                    ;
+import type { WorkFlowProjection                  } from "@/core/domain/work/index.js"                       ;
+import type { ExecutionRunState                   } from "@/core/domain/execution/execution-run-contract.js" ;
+import type { RequestRuntimeRecord                } from "@/core/domain/execution/request-runtime"           ;
+import type { ActivitySelectionResult             } from "@/core/domain/work/trace-selection.js"             ;
+import type { PerformanceProjection               } from "@/core/domain/work/performance.js"                 ;
+import type {
+              NativeDelegatedTask               ,
+              NativeDelegationProjection        ,
+                                                  } from "@/core/domain/work/delegation.js"                  ;
+import type { CacheLayerObservation               } from "@/core/domain/observability/cache-telemetry.js"    ;
+import type { PerformanceTrace, PerformanceWindow } from "@/core/domain/observability/layer-performance.js"  ;
+import type {
+              TNoteCompletionMetadata           ,
+              TNoteModelProvenance              ,
+              TNoteSourceRange                  ,
+                                                  } from "@/core/domain/work/t-notes.js"                     ;
 
 export type WorkbenchPhase             = "loading" | "ready" | "working" | "error" | "closed" ;
 export type WorkbenchPermissionMode    = "manual" | "all"                                     ;
@@ -125,12 +131,6 @@ export interface WorkbenchSessionGoal {
 	readonly updatedAt        : string ;
 }
 
-export interface WorkbenchWooEntrySnapshot {
-	readonly state       : "loading" | "ready" | "blocked" ;
-	readonly revision    : number                          ;
-	readonly collectedAt : string | null                   ;
-}
-
 export interface WorkbenchResumeCoverage {
 	readonly mode                         : "fresh" | "partial-local-journal" ;
 	readonly processAttachedAt            : string                            ;
@@ -151,11 +151,11 @@ export interface WorkbenchMcpServer {
 }
 
 export interface WorkbenchActionResult {
-	readonly kind      : "todo" | "tnote" | "promotion" | "review" | "workflow" | "notice" ;
-	readonly title     : string                                                            ;
-	readonly body      : string                                                            ;
-	readonly digest?   : string                                                            ;
-	readonly createdAt : string                                                            ;
+	readonly kind      : "todo" | "tnote" | "review" | "workflow" | "notice" ;
+	readonly title     : string                                              ;
+	readonly body      : string                                              ;
+	readonly digest?   : string                                              ;
+	readonly createdAt : string                                              ;
 }
 
 export interface PlanActivity {
@@ -166,6 +166,12 @@ export interface PlanActivity {
 	readonly summary   : string                                           ;
 	readonly status    : "running" | "completed" | "failed" | "cancelled" ;
 	readonly sequence  : number                                           ;
+	/** Sanitized model explanation grounded in observed activity; omitted when no reason was provided. */
+	readonly why?: string;
+	/** Origin of the visible summary; command descriptions are not model interpretations. */
+	readonly narrationSource?: "model" | "command";
+	/** Interpretation lifecycle, separate from the observed tool execution status. */
+	readonly narrationStatus?: "pending" | "ready" | "unavailable";
 }
 
 export interface WorkbenchSkillInventory {
@@ -195,20 +201,18 @@ export interface WorkbenchSnapshot {
 	/** Effective Native thread settings and latest context telemetry. */
 	model?: string;
 	/** Model the in-flight turn actually runs on; falls back to the selected model when idle. */
-	activeModel?       : string                           ;
-	effort?            : string | null                    ;
-	contextUsage?      : WorkbenchContextUsage | null     ;
-	sessionUsage?      : WorkbenchSessionUsage            ;
-	resumeCoverage?    : WorkbenchResumeCoverage          ;
-	sessionGoal?       : WorkbenchSessionGoal | null      ;
-	permissionMode?    : WorkbenchPermissionMode          ;
-	collaborationMode? : WorkbenchCollaborationMode       ;
-	mcpServers         : readonly WorkbenchMcpServer[]    ;
-	skillInventory?    : WorkbenchSkillInventory          ;
-	linearDashboard?   : LinearProjectDashboard           ;
-	wooEntry?          : WorkbenchWooEntrySnapshot | null ;
-	threadId           : string | null                    ;
-	activeTurnId       : string | null                    ;
+	activeModel?       : string                        ;
+	effort?            : string | null                 ;
+	contextUsage?      : WorkbenchContextUsage | null  ;
+	sessionUsage?      : WorkbenchSessionUsage         ;
+	resumeCoverage?    : WorkbenchResumeCoverage       ;
+	sessionGoal?       : WorkbenchSessionGoal | null   ;
+	permissionMode?    : WorkbenchPermissionMode       ;
+	collaborationMode? : WorkbenchCollaborationMode    ;
+	mcpServers         : readonly WorkbenchMcpServer[] ;
+	skillInventory?    : WorkbenchSkillInventory       ;
+	threadId           : string | null                 ;
+	activeTurnId       : string | null                 ;
 	/** Canonical reducer state for the selected root execution, when available. */
 	executionRun?: ExecutionRunState | null;
 	/** Shared observation model; a standalone execution has no assigned work context. */
@@ -252,7 +256,6 @@ export interface WorkbenchSnapshot {
 	deliveryUncertain?: boolean;
 	error: string | null;
 	/** Independent from Native execution errors; older snapshots may omit it. */
-	developmentRecordingError?: string | null;
 }
 
 export type WorkbenchCommand =
@@ -277,7 +280,6 @@ export type WorkbenchCommand =
 	| { type: "mcp.enable"; name: string }
 	| { type: "mcp.disable"; name: string }
 	| { type: "mcp.reload" }
-	| { type: "woo-entry.refresh" }
 	| { type: "tnote.capture-session" }
 	| { type: "tnote.capture"; activityIds: readonly string[]; title?: string }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number; title?: string }
@@ -287,8 +289,6 @@ export type WorkbenchCommand =
 	| { type: "todo.transition"; action: "start" | "complete" | "block" | "reopen"; itemId: string }
 	| { type: "todo.evidence"; activityId: string }
 	| { type: "todo.import-legacy" }
-	| { type: "promotion.accept"; noteId: string; acceptedBy: string }
-	| { type: "promotion.confirm"; token: string }
 	| { type: "review.preview"; provider: ReviewProvider; noteId: string; request: string; confirmedPublic: true }
 	| { type: "review.send"; digest: string };
 
@@ -303,7 +303,7 @@ export type WorkbenchListener = (snapshot: WorkbenchSnapshot) => void;
 /** An approval selection remains an App Server protocol value, not a UI enum. */
 export type WorkbenchApprovalDecision = NativeApprovalDecision;
 
-export type WorkbenchExternalMutationKind = "commit" | "push" | "issue" | "linear-issue" | "linear-project-comment" | "linear-project-update" | "obsidian-canonical" | "github-pr";
+export type WorkbenchExternalMutationKind = "commit" | "push" | "issue" | "github-pr";
 
 /**
  * A complete, immutable description of a pending external mutation. The identity is
@@ -321,7 +321,7 @@ export interface WorkbenchExternalMutationCandidate {
 	readonly payload      : Readonly<Record<string, unknown>> ;
 }
 
-const PUBLICATION_KINDS = new Set<string>(["commit", "push", "issue", "linear-issue", "linear-project-comment", "linear-project-update", "obsidian-canonical", "github-pr"]);
+const PUBLICATION_KINDS = new Set<string>(["commit", "push", "issue", "github-pr"]);
 
 function isWorkbenchExternalMutationKind(kind: unknown): kind is WorkbenchExternalMutationKind {
 	return typeof kind === "string" && PUBLICATION_KINDS.has(kind);
@@ -345,7 +345,7 @@ export function workbenchExternalMutationCandidates(request: NativeApprovalReque
 			|| typeof scope !== "string" || typeof status !== "string"
 			|| !payload || typeof payload !== "object" || Array.isArray(payload)) return [];
 		const exactPayload = immutableMutationPayload(payload as Record<string, unknown>);
-		if ((kind === "linear-issue" || kind === "linear-project-comment" || kind === "linear-project-update" || kind === "obsidian-canonical" || kind === "github-pr")
+		if ((kind === "github-pr")
 			&& (typeof exactPayload.candidateDigest !== "string" || !/^[0-9a-f]{64}$/u.test(exactPayload.candidateDigest))) return [];
 		const identity = mutationIdentity({ kind, target, content, currentState, scope, status, payload: exactPayload });
 		return [Object.freeze({ identity: typeof candidate.identity === "string" && candidate.identity === identity ? candidate.identity : identity, kind, target, content, currentState, scope, status, payload: exactPayload })];
@@ -364,8 +364,8 @@ export function workbenchApprovalIdentity(request: NativeApprovalRequest): strin
 }
 
 function mutationIdentity(value: unknown): string {
-	const text = JSON.stringify(canonicalMutationValue(value));
-	let hash = 0x811c9dc5;
+	const text = JSON.stringify(canonicalMutationValue(value)) ;
+	let hash   = 0x811c9dc5                                    ;
 	for (const character of text) {
 		hash ^= character.charCodeAt(0);
 		hash = Math.imul(hash, 0x01000193);

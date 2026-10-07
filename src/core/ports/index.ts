@@ -17,7 +17,6 @@ export type {
 export type { TerminalCommandExecutor } from "@/core/ports/execution/terminal-command-port";
 export type { TodoController } from "@/core/ports/execution/todo-controller-port";
 export type { AuthController, ProviderAuthState } from "@/core/ports/integration/auth-controller-port";
-export type { LinearProjectDashboardReader } from "@/core/ports/integration/linear-project-dashboard-port";
 export type { ModelAuthStatus, ModelClient } from "@/core/ports/integration/model-client-port";
 export type { RepositoryInsights } from "@/core/ports/integration/repository-insights-port";
 export type {

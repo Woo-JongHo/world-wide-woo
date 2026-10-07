@@ -27,7 +27,7 @@ const row = (name: string, value: string, time: string, width: number): string =
 };
 
 export function projectWwwTestView(snapshot: WorkbenchSnapshot): RequestTestWorkspace {
-	return projectRequestTestWorkspace({ activities: snapshot.activities, requireCodeChange: true });
+	return projectRequestTestWorkspace({ activities: snapshot.activities });
 }
 
 export function renderWwwTestView(workspace: RequestTestWorkspace, width: number, selectedRunId: string | null = null, language: OutputLanguage = "ko", narrations: readonly PlanActivity[] = []): string[] {
@@ -86,6 +86,7 @@ function narrationRows(latest: ObservedTestRun, narrations: readonly PlanActivit
 	const rows: string[] = []                                                                                               ;
 	const narration      = latest.turnId ? narrations.find(item => item.id === `${latest.turnId}:${latest.id}`) : undefined ;
 	rows.push("", a.info(language === "en" ? "WHAT THIS TEST CHECKS" : "이 테스트가 확인하는 것"), ...prose(safe(narration?.summary || (language === "en" ? "Explanation not observed yet" : "설명 미관측")), width));
+	rows.push(a.info(language === "en" ? "SELECTION REASON (MODEL INTERPRETATION)" : "선택 이유(모델 해석)"), ...prose(safe(narration?.why || (language === "en" ? "Reason not observed yet" : "선택 이유 미관측")), width));
 	return rows;
 }
 

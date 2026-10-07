@@ -1,27 +1,36 @@
-import type { ProjectActivity }                                   from "@/core/domain/execution/project-activity.js";
-import type { RequestRuntimeRecord }                              from "@/core/domain/execution/request-runtime.js";
-import type { WorkFlowProjection, WorkStepNarration }             from "@/core/domain/work/index.js";
-import {
-	MAX_TNOTE_SOURCE_ACTIVITIES,
-	projectActivityToTNoteSource,
-	projectTNoteCompletionIndex,
-} from "@/core/domain/work/t-notes.js";
-import type { TNoteActivitySource, TNoteDraft, TNoteSourceRange } from "@/core/domain/work/t-notes.js";
+import type { ProjectActivity                    } from "@/core/domain/execution/project-activity.js"                 ;
+import type { RequestRuntimeRecord               } from "@/core/domain/execution/request-runtime.js"                  ;
 import type {
-	WorkbenchActionResult,
-	WorkbenchCommandReceipt,
-	WorkbenchTNote,
-	WorkbenchTNoteReadState,
-} from "@/core/domain/work/workbench.js";
-import {
-	boundCompletedTurnNoteActivities,
-	resolveCompletedTurnNoteScope,
-} from "@/core/application/work/completed-turn-note-scope.js";
-import { validateCanonicalTNote }                                 from "@/core/application/work/t-note-service.js";
-import type { ActivityNarrator }                                  from "@/core/application/orchestration/activity-narrator.js";
-import { PlanActivityNarration }                                  from "@/core/application/orchestration/plan-activity-narration.js";
-import { projectTNote, turnTNoteInstruction }                     from "@/core/application/orchestration/workbench-artifacts.js";
-import type { OutputLanguage }                                    from "@/core/domain/execution/output-language.js";
+              WorkFlowProjection               ,
+              WorkStepNarration                ,
+                                                 } from "@/core/domain/work/index.js"                                 ;
+import      {
+              MAX_TNOTE_SOURCE_ACTIVITIES      ,
+              projectActivityToTNoteSource     ,
+              projectTNoteCompletionIndex      ,
+                                                 } from "@/core/domain/work/t-notes.js"                               ;
+import type {
+              TNoteActivitySource              ,
+              TNoteDraft                       ,
+              TNoteSourceRange                 ,
+                                                 } from "@/core/domain/work/t-notes.js"                               ;
+import type {
+              WorkbenchActionResult            ,
+              WorkbenchCommandReceipt          ,
+              WorkbenchTNote                   ,
+              WorkbenchTNoteReadState          ,
+                                                 } from "@/core/domain/work/workbench.js"                             ;
+import      {
+              boundCompletedTurnNoteActivities ,
+              resolveCompletedTurnNoteScope    ,
+                                                 } from "@/core/application/work/completed-turn-note-scope.js"        ;
+import      { validateCanonicalTNote             } from "@/core/application/work/t-note-service.js"                   ;
+import type { ActivityNarrator                   } from "@/core/application/orchestration/activity-narrator.js"       ;
+import      { PlanActivityNarration              } from "@/core/application/orchestration/plan-activity-narration.js" ;
+import      { projectTNote, turnTNoteInstruction } from "@/core/application/orchestration/workbench-artifacts.js"     ;
+import type { OutputLanguage                     } from "@/core/domain/execution/output-language.js"                  ;
+import      { projectRequestTestWorkspace        } from "@/core/domain/observability/request-test-workspace.js"       ;
+import      { verificationCommand                } from "@/core/domain/observability/request-test-workspace.js"       ;
 
 interface TNoteStore {
 	bindThread?(threadId: string): Promise<void>;
@@ -70,7 +79,7 @@ export class WorkbenchNoteNarration {
 	private readonly completionOrdinals                                                                                                = new Map<string, number>()                                                 ;
 	private readonly automaticTurns                                                                                                    = new Set<string>()                                                         ;
 	private readonly failedAutomaticTurns                                                                                              = new Set<string>()                                                         ;
-	private automaticFailureResult  : WorkbenchActionResult | null                                                                                     = null                                                                      ;
+	private automaticFailureResult  : WorkbenchActionResult | null                                                                     = null                                                                      ;
 	private readonly inFlight                                                                                                          = new Map<string, Promise<TNoteDraft>>()                                    ;
 	private queue                   : Promise<void>                                                                                    = Promise.resolve()                                                         ;
 	private readonly abort                                                                                                             = new AbortController()                                                     ;
@@ -160,16 +169,16 @@ export class WorkbenchNoteNarration {
 
 	public async capture(commandId: string, activityIds: readonly string[]): Promise<WorkbenchCommandReceipt> {
 		if (!this.options.source) return { state: "rejected", commandId, reason: "Notes 저장소가 연결되지 않았습니다." };
-		const activities = this.options.activities();
-		const uniqueIds = [...new Set(activityIds)];
+		const activities = this.options.activities() ;
+		const uniqueIds  = [...new Set(activityIds)] ;
 		if (uniqueIds.length === 0 || uniqueIds.some(id => !activities.some(activity => activity.id === id))) {
 			return { state: "rejected", commandId, reason: "Note의 source activity를 확인할 수 없습니다." };
 		}
-		const selected = activities.filter(activity => uniqueIds.includes(activity.id)).sort((left, right) => left.sequence - right.sequence);
-		const scope = resolveCompletedTurnNoteScope(selected, { type: "exact-selection" });
+		const selected = activities.filter(activity => uniqueIds.includes(activity.id)).sort((left, right) => left.sequence - right.sequence) ;
+		const scope    = resolveCompletedTurnNoteScope(selected, { type: "exact-selection" })                                                 ;
 		if (!scope) return { state: "rejected", commandId, reason: "Note는 완료된 질문 하나의 전체 turn 범위여야 합니다." };
-		const request = this.request(scope.activities);
-		let existing = this.noteForTurn(request.turnId);
+		const request = this.request(scope.activities)   ;
+		let existing  = this.noteForTurn(request.turnId) ;
 		if (existing) return { state: "accepted", commandId, message: `Note #${existing.sequence}을 사용합니다.` };
 		if (this.automaticTurns.has(request.turnId)) {
 			await this.queue;
@@ -257,6 +266,7 @@ export class WorkbenchNoteNarration {
 		});
 		const turnId = this.options.activeTurnId() ?? this.options.selectedPlanTurnId();
 		this.planNarration.select(turnId);
+		this.scheduleTestNarrations(narrator, turnId);
 		const flow = this.options.currentFlow();
 		if (turnId && flow.source?.turnId === turnId && flow.steps.length) {
 			const observed = this.options.activities();
@@ -277,11 +287,51 @@ export class WorkbenchNoteNarration {
 		}
 	}
 
+	private scheduleTestNarrations(narrator: ActivityNarrator, turnId: string | null): void {
+		this.actionNarration ??= new PlanActivityNarration(narrator, this.abort.signal, () => {
+			this.actionRevision += 1;
+			this.options.publish();
+		}, 30_000, "actions", this.options.language);
+		this.actionNarration.select(turnId);
+		if (!turnId) return;
+		const activities = this.options.activities()                        ;
+		const runs       = projectRequestTestWorkspace({ activities }).runs ;
+		const latest     = new Map<string, ProjectActivity>()               ;
+		for (const activity of activities) {
+			if (activity.kind !== "tool" || activity.nativeRefs.turnId !== turnId || activity.nativeRefs.threadId !== this.options.threadId()) continue;
+			latest.set(activity.nativeRefs.itemId ?? activity.id, activity);
+		}
+		const recent    = [...latest.values()].sort((left, right) => left.sequence - right.sequence).slice(-20) ;
+		const recentIds = new Set(recent.map(activity => activity.nativeRefs.itemId ?? activity.id))            ;
+		for (const activity of recent) {
+			const params = activity.payload.params as Record<string, unknown> | undefined                                   ;
+			const item   = (params?.item ?? activity.payload.item ?? params ?? activity.payload) as Record<string, unknown> ;
+			if (typeof item.command !== "string" || verificationCommand(item.command)) continue;
+			this.actionNarration.observe(activity, {
+				turnId, stepId: "tool-action", stepTitle: "실행 작업", goal: this.options.currentFlow().goal, kind: "tool-action",
+			});
+		}
+		for (const run of runs) {
+			if (run.turnId !== turnId || run.status === "running" || !recentIds.has(run.id)) continue;
+			const testNames = [...run.caseNames, ...run.suites.map(suite => suite.name), ...run.failureNames];
+			if (!testNames.length && />\s*[^\s;&|]+\s+2>&1/u.test(run.command)) continue;
+			const observation = activities.findLast(activity =>
+				activity.kind === "tool"
+				&& activity.nativeRefs.turnId === turnId
+				&& (activity.nativeRefs.itemId ?? activity.id) === run.id
+				&& ["completed", "failed", "cancelled"].includes(activity.phase));
+			if (observation) this.actionNarration.observe(observation, {
+				turnId, stepId: "test-action", stepTitle: "검증", goal: this.options.currentFlow().goal, kind: "tool-action",
+				testNames,
+			});
+		}
+	}
+
 	public toolActions(): readonly import("@/core/domain/work/workbench.js").PlanActivity[] {
 		const key = `${this.observedSequence}:${this.actionRevision}`;
 		if (this.actionCache?.key === key) return this.actionCache.value;
-		const current = this.actionNarration?.snapshot().planActivities ?? [];
-		const value = [...new Map([...this.actionHistory.values(), ...current].map(action => [action.id, action])).values()];
+		const current = this.actionNarration?.snapshot().planActivities ?? []                                                  ;
+		const value   = [...new Map([...this.actionHistory.values(), ...current].map(action => [action.id, action])).values()] ;
 		this.actionCache = { key, value };
 		return value;
 	}
@@ -321,8 +371,8 @@ export class WorkbenchNoteNarration {
 	}
 
 	private completionOrdinal(threadId: string, turnId: string): number {
-		const key = `${threadId}:${turnId}`;
-		const reserved = this.completionOrdinals.get(key);
+		const key      = `${threadId}:${turnId}`          ;
+		const reserved = this.completionOrdinals.get(key) ;
 		if (reserved) return reserved;
 		const durableMaximum = [...this.notesById.values()].map(note => note.packet.completion)
 			.filter((completion): completion is NonNullable<typeof completion> => completion?.threadId === threadId)
@@ -352,8 +402,8 @@ export class WorkbenchNoteNarration {
 	}
 
 	private noteForTurn(turnId: string): TNoteDraft | undefined {
-		const scope = resolveCompletedTurnNoteScope(this.options.visibleActivities(), { type: "turn", turnId });
-		const terminalActivityId = scope?.activities.at(-1)?.id;
+		const scope              = resolveCompletedTurnNoteScope(this.options.visibleActivities(), { type: "turn", turnId }) ;
+		const terminalActivityId = scope?.activities.at(-1)?.id                                                              ;
 		return terminalActivityId ? [...this.notesById.values()].find(note => note.packet.activities.some(activity => activity.id === terminalActivityId)) : undefined;
 	}
 
@@ -372,8 +422,8 @@ export class WorkbenchNoteNarration {
 	private narrationContext(): { turnId: string; stepId: string; stepTitle: string; goal: string; kind: "plan-progress" } | undefined {
 		const turnId = this.options.activeTurnId() ?? this.options.selectedPlanTurnId();
 		if (!turnId || this.options.pendingPlanGoalActivityId()) return undefined;
-		const flow = this.options.currentFlow();
-		const step = flow.steps.find(candidate => candidate.status === "running") ?? [...flow.steps].reverse().find(candidate => candidate.status !== "pending");
+		const flow = this.options.currentFlow()                                                                                                                  ;
+		const step = flow.steps.find(candidate => candidate.status === "running") ?? [...flow.steps].reverse().find(candidate => candidate.status !== "pending") ;
 		if (step) return { turnId, stepId: step.id, stepTitle: step.title, goal: flow.goal, kind: "plan-progress" };
 		const request = this.options.requestRecords().find(record => record.turnId === turnId && record.threadId === this.options.threadId());
 		if (request) {

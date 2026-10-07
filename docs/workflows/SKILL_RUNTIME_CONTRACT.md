@@ -37,7 +37,7 @@ Agent와 Skill은 분리한다. Agent는 intent 분류와 순서만 소유하고
 
 ## 승인·증거 계약
 
-Linear·Obsidian·GitHub PR 쓰기는 전체 Artifact Candidate의 SHA-256 `candidateDigest`가 없는 Native mutation 후보를 버린다. 승인은 해당 digest와 actor에 결박되며, digest가 달라지면 `SKILL_AUTH_STALE`로 중단한다. 성공 Receipt는 대상·Run·Skill·registry revision·검사 시각·실제 read-back에 결속된 구조화된 검증 결과 없이는 만들 수 없다. `finish --status succeeded --evidence ...`만으로 성공을 선언할 수 없다. 현재 등록된 결정론 검사기는 `local-unit-references@1`이며 `local-preflight` 범위만 수락한다. full 범위의 자동 성공 validator는 아직 없으므로 성공을 추정하지 않는다.
+GitHub 쓰기는 전체 Artifact Candidate의 SHA-256 `candidateDigest`가 없는 Native mutation 후보를 버린다. 승인은 해당 digest와 actor에 결박되며, digest가 달라지면 `SKILL_AUTH_STALE`로 중단한다. 성공 Receipt는 대상·Run·Skill·registry revision·검사 시각·실제 read-back에 결속된 구조화된 검증 결과 없이는 만들 수 없다. `finish --status succeeded --evidence ...`만으로 성공을 선언할 수 없다. 현재 등록된 결정론 검사기는 `local-unit-references@1`이며 `local-preflight` 범위만 수락한다. full 범위의 자동 성공 validator는 아직 없으므로 성공을 추정하지 않는다.
 
 Receipt는 `schemas/woo-receipt.schema.json`의 상태 어휘만 사용한다. 저장 전과 조회 시 `receiptDigest`를 다시 계산한다. Run state와 Receipt의 정본은 같은 immutable JSON commit envelope다. `commitStep(state, receipt, expectedRevision)`은 두 값을 함께 기록하고, 임시 파일 fsync 후 다음 sequence 경로에 hard-link를 배타 생성한다. 같은 revision의 독립 프로세스가 경합하면 하나만 성공하며 나머지는 `SKILL_RUN_CONFLICT`다. state 변경은 revision이 정확히 1 증가해야 하고, 신규 생성 이외에는 expectedRevision이 필수다. step 종료 상태는 별도 state write로 저장할 수 없다.
 
@@ -52,7 +52,7 @@ Receipt는 `schemas/woo-receipt.schema.json`의 상태 어휘만 사용한다. �
 
 ## 로컬 Workflow 연결
 
-`www workflow check <RPA-ID>` 또는 `bun run skill:runtime -- check-local --root <project> --process <RPA-ID>`는 로컬 참조 사전 검사를 실행한다. `.woo/units.yaml`, 로컬 traceability 원장, 선언된 실제 코드 symbol과 참조를 검사한다. 원격 Linear·Obsidian 및 전체 RPA map 정합을 확인한 것으로 해석하지 않는다. capability에 `_LOCAL_PREFLIGHT`, Receipt context/result에 scope를 남긴다.
+`www workflow check <RPA-ID>` 또는 `bun run skill:runtime -- check-local --root <project> --process <RPA-ID>`는 로컬 참조 사전 검사를 실행한다. `.woo/units.yaml`과 선언된 실제 코드 symbol 및 로컬 참조를 검사한다. 전체 RPA map 정합을 확인한 것으로 해석하지 않는다. capability에 `_LOCAL_PREFLIGHT`, Receipt context/result에 scope를 남긴다.
 
 `www workflow show <Run-ID>`와 `resume <Run-ID>`는 같은 프로젝트의 결과 조회와 읽기 전용 검사 재개다. TUI에는 `/workflow check`, `/workflow show`, `/workflow resume`으로 연결한다. 중단된 검사는 저장된 subject digest와 Skill registry revision을 다시 확인하고, 바뀌었으면 실패 결과와 새 검사 안내를 남긴다. terminal Run 재개는 거절하고 새 검사를 안내한다. 기존 결과는 show로만 조회하며 외부 효과를 반복하지 않는다. 로컬 검사 실패의 CLI exit status는 nonzero다.
 

@@ -1,56 +1,56 @@
-import type { ExecutionRunState }                               from "@/core/domain/execution/execution-run-contract.js";
-import type { NativeApprovalRequest }                           from "@/core/domain/execution/native-session.js";
-import type { RequestRuntimeRecord }                            from "@/core/domain/execution/request-runtime.js";
-import type { ProjectActivity }                                 from "@/core/domain/execution/project-activity.js";
-import type { NativeDelegatedTask, NativeDelegationProjection } from "@/core/domain/work/delegation.js";
-import type { LinearProjectDashboard }                          from "@/core/domain/work/linear-dashboard.js";
-import type { PerformanceProjection }                           from "@/core/domain/work/performance.js";
-import type { WorkFlowProjection }                              from "@/core/domain/work/workflow-projection.js";
+import type { ExecutionRunState            } from "@/core/domain/execution/execution-run-contract.js" ;
+import type { NativeApprovalRequest        } from "@/core/domain/execution/native-session.js"         ;
+import type { RequestRuntimeRecord         } from "@/core/domain/execution/request-runtime.js"        ;
+import type { ProjectActivity              } from "@/core/domain/execution/project-activity.js"       ;
 import type {
-	PlanActivity,
-	WorkbenchActionResult,
-	WorkbenchChatMessage,
-	WorkbenchChatQueueItem,
-	WorkbenchLiveActivity,
-	WorkbenchPhase,
-	WorkbenchSessionGoal,
-	WorkbenchSnapshot,
-	WorkbenchTNote,
-	WorkbenchTNoteReadState,
-} from "@/core/domain/work/workbench.js";
+              NativeDelegatedTask        ,
+              NativeDelegationProjection ,
+                                           } from "@/core/domain/work/delegation.js"                  ;
+import type { PerformanceProjection        } from "@/core/domain/work/performance.js"                 ;
+import type { WorkFlowProjection           } from "@/core/domain/work/workflow-projection.js"         ;
+import type {
+              PlanActivity               ,
+              WorkbenchActionResult      ,
+              WorkbenchChatMessage       ,
+              WorkbenchChatQueueItem     ,
+              WorkbenchLiveActivity      ,
+              WorkbenchPhase             ,
+              WorkbenchSessionGoal       ,
+              WorkbenchSnapshot          ,
+              WorkbenchTNote             ,
+              WorkbenchTNoteReadState    ,
+                                           } from "@/core/domain/work/workbench.js"                   ;
 
 /** Semantic state read by Chat; terminal width, color, focus, scrolling, and render caches remain TUI concerns. */
 export interface ChatFeatureProjection {
-	readonly actionResult               : WorkbenchActionResult | null                     ;
-	readonly activeTurnId               : string | null                                    ;
-	readonly activities                 : readonly ProjectActivity[]                       ;
-	readonly chat                       : readonly WorkbenchChatMessage[]                  ;
-	readonly chatQueue                  : readonly WorkbenchChatQueueItem[]                ;
-	readonly deliveryUncertain?         : boolean                                          ;
-	readonly delegation?                : readonly NativeDelegationProjection[]            ;
-	readonly developmentRecordingError? : string | null                                    ;
-	readonly draft                      : string                                           ;
-	readonly draftAnchorSequence?       : number | null                                    ;
-	readonly error                      : string | null                                    ;
-	readonly executionRun?              : ExecutionRunState | null                         ;
-	readonly journalSequence            : number                                           ;
-	readonly linearDashboard?           : LinearProjectDashboard                           ;
-	readonly liveActivity               : WorkbenchLiveActivity | null                     ;
-	readonly pendingApproval            : NativeApprovalRequest | null                     ;
-	readonly performance?               : PerformanceProjection                            ;
-	readonly phase                      : WorkbenchPhase                                   ;
-	readonly planActivities?            : readonly PlanActivity[]                          ;
-	readonly toolActions?               : readonly PlanActivity[]                          ;
-	readonly planActivityStatus?        : "disabled" | "pending" | "ready" | "unavailable" ;
-	readonly projectId                  : string                                           ;
-	readonly reasoningDraft             : string                                           ;
-	readonly reasoningSummaryDraft?     : string                                           ;
-	readonly requestRuntime?            : readonly RequestRuntimeRecord[]                  ;
-	readonly selectedActivityId         : string | null                                    ;
-	readonly sessionGoal?               : WorkbenchSessionGoal | null                      ;
-	readonly threadId                   : string | null                                    ;
-	readonly tnotes                     : readonly WorkbenchTNote[]                        ;
-	readonly workFlow                   : WorkFlowProjection                               ;
+	readonly actionResult           : WorkbenchActionResult | null                     ;
+	readonly activeTurnId           : string | null                                    ;
+	readonly activities             : readonly ProjectActivity[]                       ;
+	readonly chat                   : readonly WorkbenchChatMessage[]                  ;
+	readonly chatQueue              : readonly WorkbenchChatQueueItem[]                ;
+	readonly deliveryUncertain?     : boolean                                          ;
+	readonly delegation?            : readonly NativeDelegationProjection[]            ;
+	readonly draft                  : string                                           ;
+	readonly draftAnchorSequence?   : number | null                                    ;
+	readonly error                  : string | null                                    ;
+	readonly executionRun?          : ExecutionRunState | null                         ;
+	readonly journalSequence        : number                                           ;
+	readonly liveActivity           : WorkbenchLiveActivity | null                     ;
+	readonly pendingApproval        : NativeApprovalRequest | null                     ;
+	readonly performance?           : PerformanceProjection                            ;
+	readonly phase                  : WorkbenchPhase                                   ;
+	readonly planActivities?        : readonly PlanActivity[]                          ;
+	readonly toolActions?           : readonly PlanActivity[]                          ;
+	readonly planActivityStatus?    : "disabled" | "pending" | "ready" | "unavailable" ;
+	readonly projectId              : string                                           ;
+	readonly reasoningDraft         : string                                           ;
+	readonly reasoningSummaryDraft? : string                                           ;
+	readonly requestRuntime?        : readonly RequestRuntimeRecord[]                  ;
+	readonly selectedActivityId     : string | null                                    ;
+	readonly sessionGoal?           : WorkbenchSessionGoal | null                      ;
+	readonly threadId               : string | null                                    ;
+	readonly tnotes                 : readonly WorkbenchTNote[]                        ;
+	readonly workFlow               : WorkFlowProjection                               ;
 }
 
 /** Semantic state read by Plan; terminal layout and animation remain TUI concerns. */
@@ -73,7 +73,6 @@ export interface TracerFeatureProjection {
 	readonly delegation?                 : readonly NativeDelegationProjection[] ;
 	readonly delegationDetailActivities? : number                                ;
 	readonly evaluationRequired?         : boolean                               ;
-	readonly linearDashboard?            : LinearProjectDashboard                ;
 	readonly liveActivity                : WorkbenchLiveActivity | null          ;
 	readonly performance?                : PerformanceProjection                 ;
 	readonly recordingReadOnly?          : boolean                               ;
@@ -105,29 +104,27 @@ export interface NoteFeatureProjection {
 /** Selects Chat's read interface without creating a second state owner or copying durable identities. */
 export function projectChatFeature(snapshot: WorkbenchSnapshot): ChatFeatureProjection {
 	return Object.freeze({
-		actionResult       : snapshot.actionResult,
-		activeTurnId       : snapshot.activeTurnId,
-		activities         : snapshot.activities,
-		chat               : snapshot.chat,
-		chatQueue          : snapshot.chatQueue,
-		draft              : snapshot.draft,
-		draftAnchorSequence: snapshot.draftAnchorSequence ?? null,
-		error              : snapshot.error,
-		journalSequence    : snapshot.journalSequence,
-		liveActivity       : snapshot.liveActivity,
-		pendingApproval    : snapshot.pendingApproval,
-		phase              : snapshot.phase,
-		projectId          : snapshot.projectId,
-		reasoningDraft     : snapshot.reasoningDraft,
-		selectedActivityId : snapshot.selectedActivityId,
-		threadId           : snapshot.threadId,
-		tnotes             : snapshot.tnotes,
-		workFlow           : snapshot.workFlow,
+		actionResult        : snapshot.actionResult,
+		activeTurnId        : snapshot.activeTurnId,
+		activities          : snapshot.activities,
+		chat                : snapshot.chat,
+		chatQueue           : snapshot.chatQueue,
+		draft               : snapshot.draft,
+		draftAnchorSequence : snapshot.draftAnchorSequence ?? null,
+		error               : snapshot.error,
+		journalSequence     : snapshot.journalSequence,
+		liveActivity        : snapshot.liveActivity,
+		pendingApproval     : snapshot.pendingApproval,
+		phase               : snapshot.phase,
+		projectId           : snapshot.projectId,
+		reasoningDraft      : snapshot.reasoningDraft,
+		selectedActivityId  : snapshot.selectedActivityId,
+		threadId            : snapshot.threadId,
+		tnotes              : snapshot.tnotes,
+		workFlow            : snapshot.workFlow,
 		...(snapshot.deliveryUncertain === undefined ? {} : { deliveryUncertain: snapshot.deliveryUncertain }),
 		...(snapshot.delegation === undefined ? {} : { delegation: snapshot.delegation }),
-		...(snapshot.developmentRecordingError === undefined ? {} : { developmentRecordingError: snapshot.developmentRecordingError }),
 		...(snapshot.executionRun === undefined ? {} : { executionRun: snapshot.executionRun }),
-		...(snapshot.linearDashboard === undefined ? {} : { linearDashboard: snapshot.linearDashboard }),
 		...(snapshot.performance === undefined ? {} : { performance: snapshot.performance }),
 		...(snapshot.planActivities === undefined ? {} : { planActivities: snapshot.planActivities }),
 		...(snapshot.toolActions === undefined ? {} : { toolActions: snapshot.toolActions }),
@@ -163,7 +160,6 @@ export function projectTracerFeature(snapshot: WorkbenchSnapshot): TracerFeature
 		...(snapshot.delegation === undefined ? {} : { delegation: snapshot.delegation }),
 		...(snapshot.delegationDetailActivities === undefined ? {} : { delegationDetailActivities: snapshot.delegationDetailActivities }),
 		...(snapshot.evaluationRequired === undefined ? {} : { evaluationRequired: snapshot.evaluationRequired }),
-		...(snapshot.linearDashboard === undefined ? {} : { linearDashboard: snapshot.linearDashboard }),
 		...(snapshot.performance === undefined ? {} : { performance: snapshot.performance }),
 		...(snapshot.recordingReadOnly === undefined ? {} : { recordingReadOnly: snapshot.recordingReadOnly }),
 		...(snapshot.selectedAgentDetail === undefined ? {} : { selectedAgentDetail: snapshot.selectedAgentDetail }),

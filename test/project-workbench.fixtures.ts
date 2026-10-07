@@ -1,58 +1,70 @@
 import legacyJournal                                          from "./fixtures/legacy-execution-receipt.json";
-import type { RuntimeToolHandler, RuntimeToolDefinition }     from "../src/core/ports/execution/runtime-tool-port";
-import { REQUEST_STAGES }                                     from "../src/core/domain/execution/request-runtime";
-import type { RequestRuntimeRecord }                          from "../src/core/domain/execution/request-runtime";
-import { projectRequestTodo }                                 from "../src/core/domain/work/request-projections";
-import { describe, expect, test }                             from "bun:test";
-import type { ExecutorPort }                                  from "../src/core/ports/execution/executor-port";
 import type {
-	ActivityNarrationRequest,
-	ActivityNarrator,
-} from "../src/core/application/orchestration/activity-narrator";
-import { ProjectWorkbench }                                   from "../src/core/application/orchestration/project-workbench";
+              RuntimeToolHandler          ,
+              RuntimeToolDefinition       ,
+                                            } from "../src/core/ports/execution/runtime-tool-port"                 ;
+import      { REQUEST_STAGES                } from "../src/core/domain/execution/request-runtime"                  ;
+import type { RequestRuntimeRecord          } from "../src/core/domain/execution/request-runtime"                  ;
+import      { projectRequestTodo            } from "../src/core/domain/work/request-projections"                   ;
+import      { describe, expect, test        } from "bun:test"                                                      ;
+import type { ExecutorPort                  } from "../src/core/ports/execution/executor-port"                     ;
 import type {
-	WorkbenchActivityJournal,
-	WorkbenchTNoteSource,
-	WorkbenchTodoSource,
-} from "../src/core/application/orchestration/project-workbench";
+              ActivityNarrationRequest    ,
+              ActivityNarrator            ,
+                                            } from "../src/core/application/orchestration/activity-narrator"       ;
+import      { ProjectWorkbench              } from "../src/core/application/orchestration/project-workbench"       ;
 import type {
-	NativeApprovalResolution,
-	NativeHarnessEvent,
-	NativeThreadRead,
-	NativeThreadList,
-	NativeThreadResume,
-	NativeThreadSnapshot,
-	NativeThreadStart,
-	NativeThreadSummary,
-	NativeTurnInterrupt,
-	NativeTurnSnapshot,
-	NativeTurnStart,
-	NativeTurnSteer,
-	NativeTurnSteerResult,
-} from "../src/core/domain/execution/native-session";
+              WorkbenchActivityJournal    ,
+              WorkbenchTNoteSource        ,
+              WorkbenchTodoSource         ,
+                                            } from "../src/core/application/orchestration/project-workbench"       ;
 import type {
-	ProjectActivity,
-	ProjectActivityAppendResult,
-	ProjectActivityInput,
-} from "../src/core/domain/execution/project-activity";
-import { CanonicalPromotionService, digestCanonicalDocument } from "../src/core/application/work/canonical-promotion";
-import { ReviewService }                                      from "../src/core/application/review/review-service";
-import { SessionModelUsageAccumulator }                       from "../src/core/application/session/session-model-usage";
-import { TodoWriteConflictError }                             from "../src/core/application/work/todo-ledger";
-import { WooEntry }                                           from "../src/core/application/orchestration/woo-entry";
-import type { WooEntryCollection }                            from "../src/core/application/orchestration/woo-entry";
-import type { TodoDocument }                                  from "../src/core/domain/work/todos";
-import type { WorkFlowProjection }                            from "../src/core/domain/work";
-import { ProviderReviewAdapter, sha256ReviewDigest }          from "../src/adapters/outbound/review/review-adapters";
-import { TNoteService }                                       from "../src/core/application/work/t-note-service";
-import type { DetachedTextGenerator }                         from "../src/core/application/orchestration/detached-text-generator";
-import { FileTNoteStore }                                     from "../src/adapters/outbound/persistence/t-note-store";
-import { projectTNoteCompletionIndex, sanitizeTNoteText }     from "../src/core/domain/work/t-notes";
-import { mkdtemp, rm, writeFile, readFile, realpath }         from "node:fs/promises";
-import { createHash }                                         from "node:crypto";
-import { pinnedFileCapabilities }                             from "../src/adapters/outbound/workspace/pinned-file-capabilities";
-import { tmpdir }                                             from "node:os";
-import { join }                                               from "node:path";
+              NativeApprovalResolution    ,
+              NativeHarnessEvent          ,
+              NativeThreadRead            ,
+              NativeThreadList            ,
+              NativeThreadResume          ,
+              NativeThreadSnapshot        ,
+              NativeThreadStart           ,
+              NativeThreadSummary         ,
+              NativeTurnInterrupt         ,
+              NativeTurnSnapshot          ,
+              NativeTurnStart             ,
+              NativeTurnSteer             ,
+              NativeTurnSteerResult       ,
+                                            } from "../src/core/domain/execution/native-session"                   ;
+import type {
+              ProjectActivity             ,
+              ProjectActivityAppendResult ,
+              ProjectActivityInput        ,
+                                            } from "../src/core/domain/execution/project-activity"                 ;
+import      { ReviewService                 } from "../src/core/application/review/review-service"                 ;
+import      { SessionModelUsageAccumulator  } from "../src/core/application/session/session-model-usage"           ;
+import      { TodoWriteConflictError        } from "../src/core/application/work/todo-ledger"                      ;
+import type { TodoDocument                  } from "../src/core/domain/work/todos"                                 ;
+import type { WorkFlowProjection            } from "../src/core/domain/work"                                       ;
+import      {
+              ProviderReviewAdapter       ,
+              sha256ReviewDigest          ,
+                                            } from "../src/adapters/outbound/review/review-adapters"               ;
+import      { TNoteService                  } from "../src/core/application/work/t-note-service"                   ;
+import type { DetachedTextGenerator         } from "../src/core/application/orchestration/detached-text-generator" ;
+import      { FileTNoteStore                } from "../src/adapters/outbound/persistence/t-note-store"             ;
+import      {
+              projectTNoteCompletionIndex ,
+              sanitizeTNoteText           ,
+                                            } from "../src/core/domain/work/t-notes"                               ;
+import      {
+              mkdtemp                     ,
+              rm                          ,
+              writeFile                   ,
+              readFile                    ,
+              realpath                    ,
+                                            } from "node:fs/promises"                                              ;
+import      { createHash                    } from "node:crypto"                                                   ;
+import      { pinnedFileCapabilities        } from "../src/adapters/outbound/workspace/pinned-file-capabilities"   ;
+import      { tmpdir                        } from "node:os"                                                       ;
+import      { join                          } from "node:path"                                                     ;
 
 export class MemoryJournal implements WorkbenchActivityJournal {
 	readonly records: ProjectActivity[] = [];

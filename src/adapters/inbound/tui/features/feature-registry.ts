@@ -1,28 +1,27 @@
-import { approvalFeature }       from "@/adapters/inbound/tui/features/approval/registration/approval.feature";
-import { authenticationFeature } from "@/adapters/inbound/tui/features/authentication/registration/authentication.feature";
-import { CHAT_FEATURE }          from "@/adapters/inbound/tui/features/chat/registration/chat.feature";
-import { cacheFeature }          from "@/adapters/inbound/tui/features/cache/registration/cache.feature";
-import { contextFeature }        from "@/adapters/inbound/tui/features/context/registration/context.feature";
-import { dashboardFeature }      from "@/adapters/inbound/tui/features/dashboard/registration/dashboard.feature";
-import { modelSelectionFeature } from "@/adapters/inbound/tui/features/model-selection/registration/model-selection.feature";
-import { monitoringFeature }     from "@/adapters/inbound/tui/features/monitoring/registration/monitoring.feature";
-import { PLAN_FEATURE }          from "@/adapters/inbound/tui/features/plan/registration/plan.feature";
-import { projectMapFeature }     from "@/adapters/inbound/tui/features/project-map/registration/project-map.feature";
-import { repositoryFeature }     from "@/adapters/inbound/tui/features/repository/registration/repository.feature";
-import { sessionFeature }        from "@/adapters/inbound/tui/features/session/registration/session.feature";
-import { statsFeature }          from "@/adapters/inbound/tui/features/stats/registration/stats.feature";
-import { testFeature }           from "@/adapters/inbound/tui/features/test/registration/test.feature";
-import { TNOTE_FEATURE }         from "@/adapters/inbound/tui/features/tnote/registration/tnote.feature";
-import { TRACE_FEATURE }         from "@/adapters/inbound/tui/features/trace/registration/trace.feature";
-import { usageFeature }          from "@/adapters/inbound/tui/features/usage/registration/usage.feature";
-import { workflowFeature }       from "@/adapters/inbound/tui/features/workflow/registration/workflow.feature";
+import      { approvalFeature            } from "@/adapters/inbound/tui/features/approval/registration/approval.feature"               ;
+import      { authenticationFeature      } from "@/adapters/inbound/tui/features/authentication/registration/authentication.feature"   ;
+import      { CHAT_FEATURE               } from "@/adapters/inbound/tui/features/chat/registration/chat.feature"                       ;
+import      { cacheFeature               } from "@/adapters/inbound/tui/features/cache/registration/cache.feature"                     ;
+import      { contextFeature             } from "@/adapters/inbound/tui/features/context/registration/context.feature"                 ;
+import      { dashboardFeature           } from "@/adapters/inbound/tui/features/dashboard/registration/dashboard.feature"             ;
+import      { modelSelectionFeature      } from "@/adapters/inbound/tui/features/model-selection/registration/model-selection.feature" ;
+import      { monitoringFeature          } from "@/adapters/inbound/tui/features/monitoring/registration/monitoring.feature"           ;
+import      { PLAN_FEATURE               } from "@/adapters/inbound/tui/features/plan/registration/plan.feature"                       ;
+import      { repositoryFeature          } from "@/adapters/inbound/tui/features/repository/registration/repository.feature"           ;
+import      { sessionFeature             } from "@/adapters/inbound/tui/features/session/registration/session.feature"                 ;
+import      { statsFeature               } from "@/adapters/inbound/tui/features/stats/registration/stats.feature"                     ;
+import      { testFeature                } from "@/adapters/inbound/tui/features/test/registration/test.feature"                       ;
+import      { TNOTE_FEATURE              } from "@/adapters/inbound/tui/features/tnote/registration/tnote.feature"                     ;
+import      { TRACE_FEATURE              } from "@/adapters/inbound/tui/features/trace/registration/trace.feature"                     ;
+import      { usageFeature               } from "@/adapters/inbound/tui/features/usage/registration/usage.feature"                     ;
+import      { workflowFeature            } from "@/adapters/inbound/tui/features/workflow/registration/workflow.feature"               ;
 import type {
-	TuiFeatureDescriptor,
-	TuiFeatureId,
-	TuiFeatureProductGroup,
-	TuiFeatureUnitDescriptor,
-	TuiFeatureUnitId,
-} from "@/adapters/inbound/tui/features/feature.types";
+              TuiFeatureDescriptor     ,
+              TuiFeatureId             ,
+              TuiFeatureProductGroup   ,
+              TuiFeatureUnitDescriptor ,
+              TuiFeatureUnitId         ,
+                                         } from "@/adapters/inbound/tui/features/feature.types"                                        ;
 
 /** Static capability catalog. Runtime component construction remains in the shell. */
 const FEATURE_CATALOG = [
@@ -36,7 +35,6 @@ const FEATURE_CATALOG = [
 	sessionFeature,
 	statsFeature,
 	usageFeature,
-	projectMapFeature,
 	contextFeature,
 	cacheFeature,
 	testFeature,
@@ -60,7 +58,7 @@ export const TUI_FEATURES = Object.freeze(
 
 /** Retired IDs stay reserved here after their descriptors leave the navigable catalog. */
 export const TUI_RETIRED_FEATURE_UNIT_IDS = Object.freeze(
-	[] as const satisfies readonly TuiFeatureUnitId[],
+	["TUI-F003-U02", "TUI-F004-U03"] as const satisfies readonly TuiFeatureUnitId[],
 );
 
 export const TUI_FEATURE_UNITS = Object.freeze(

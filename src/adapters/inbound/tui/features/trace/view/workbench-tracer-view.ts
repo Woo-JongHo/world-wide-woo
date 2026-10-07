@@ -30,46 +30,19 @@ export class WorkbenchTracerView implements Component {
 	public invalidate(): void {}
 
 	public render(width: number): string[] {
-		const snapshot = this.getSnapshot();
-		const contentWidth = Math.max(1, width);
-		const workflow = snapshot.workFlow;
-		const showEntryDashboard = snapshot.chat.length === 0 && snapshot.activities.length === 0
-			&& !snapshot.activeTurnId && !snapshot.actionResult && !workflow.source;
-		const entryRows = entryDashboardRows(snapshot, contentWidth, showEntryDashboard);
-		if (entryRows) return entryRows;
+		const snapshot     = this.getSnapshot() ;
+		const contentWidth = Math.max(1, width) ;
+		const workflow     = snapshot.workFlow  ;
 		if (!workflow.source) return noPlanRows(snapshot, contentWidth, this.delegationPresentation);
 		return workflowRows(snapshot, workflow, contentWidth, this.delegationPresentation);
 	}
 }
 
-function entryDashboardRows(snapshot: TracerFeatureProjection, width: number, visible: boolean): string[] | null {
-	if (!visible) return null;
-	if (snapshot.linearDashboard?.state === "loading") return [
-		...wrapTextWithAnsi(colors.secondary(`일정 · ${snapshot.linearDashboard.projectName}`), width),
-		...wrapTextWithAnsi(colors.muted("Linear 마일스톤과 기한을 가져오는 중입니다."), width),
-	];
-	if (snapshot.linearDashboard?.state === "ready" || snapshot.linearDashboard?.state === "stale") {
-		const dashboard = snapshot.linearDashboard;
-		return [
-			...wrapTextWithAnsi(colors.secondary(`일정 · ${dashboard.projectName}`), width),
-			...(dashboard.state === "stale" ? wrapTextWithAnsi(colors.warning("갱신 실패 · 마지막 성공 값"), width) : []),
-			...(dashboard.milestones.length
-				? dashboard.milestones.flatMap(item => wrapTextWithAnsi(`• ${item.targetDate ?? "일정 미정"} · ${item.name}`, width))
-				: wrapTextWithAnsi("관측 가능한 마일스톤·기한이 없습니다.", width)),
-		];
-	}
-	if (snapshot.linearDashboard?.state === "unavailable") return [
-		...wrapTextWithAnsi(colors.secondary(`일정 · ${snapshot.linearDashboard.projectName}`), width),
-		...wrapTextWithAnsi(colors.warning("Linear 일정 정보를 불러오지 못했습니다."), width),
-	];
-	return null;
-}
-
 function noPlanRows(snapshot: TracerFeatureProjection, width: number, presentation: TracerDelegationPresentation | null): string[] {
 	const performance = snapshot.performance;
 	if (!performance?.execution && !snapshot.liveActivity) return [];
-	const state = performance?.state ?? "executing";
-	const labels: Record<string, string> = { idle: "대기", requested: "요청됨", understanding: "확인 중", planning: "계획 중", executing: "수행 중", verifying: "검증 중", completing: "마무리 중", waiting: "대기", blocked: "차단", reconciling: "상태 대조 중", completed: "수행 종료", failed: "실패", interrupted: "중단", unknown: "확인 불가" };
+	const state                          = performance?.state ?? "executing"                                                                                                                                                                                                                                                                           ;
+	const labels: Record<string, string> = { idle: "대기", requested: "요청됨", understanding: "확인 중", planning: "계획 중", executing: "수행 중", verifying: "검증 중", completing: "마무리 중", waiting: "대기", blocked: "차단", reconciling: "상태 대조 중", completed: "수행 종료", failed: "실패", interrupted: "중단", unknown: "확인 불가" } ;
 	const rows = [
 		colors.warm(performance?.workContext ? `맡긴 일 · ${performance.workContext.goal}` : "독립 수행"),
 		colors.accent(`현재 · ${labels[state] ?? state}`),
@@ -84,10 +57,10 @@ function noPlanRows(snapshot: TracerFeatureProjection, width: number, presentati
 }
 
 function workflowRows(snapshot: TracerFeatureProjection, workflow: TracerFeatureProjection["workFlow"], width: number, presentation: TracerDelegationPresentation | null): string[] {
-	const performance = snapshot.performance;
-	const activities = new Map(snapshot.activities.map(activity => [activity.id, activity]));
-	const active = workflow.steps.find(step => step.status === "running") ?? null;
-	const focus = active ?? workflow.steps.at(-1) ?? null;
+	const performance = snapshot.performance                                                  ;
+	const activities  = new Map(snapshot.activities.map(activity => [activity.id, activity])) ;
+	const active      = workflow.steps.find(step => step.status === "running") ?? null        ;
+	const focus       = active ?? workflow.steps.at(-1) ?? null                               ;
 	const rows: string[] = [
 		...(performance ? [colors.secondary(performance.workContext ? `맡긴 일 · ${performance.workContext.goal}` : "독립 수행")] : []),
 		colors.warm(`${TRACER_LABELS.flow} · ${(active?.title ?? workflow.goal) || "공개 실행"}`),

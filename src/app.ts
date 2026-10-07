@@ -1,24 +1,23 @@
-import { homedir } from "node:os";
-import { join }    from "node:path";
+import      { homedir                          } from "node:os"                                                           ;
+import      { join                             } from "node:path"                                                         ;
 
-import { FileDevelopmentMapSource }        from "@/adapters/outbound/development/development-map-source";
-import { buildPiExecutionSystemPrompt }    from "@/adapters/outbound/execution/factory.js";
-import { GitTelemetrySource }              from "@/adapters/outbound/git/git-telemetry-source.js";
-import { ObservabilityHistorySource }      from "@/adapters/outbound/observability/observability-history-source.js";
-import { createProjectWorkbenchSession }   from "@/adapters/outbound/workspace/project-workbench-session.js";
-import { loadRequestCapabilityConfig }     from "@/adapters/outbound/workspace/request-capability-config";
-import { saveWorkbenchExecutionSelection } from "@/adapters/outbound/workspace/workbench-config.js";
-import { saveOutputLanguagePreference }    from "@/adapters/outbound/workspace/output-language-preference.js";
-import { DEFAULT_SETTINGS }                from "@/core/domain/execution/model-settings.js";
+import      { buildPiExecutionSystemPrompt     } from "@/adapters/outbound/execution/factory.js"                          ;
+import      { GitTelemetrySource               } from "@/adapters/outbound/git/git-telemetry-source.js"                   ;
+import      { ObservabilityHistorySource       } from "@/adapters/outbound/observability/observability-history-source.js" ;
+import      { createProjectWorkbenchSession    } from "@/adapters/outbound/workspace/project-workbench-session.js"        ;
+import      { loadRequestCapabilityConfig      } from "@/adapters/outbound/workspace/request-capability-config"           ;
+import      { saveWorkbenchExecutionSelection  } from "@/adapters/outbound/workspace/workbench-config.js"                 ;
+import      { saveOutputLanguagePreference     } from "@/adapters/outbound/workspace/output-language-preference.js"       ;
+import      { DEFAULT_SETTINGS                 } from "@/core/domain/execution/model-settings.js"                         ;
 
-import type { ExecutionLane }        from "@/adapters/outbound/execution/factory.js";
+import type { ExecutionLane                    } from "@/adapters/outbound/execution/factory.js"                          ;
 import type {
-	ProjectWorkbenchSession,
-	ProjectWorkbenchSessionOptions,
-} from "@/adapters/outbound/workspace/project-workbench-session.js";
-import type { WwwSettings }          from "@/core/domain/execution/model-settings.js";
-import type { OutputLanguage }       from "@/core/domain/execution/output-language.js";
-import type { RecentSessionSummary } from "@/core/ports/persistence/session-repository";
+              ProjectWorkbenchSession        ,
+              ProjectWorkbenchSessionOptions ,
+                                               } from "@/adapters/outbound/workspace/project-workbench-session.js"        ;
+import type { WwwSettings                      } from "@/core/domain/execution/model-settings.js"                         ;
+import type { OutputLanguage                   } from "@/core/domain/execution/output-language.js"                        ;
+import type { RecentSessionSummary             } from "@/core/ports/persistence/session-repository"                       ;
 
 export      { listNativeThreads               } from "@/adapters/outbound/workspace/native-thread-discovery.js";
 
@@ -56,7 +55,7 @@ export async function runApp(
 	dependencies : RunAppDependencies = productionRunAppDependencies,
 ): Promise<void> {
 	const settings      = await dependencies.loadSettings() ;
-	const executionLane = options.executionLane ?? "codex" ;
+	const executionLane = options.executionLane ?? "codex"  ;
 	const requestCapabilityFactory     = options.surface !== "www" && options.runtimeConfig
 		? await dependencies.loadRequestCapabilityConfig(options.runtimeConfig) : undefined;
 	const requestRuntimeMode          = options.surface === "www" ? "observe" : requestCapabilityFactory ? "broker" : options.requestRuntimeMode ?? "observe";
@@ -104,13 +103,11 @@ async function openProjectWorkbench(project: ProjectWorkbenchSession, options: R
 	runProjectWorkbenchShell({
 		workbench : project.workbench,
 		...(project.outputLanguage ? { outputLanguage: project.outputLanguage } : {}),
-		saveOutputLanguage: (language: OutputLanguage) => saveOutputLanguagePreference(project.workspace.root, language),
-		cwd       : project.workspace.root,
-		usage     : project.usage,
-		auth      : createProjectAuthController(),
+		saveOutputLanguage : (language: OutputLanguage) => saveOutputLanguagePreference(project.workspace.root, language),
+		cwd                : project.workspace.root,
+		usage              : project.usage,
+		auth               : createProjectAuthController(),
 		...(options.surface !== undefined ? { surface: options.surface } : {}),
-		developmentMapSource        : new FileDevelopmentMapSource(project.workspace.root),
-		...(project.development ? { development: project.development } : {}),
 		observabilityHistorySource : new ObservabilityHistorySource(join(project.workspace.root, ".www", "runtime", "activity")),
 		gitTelemetrySource         : new GitTelemetrySource(),
 		homeDirectory              : homedir(),

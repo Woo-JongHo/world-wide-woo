@@ -41,7 +41,6 @@ export interface WorkbenchConfig {
 	/** HUD visibility is policy, not a compile-time terminal constant. */
 	readonly hud    : { readonly showUsage: boolean; readonly showContext: boolean }                               ;
 	readonly slash  : { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean }                ;
-	readonly linear : { readonly server: string; readonly projectId: string; readonly projectName: string } | null ;
 }
 
 export const DEFAULT_TNOTE_DISPLAY = Object.freeze({
@@ -71,14 +70,13 @@ export const DEFAULT_WORKBENCH_CONFIG: WorkbenchConfig = Object.freeze({
 	display       : DEFAULT_TNOTE_DISPLAY,
 	hud           : Object.freeze({ showUsage: true, showContext: true }),
 	slash         : Object.freeze({ mcp: true, clear: true, compact: true }),
-	linear        : null,
 });
 
 export function normalizeWorkbenchConfig(value: unknown): WorkbenchConfig {
 	const root = asRecord(value);
 	if (root && Object.keys(root).some(key => !ROOT_KEYS.has(key))) return DEFAULT_WORKBENCH_CONFIG;
 	if (root?.schemaVersion !== undefined && root.schemaVersion !== 1) return DEFAULT_WORKBENCH_CONFIG;
-	const execution = asRecord(root?.execution), tnote = asRecord(root?.tnote), narrator = asRecord(root?.narrator), limits = asRecord(root?.limits), retry = asRecord(root?.retry), delegation = asRecord(root?.delegation), evaluation = asRecord(root?.evaluation), orchestration = asRecord(root?.orchestration), review = asRecord(root?.review), display = asRecord(root?.display), hud = asRecord(root?.hud), slash = asRecord(root?.slash), linear = asRecord(root?.linear);
+	const execution = asRecord(root?.execution), tnote = asRecord(root?.tnote), narrator = asRecord(root?.narrator), limits = asRecord(root?.limits), retry = asRecord(root?.retry), delegation = asRecord(root?.delegation), evaluation = asRecord(root?.evaluation), orchestration = asRecord(root?.orchestration), review = asRecord(root?.review), display = asRecord(root?.display), hud = asRecord(root?.hud), slash = asRecord(root?.slash);
 	const provider = PROVIDERS.includes(execution?.provider as Provider) ? execution!.provider as Provider : DEFAULT_WORKBENCH_CONFIG.execution.provider ;
 	const models   = MODELS[provider] as readonly string[]                                                                                               ;
 	// YAML loading preserves Native identity. Capability validation belongs to the connected host.
@@ -112,7 +110,6 @@ export function normalizeWorkbenchConfig(value: unknown): WorkbenchConfig {
 		}),
 		hud    : Object.freeze({ showUsage: hud?.showUsage !== false, showContext: hud?.showContext !== false }),
 		slash  : Object.freeze({ mcp: slash?.mcp !== false, clear: slash?.clear !== false, compact: slash?.compact !== false }),
-		linear : validLinearConfig(linear),
 	});
 }
 
@@ -122,7 +119,7 @@ export function isSupportedWorkbenchConfigDocument(value: unknown): boolean {
 }
 function positiveInt(value: unknown, fallback: number): number { return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : fallback; }
 function boundedInt(value: unknown, fallback: number, minimum: number, maximum: number): number { return typeof value === "number" && Number.isSafeInteger(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback; }
-const ROOT_KEYS = new Set(["schemaVersion", "execution", "tnote", "narrator", "limits", "retry", "delegation", "evaluation", "orchestration", "review", "display", "linear", "hud", "slash"]);
+const ROOT_KEYS = new Set(["schemaVersion", "execution", "tnote", "narrator", "limits", "retry", "delegation", "evaluation", "orchestration", "review", "display", "hud", "slash"]);
 
 function validReviewModel(review: Readonly<Record<string, unknown>> | undefined): string {
 	const provider = review?.provider === "google" ? "google" : "anthropic"       ;
@@ -134,14 +131,4 @@ function validReviewModel(review: Readonly<Record<string, unknown>> | undefined)
 function validTNoteModel(tnote: Readonly<Record<string, unknown>> | undefined): string {
 	const model = typeof tnote?.model === "string" ? tnote.model.trim() : "";
 	return (MODELS["openai-codex"] as readonly string[]).includes(model) ? model : DEFAULT_WORKBENCH_CONFIG.tnote.model;
-}
-
-function validLinearConfig(linear: Readonly<Record<string, unknown>> | undefined): WorkbenchConfig["linear"] {
-	if (typeof linear?.server !== "string"
-		|| !linear.server.trim()
-		|| typeof linear.projectId !== "string"
-		|| !linear.projectId.trim()
-		|| typeof linear.projectName !== "string"
-		|| !linear.projectName.trim()) return null;
-	return Object.freeze({ server: linear.server.trim(), projectId: linear.projectId.trim(), projectName: linear.projectName.trim() });
 }

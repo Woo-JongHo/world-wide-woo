@@ -1,14 +1,22 @@
-import { describe, expect, test }     from "bun:test";
-import { ContextComposer }            from "../src/core/application/orchestration/context-composer";
-import { OutputLanguageSelection }    from "../src/core/domain/execution/output-language";
-import type { SkillRegistrySnapshot } from "../src/core/skills/skill-registry";
+import      { describe, expect, test  } from "bun:test"                                               ;
+import      { ContextComposer         } from "../src/core/application/orchestration/context-composer" ;
+import      { OutputLanguageSelection } from "../src/core/domain/execution/output-language"           ;
+import type { SkillRegistrySnapshot   } from "../src/core/skills/skill-registry"                      ;
 
 describe("ContextComposer Skill Registry", () => {
+	test("Chat context contains only its local workspace and preserves caller context", () => {
+		const input   = { threadId: "thread", text: "Continue", cwd: "/workspace", additionalContext: { caller: { kind: "application" as const, value: "request" } } } ;
+		const turn    = new ContextComposer().compose(input)                                                                                                           ;
+		const sources = JSON.parse(turn.additionalContext!.www_context_sources!.value).sources                                                                         ;
+		expect(sources.map((source: { repository: { id: string } }) => source.repository.id))    .toEqual  (["WWW"]                       ) ;
+		expect(turn.additionalContext?.caller                                               )    .toEqual  (input.additionalContext.caller) ;
+		expect(Object.keys(turn.additionalContext ?? {})                                    ).not.toContain("woo_entry_snapshot"          ) ;
+	});
 	test("다음 턴의 출력 언어 지침은 현재 선택을 따른다", () => {
-		const language = new OutputLanguageSelection("en");
-		const composer = new ContextComposer(4_000, language);
-		const input = { threadId: "thread", text: "Read the file", cwd: "/workspace", approvalPolicy: "on-request" as const };
-		const english = composer.compose(input, undefined);
+		const language = new OutputLanguageSelection("en")                                                                       ;
+		const composer = new ContextComposer(4_000, language)                                                                    ;
+		const input    = { threadId: "thread", text: "Read the file", cwd: "/workspace", approvalPolicy: "on-request" as const } ;
+		const english  = composer.compose(input, undefined)                                                                      ;
 		expect(english.additionalContext?.www_context_policy?.value).toContain("Respond to the user in English.");
 		language.set("ko");
 		const korean = composer.compose(input, undefined);
@@ -22,8 +30,8 @@ describe("ContextComposer Skill Registry", () => {
 			digest         : "a".repeat(64),
 			skills         : [{ name: "rpa-intake", description: "민감한 상세 설명", path: ".agents/skills/rpa-intake/SKILL.md", digest: "b".repeat(64), sourceRevision: "git:abc123:dirty" }],
 		};
-		const turn = new ContextComposer().compose({ threadId: "thread", text: "개발 시작", cwd: "/workspace", approvalPolicy: "on-request" }, undefined, registry);
-		const entry = turn.additionalContext?.www_skill_registry;
+		const turn  = new ContextComposer().compose({ threadId: "thread", text: "개발 시작", cwd: "/workspace", approvalPolicy: "on-request" }, registry) ;
+		const entry = turn.additionalContext?.www_skill_registry                                                                                          ;
 		expect(entry?.kind).toBe("application");
 		const payload = JSON.parse(entry?.value ?? "{}");
 		expect(payload).toEqual({ protocol: "www-skill-registry", version: 1, sourceRevision: registry.sourceRevision, registryDigest: registry.digest, skills: [{ name: "rpa-intake", digest: "b".repeat(64) }] });

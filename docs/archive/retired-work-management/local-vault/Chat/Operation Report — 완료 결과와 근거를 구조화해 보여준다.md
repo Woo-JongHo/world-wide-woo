@@ -1,0 +1,94 @@
+---
+acceptance: partial
+capability: Operation Report
+code_ids: []
+decision_ids:
+  - DEC-OPERATION-REPORT-001
+  - DEC-OPERATION-REPORT-002
+document_id: e4221ec6-680e-4c7b-ae2c-4972f8df094e
+domain: Chat
+exception_ids:
+  - EXC-OPERATION-REPORT-001
+  - EXC-OPERATION-REPORT-002
+linear: WOO-843
+parent: null
+record_type: detailed-canonical
+related: []
+schema_version: 2
+source_revision: worktree:216b9d9faa09bcb19151f0f188792e8ce7113bf6:dirty
+spec_ids:
+  - OPR-001
+status: draft
+tags:
+  - www/spec
+  - domain/chat
+  - capability/operation-report
+  - status/draft
+test_ids:
+  - TEST-OPERATION-REPORT-001
+  - TEST-OPERATION-REPORT-002
+  - TEST-OPERATION-REPORT-003
+updated_at: 2026-09-26T12:27:21+09:00
+---
+
+# Operation Report — 완료 결과와 근거를 구조화해 보여준다
+
+## 1. Intent
+
+사용자는 완료 Output을 AI 요약문이 아니라 운영보고서로 읽고, 전체 결과를 즉시 판정한 뒤 작업·수치·변경·근거를 순서대로 추적해야 한다. 문장은 읽고 숫자는 비교하며 상태는 훑고 근거는 상세 Source로 이어진다.
+
+## 2. Scope
+
+In scope는 request-report-v3의 구조화 정규화, Snapshot, 작업·결과·runtime·token·metric·평가·변경·Evidence·Test 표시와 폭별 배치다. Note 생성 문법 교체, raw event 기본 노출, 관측되지 않은 값 계산, 외부 시스템 상태 변경은 제외한다.
+
+## 3. Desired Behavior
+
+Given 완료된 v3 Note와 같은 turn의 runtime 또는 receipt가 있을 때, When Dashboard에서 Output을 열면, Then Snapshot과 01~13 섹션을 순서대로 표시하고 관측된 값만 결합한다. 데이터 없는 변경 파일 섹션은 생략하고, 비교 데이터가 없으면 미관측으로 표시한다. 90열 이상은 표, 60~89열은 compact, 60열 미만은 stacked 배치를 사용한다.
+
+## 4. Domain Contract
+
+INV-001: 전체 판정은 기존 report의 명시적 최종 평가를 보존하며 renderer가 독자적으로 바꾸지 않는다. INV-002: 0은 실제 0, 대시는 미관측, NONE은 명시적 없음, NOT RUN은 미실행 확인, NOT OBSERVED는 실행 여부 미관측, UNKNOWN은 identity 또는 값 미확인이다. INV-003: runtime은 Note completion turnId와 일치할 때만 결합한다. INV-004: 세션 누계 토큰과 line diff를 request 값으로 재분배하거나 추정하지 않는다.
+
+## 5. State Model
+
+Report status는 success·partial·failed·unknown이고 보조 상태는 none·not-run·not-observed를 사용한다. known fact는 값과 상태를 렌더하고, absent fact는 대시 또는 명시 상태로 남긴다. width state는 wide·medium·narrow이며 내용 의미를 바꾸지 않고 행 배치만 전환한다.
+
+## 6. Data & Runtime Flow
+
+Stored request-report-v3 Note → Operation Report normalizer → turn identity gate → observed execution receipt/runtime 결합 → width-aware renderer → Dashboard Output. Note summary는 narrative 원본, execution receipt는 file·verification·receipt 근거, provenance는 detached narrator identity를 소유한다.
+
+## 7. Identity & Persistence Contract
+
+Operation Report는 별도 저장 정본을 만들지 않고 기존 WorkbenchTNote id·threadId·turnId·sourceActivityIds를 유지한다. runtime과 receipt는 같은 completion turn에만 일시 결합하며 Note 원문을 변경하지 않는다. v2·legacy Note는 기존 읽기 전용 경로를 유지한다.
+
+## 8. Integration Contract
+
+TNoteBrowserController의 기존 Dashboard → Output 진입을 유지한다. Core NoteFeatureProjection은 presentation에 필요한 관측 runtime만 제공하고, operation-report view-model이 정규화하며 TUI renderer는 표와 narrative를 배치한다. Source identity와 Evidence는 12번 섹션에서 계속 추적할 수 있다.
+
+## 9. Failure & Recovery Contract
+
+EXC-OPERATION-REPORT-001: Note와 runtime turn이 다르면 모델·시간·receipt·파일을 UNKNOWN 또는 미관측으로 표시하고 결합하지 않는다. EXC-OPERATION-REPORT-002: 부정문이나 0건 Test를 성공으로 승격하지 않는다. raw payload 파싱 실패나 비교 부재는 허구값 대신 미관측 상태로 남기고 기존 Note 원문과 Source identity를 보존한다.
+
+## 10. Acceptance Contract
+
+AC-OPR-001: Snapshot과 01~13 구조에서 상태·수치·근거와 narrative가 분리된다. AC-OPR-002: model known/unknown, token zero/unknown, NOT RUN/NOT OBSERVED, receipt file/no stat, 부정 상태 표현이 구분된다. AC-OPR-003: wide·medium·narrow 모든 행이 폭을 넘지 않고 기존 v2·legacy·Source·Dashboard 진입이 유지된다. 자동 회귀는 PASS, 실제 TTY 수동 조작은 NOT TESTED라 전체 acceptance는 partial이다.
+
+## 11. Verification Strategy
+
+TEST-OPERATION-REPORT-001은 test/operation-report-view.test.ts에서 Snapshot·status·token·model·Test·Evidence·폭 배치를 검증한다. TEST-OPERATION-REPORT-002는 test/tnote-read-flow.test.ts에서 Dashboard → Output과 v2·legacy·Source 회귀를 검증한다. TEST-OPERATION-REPORT-003은 전체 bun test와 TypeScript·가독성·diff 게이트를 사용하며, 반대 provider 독립 리뷰는 별도 Evidence가 확보될 때만 완료로 인정한다.
+
+## 12. Implementation Map
+
+Core projection은 workbench-feature-reads.ts, 정규화는 operation-report-view-model.ts, 반응형 표시는 operation-report-view.ts, 기존 routing 결합은 tnote-browser-view.ts와 tnote-browser-view-model.ts가 소유한다.
+
+## 13. Current State & Gaps
+
+Snapshot, 13개 섹션, semantic status, runtime turn gate, receipt file·Evidence, raw JSON 제외, wide·medium·narrow 렌더링이 구현됐다. Activity CHANGE 행의 +ADD/-DEL과 합계, 명시적으로 선택한 동일 제목 이전 완료 실행 비교, /output 진입, 0.0.21 빌드를 추가했다. 관련 회귀 146 pass·0 fail과 타입·빌드 검사를 확인했다. 전체 회귀의 단일 실패는 macOS FSEvents watcher context canceled 환경 오류이며 실제 TTY 조작 Evidence와 독립 리뷰 결과는 남아 있다.
+
+## 14. Decisions & Evidence
+
+DEC-OPERATION-REPORT-001 approved: 기존 request-report-v3 저장 형식을 깨지 않고 adapter/normalizer로 구조화한다. 이유는 영속 호환과 점진 전환을 보존하기 위해서며, 저장 모델 전면 교체는 migration 비용 때문에 기각했다. DEC-OPERATION-REPORT-002 approved: 값이 없는 표 칸은 추정하지 않고 미관측으로 표시하며 데이터 없는 파일 섹션은 생략한다. 시각적 완성을 위해 세션 누계나 가짜 diff를 채우는 대안은 운영 신뢰를 훼손해 기각했다. 결정 권한은 2026-09-26 사용자 요청이며 근거는 코드·관련 회귀·타입·빌드 검증이다. 독립 리뷰 결과는 확보되지 않아 문서는 draft를 유지한다.
+
+## Change Log
+
+2026-09-26 WOO-843 Operation Report 구조, 데이터 진실성, 반응형 표시와 검증 계약을 최초 작성.

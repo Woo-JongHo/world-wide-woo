@@ -1,18 +1,18 @@
-import { describe, expect, test }                  from "bun:test";
-import { TuiAltScreen }                            from "@earendil-works/pi-tui";
-import type { Component, Terminal }                from "@earendil-works/pi-tui";
-import { ProjectWorkbench }                        from "../src/core/application/orchestration/project-workbench";
-import { LayerPerformanceRecorder }                from "../src/core/domain/observability/layer-performance";
+import      { describe, expect, spyOn, test           } from "bun:test"                                                ;
+import      { TuiAltScreen                            } from "@earendil-works/pi-tui"                                  ;
+import type { Component, Terminal                     } from "@earendil-works/pi-tui"                                  ;
+import      { ProjectWorkbench                        } from "../src/core/application/orchestration/project-workbench" ;
+import      { LayerPerformanceRecorder                } from "../src/core/domain/observability/layer-performance"      ;
 import type {
-	WorkbenchCommand,
-	WorkbenchCommandReceipt,
-	WorkbenchListener,
-	WorkbenchSnapshot,
-} from "../src/core/domain/work/workbench";
-import { runProjectWorkbenchShell }                from "../src/adapters/inbound/tui/shell/workbench-shell";
-import { ShellLifecycle }                          from "../src/adapters/inbound/tui/shell/shell-lifecycle";
-import { wwwFixture }                              from "./fixtures/www-snapshot";
-import { FakeNativeHarness, MemoryJournal, ready } from "./project-workbench.fixtures";
+              WorkbenchCommand                      ,
+              WorkbenchCommandReceipt               ,
+              WorkbenchListener                     ,
+              WorkbenchSnapshot                     ,
+                                                      } from "../src/core/domain/work/workbench"                       ;
+import      { runProjectWorkbenchShell                } from "../src/adapters/inbound/tui/shell/workbench-shell"       ;
+import      { ShellLifecycle                          } from "../src/adapters/inbound/tui/shell/shell-lifecycle"       ;
+import      { wwwFixture                              } from "./fixtures/www-snapshot"                                 ;
+import      { FakeNativeHarness, MemoryJournal, ready } from "./project-workbench.fixtures"                            ;
 
 class CharacterizationTerminal implements Terminal {
 	columns                                = 100                                                ;
@@ -22,6 +22,7 @@ class CharacterizationTerminal implements Terminal {
 	writeCalls                             = 0                                                  ;
 	stopped                                = false                                              ;
 	failNextWrite                          = false                                              ;
+	onWrite       : () => void             = () => undefined                                    ;
 	writeSequence : string[]               = []                                                 ;
 	input         : (data: string) => void = () => { throw new Error("terminal not started"); } ;
 	resize        : () => void             = () => { throw new Error("terminal not started"); } ;
@@ -36,6 +37,7 @@ class CharacterizationTerminal implements Terminal {
 			throw new Error("terminal write failed");
 		}
 		this.output += data;
+		this.onWrite();
 		this.writeSequence.push("terminal.write:return");
 	}
 	moveBy          ()                                                 : void {}
@@ -52,13 +54,12 @@ interface ShellHarness {
 	readonly terminal: CharacterizationTerminal;
 	readonly commands: WorkbenchCommand[];
 	readonly disposed: {
-		readonly closed             : number            ;
-		readonly unsubscribed       : number            ;
-		readonly usagePolling       : number            ;
-		readonly developmentPolling : number            ;
-		readonly lease              : number            ;
-		readonly savedDrafts        : readonly string[] ;
-		readonly clearedDrafts      : number            ;
+		readonly closed        : number            ;
+		readonly unsubscribed  : number            ;
+		readonly usagePolling  : number            ;
+		readonly lease         : number            ;
+		readonly savedDrafts   : readonly string[] ;
+		readonly clearedDrafts : number            ;
 	};
 	emit    (snapshot: WorkbenchSnapshot): void;
 	submit  (text: string               ): Promise<void>;
@@ -174,19 +175,16 @@ describe("runProjectWorkbenchShell characterization", () => {
 
 	test("disposes shell-owned resources during shutdown", async () => {
 		const shell = startShell(wwwFixture("ready"));
-		await shell.submit("/map");
-		expect(shell.disposed.developmentPolling).toBe(0);
 
 		await shell.shutdown();
 
 		expect(shell.disposed).toEqual({
-			closed             : 1,
-			unsubscribed       : 1,
-			usagePolling       : 1,
-			developmentPolling : 1,
-			lease              : 1,
-			savedDrafts        : [""],
-			clearedDrafts      : 0,
+			closed        : 1,
+			unsubscribed  : 1,
+			usagePolling  : 1,
+			lease         : 1,
+			savedDrafts   : [""],
+			clearedDrafts : 0,
 		});
 		expect(shell.terminal.stopped).toBe(true);
 	});
@@ -222,7 +220,7 @@ describe("runProjectWorkbenchShell characterization", () => {
 
 	test("connects one visible Native event through all seven layers until Terminal.write returns", async () => {
 		expect(typeof TuiAltScreen.prototype.setRenderObserver).toBe("function");
-		const native    = new FakeNativeHarness()                                                  ;
+		const native    = new FakeNativeHarness()                                                          ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "p", cwd: "/p" }) ;
 		await ready(workbench);
 		const shell = startObservedShell(workbench);
@@ -246,6 +244,110 @@ describe("runProjectWorkbenchShell characterization", () => {
 			expect(trace?.layers.every(layer => layer.workMs !== null)).toBe(true);
 			expect(trace?.layers.at(-1)?.frameId).toMatch(/^terminal-frame-/u);
 		} finally { await shell.shutdown(); }
+	});
+
+	test("backs off the cosmetic clock without adding an execution-page refresh", async () => {
+		let snapshot                     = wwwFixture("working")                                                  ;
+		let listener : WorkbenchListener = () => undefined                                                        ;
+		let traceId  : string | null     = null                                                                   ;
+		let now                          = 0                                                                      ;
+		let motionTick                   = (): void => { throw new Error("WWW motion clock was not installed"); } ;
+		const workbench = {
+			get snapshot() { return snapshot; },
+			subscribe(next: WorkbenchListener) { listener = next; next(snapshot); return () => { listener = () => undefined; }; },
+			currentPerformanceTraceId: () => traceId,
+			observeLayerPerformance  : () => undefined,
+			async dispatch(): Promise<WorkbenchCommandReceipt> { return { state: "accepted", commandId: "test" }; },
+			async close() {},
+		} as unknown as ProjectWorkbench;
+		const shell = startObservedShell(workbench, {
+			now      : () => now,
+			interval : (callback) => { motionTick = callback; return 1 as unknown as NodeJS.Timeout; },
+			onWrite  : () => { now += 300; },
+		});
+		try {
+			await settle();
+			const executionWrites = shell.terminal.writeCalls;
+			traceId = "execution-trace";
+			snapshot = { ...snapshot, revision: snapshot.revision + 1 };
+			listener(snapshot);
+			await waitFor(() => shell.terminal.writeCalls - executionWrites === 1);
+			await settle();
+			expect(shell.terminal.writeCalls - executionWrites).toBe(1);
+
+			const completedAt = now;
+			now = completedAt + 599;
+			motionTick();
+			await settle();
+			expect(shell.terminal.writeCalls - executionWrites).toBe(1);
+			now += 1;
+			motionTick();
+			await waitFor(() => shell.terminal.writeCalls - executionWrites === 2);
+		} finally { await shell.shutdown(); }
+	});
+
+	for (const delayedTickMs of [0, 20]) test(`keeps WORKING motion after inexpensive frames and ${delayedTickMs}ms timer jitter`, async () => {
+		const snapshot = wwwFixture("working")                                                  ;
+		let now        = 0                                                                      ;
+		let motionTick = (): void => { throw new Error("WWW motion clock was not installed"); } ;
+		const workbench = {
+			get snapshot() { return snapshot; },
+			subscribe(next: WorkbenchListener) { next(snapshot); return () => undefined; },
+			async dispatch(): Promise<WorkbenchCommandReceipt> { return { state: "accepted", commandId: "test" }; },
+			async close() {},
+		} as unknown as ProjectWorkbench;
+		const requestRender = spyOn(TuiAltScreen.prototype, "requestRender");
+		const shell = startObservedShell(workbench, {
+			now      : () => now,
+			interval : (callback) => { motionTick = callback; return 1 as unknown as NodeJS.Timeout; },
+			onWrite  : () => { now += 5; },
+		});
+		try {
+			await settle();
+			const firstTick = now + 120;
+			for (let tick = 0; tick < 4; tick++) {
+				now = firstTick + tick * 120 + (tick === 0 ? delayedTickMs : 0);
+				const before = requestRender.mock.calls.length;
+				motionTick();
+				expect(requestRender.mock.calls.length - before).toBe(1);
+				// Rendering is queued after the timer callback, even on an idle terminal.
+				now += 3;
+				await settle();
+			}
+		} finally { requestRender.mockRestore(); await shell.shutdown(); }
+	});
+
+	test("requests exactly one follow-up frame when Render Health is visible", async () => {
+		let snapshot                     = wwwFixture("ready") ;
+		let listener : WorkbenchListener = () => undefined     ;
+		let traceId  : string | null     = null                ;
+		const workbench = {
+			get snapshot() { return snapshot; },
+			subscribe(next: WorkbenchListener) { listener = next; next(snapshot); return () => { listener = () => undefined; }; },
+			currentPerformanceTraceId: () => traceId,
+			observeLayerPerformance  : () => undefined,
+			async dispatch(): Promise<WorkbenchCommandReceipt> { return { state: "accepted", commandId: "test" }; },
+			async close() {},
+		} as unknown as ProjectWorkbench;
+		const requestRender = spyOn(TuiAltScreen.prototype, "requestRender");
+		const shell = startObservedShell(workbench, {
+			now      : () => 0,
+			interval : () => 1 as unknown as NodeJS.Timeout,
+			onWrite  : () => undefined,
+		}, "dashboard");
+		try {
+			await settle();
+			requestRender.mockClear();
+			traceId = "dashboard-trace";
+			snapshot = { ...snapshot, revision: snapshot.revision + 1 };
+			listener(snapshot);
+			await waitFor(() => requestRender.mock.calls.length >= 2);
+			await settle();
+			expect(requestRender).toHaveBeenCalledTimes(2);
+		} finally {
+			await shell.shutdown();
+			requestRender.mockRestore();
+		}
 	});
 
 	test("observes terminal-write completed only after the synchronous Terminal.write implementation returns", async () => {
@@ -276,7 +378,7 @@ describe("runProjectWorkbenchShell characterization", () => {
 	});
 
 	test("links every coalesced Native delta to the same terminal frame", async () => {
-		const native    = new FakeNativeHarness()                                                  ;
+		const native    = new FakeNativeHarness()                                                          ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "p", cwd: "/p" }) ;
 		await ready(workbench);
 		const shell = startObservedShell(workbench);
@@ -304,7 +406,7 @@ describe("runProjectWorkbenchShell characterization", () => {
 	});
 
 	test("marks an ignored duplicate event as no-render instead of missing instrumentation", async () => {
-		const native    = new FakeNativeHarness()                                                  ;
+		const native    = new FakeNativeHarness()                                                          ;
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "p", cwd: "/p" }) ;
 		await ready(workbench);
 		const shell = startObservedShell(workbench);
@@ -364,8 +466,8 @@ describe("runProjectWorkbenchShell characterization", () => {
 			expect(() => writeTui.renderNow()).toThrow("terminal write failed");
 		} finally { writeTui.stop(); }
 
-		const layout = layoutRecorder.project("layout-failure")!;
-		const write  = writeRecorder.project("write-failure")!  ;
+		const layout = layoutRecorder.project("layout-failure")! ;
+		const write  = writeRecorder.project("write-failure")!   ;
 		expect(layout.layers.find(layer => layer.layerId === "layout-materialize")?.failed).toBe(true ) ;
 		expect(layout.layers.find(layer => layer.layerId === "terminal-write")?.failed    ).toBe(false) ;
 		expect(write.layers.find(layer => layer.layerId === "layout-materialize")?.failed ).toBe(false) ;
@@ -373,14 +475,23 @@ describe("runProjectWorkbenchShell characterization", () => {
 	});
 });
 
-function startObservedShell(workbench: ProjectWorkbench): { readonly terminal: CharacterizationTerminal; shutdown(): Promise<void> } {
+interface ObservedMotionClock {
+	readonly now      : () => number                                                 ;
+	readonly interval : (callback: () => void, intervalMs: number) => NodeJS.Timeout ;
+	readonly onWrite  : () => void                                                   ;
+}
+
+function startObservedShell(workbench: ProjectWorkbench, motion?: ObservedMotionClock, initialWwwPage?: "dashboard"): { readonly terminal: CharacterizationTerminal; shutdown(): Promise<void> } {
 	const terminal = new CharacterizationTerminal();
+	if (motion) terminal.onWrite = motion.onWrite;
 	runProjectWorkbenchShell({
 		terminal,
 		cwd: "/test/layer-performance",
 		surface: "www",
+		...(initialWwwPage ? { initialWwwPage } : {}),
 		workbench,
 		renderIntervalMs: 100,
+		...(motion ? { motionNow: motion.now, motionInterval: motion.interval } : {}),
 		usage: {
 			async refresh() { return []; },
 			startPolling(next) { next([]); return () => undefined; },
@@ -416,7 +527,6 @@ function startShell(
 	let closed                             = 0                              ;
 	let unsubscribed                       = 0                              ;
 	let usagePolling                       = 0                              ;
-	let developmentPolling                 = 0                              ;
 	let lease                              = 0                              ;
 	let clearedDrafts                      = 0                              ;
 	const savedDrafts : string[]           = []                             ;
@@ -455,9 +565,6 @@ function startShell(
 			login   : async () => { throw new Error("not requested"); },
 			logout  : async () => undefined,
 		},
-		developmentMapSource: {
-			startPolling() { return () => { developmentPolling += 1; }; },
-		},
 		composerDraft: {
 			initialText : "",
 			save        : async text => { savedDrafts.push(text); },
@@ -469,7 +576,7 @@ function startShell(
 	return {
 		terminal,
 		commands,
-		get disposed() { return { closed, unsubscribed, usagePolling, developmentPolling, lease, savedDrafts, clearedDrafts }; },
+		get disposed() { return { closed, unsubscribed, usagePolling, lease, savedDrafts, clearedDrafts }; },
 		emit(next) { snapshot = next; listener(next); },
 		async submit(text) { terminal.input(text); terminal.input("\r"); await settle(); },
 		async shutdown() {
@@ -495,7 +602,7 @@ async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<voi
 }
 
 function deferred<T>(): { readonly promise: Promise<T>; readonly resolve: (value: T) => void } {
-	let settle = (_value: T): void => { throw new Error("Deferred promise was not initialized."); };
-	const promise = new Promise<T>((resolve) => { settle = resolve; });
+	let settle    = (_value: T): void => { throw new Error("Deferred promise was not initialized."); } ;
+	const promise = new Promise<T>((resolve) => { settle = resolve; })                                 ;
 	return { promise, resolve: settle };
 }

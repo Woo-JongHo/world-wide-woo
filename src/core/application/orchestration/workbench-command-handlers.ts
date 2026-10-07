@@ -1,18 +1,16 @@
-import type { CanonicalPromotionService }      from "@/core/application/work/canonical-promotion.js";
-import type { ReviewService }                  from "@/core/application/review/review-service.js";
-import type { ProjectActivity }                from "@/core/domain/execution/project-activity.js";
-import type { ReviewPacket, ReviewProvider }   from "@/core/domain/review/review.js";
-import type { TNoteDraft }                     from "@/core/domain/work/t-notes.js";
-import type { TodoDocument }                   from "@/core/domain/work/todos.js";
+import type { ReviewService                } from "@/core/application/review/review-service.js"               ;
+import type { ProjectActivity              } from "@/core/domain/execution/project-activity.js"               ;
+import type { ReviewPacket, ReviewProvider } from "@/core/domain/review/review.js"                            ;
+import type { TNoteDraft                   } from "@/core/domain/work/t-notes.js"                             ;
+import type { TodoDocument                 } from "@/core/domain/work/todos.js"                               ;
 import type {
-	WorkbenchActionResult,
-	WorkbenchCommand,
-	WorkbenchCommandReceipt,
-	WorkbenchMcpServer,
-} from "@/core/domain/work/workbench.js";
-import type { WooEntry }                       from "@/core/application/orchestration/woo-entry.js";
-import { canonicalTNoteDraft, todoResultBody } from "@/core/application/orchestration/workbench-artifacts.js";
-import { stableJson }                          from "@/core/application/orchestration/workbench-projections.js";
+              WorkbenchActionResult      ,
+              WorkbenchCommand           ,
+              WorkbenchCommandReceipt    ,
+              WorkbenchMcpServer         ,
+                                           } from "@/core/domain/work/workbench.js"                           ;
+import      { todoResultBody               } from "@/core/application/orchestration/workbench-artifacts.js"   ;
+import      { stableJson                   } from "@/core/application/orchestration/workbench-projections.js" ;
 
 export interface WorkbenchMcpManagement {
 	listMcpServers     ()                              : Promise<readonly WorkbenchMcpServer[]>;
@@ -33,23 +31,20 @@ interface TodoCommandSource {
 }
 
 interface WorkbenchCommandHandlerDependencies {
-	readonly projectId          : string                                                                                      ;
-	readonly mcp                : () => WorkbenchMcpManagement | null                                                         ;
-	readonly wooEntry?          : WooEntry                                                                                    ;
-	readonly todos?             : TodoCommandSource                                                                           ;
-	readonly promotions?        : CanonicalPromotionService                                                                   ;
-	readonly reviews?           : ReviewService                                                                               ;
-	readonly note               : (noteId: string) => TNoteDraft | undefined                                                  ;
-	readonly activities         : () => readonly ProjectActivity[]                                                            ;
-	readonly hasLegacyRuntimeRequests : () => boolean                                                                         ;
-	readonly setMcpServers      : (servers: readonly WorkbenchMcpServer[]) => void                                            ;
-	readonly setActionResult    : (kind: WorkbenchActionResult["kind"], title: string, body: string, digest?: string) => void ;
-	readonly publish            : () => void                                                                                  ;
+	readonly projectId                : string                                                                                      ;
+	readonly mcp                      : () => WorkbenchMcpManagement | null                                                         ;
+	readonly todos?                   : TodoCommandSource                                                                           ;
+	readonly reviews?                 : ReviewService                                                                               ;
+	readonly note                     : (noteId: string) => TNoteDraft | undefined                                                  ;
+	readonly activities               : () => readonly ProjectActivity[]                                                            ;
+	readonly hasLegacyRuntimeRequests : () => boolean                                                                               ;
+	readonly setMcpServers            : (servers: readonly WorkbenchMcpServer[]) => void                                            ;
+	readonly setActionResult          : (kind: WorkbenchActionResult["kind"], title: string, body: string, digest?: string) => void ;
+	readonly publish                  : () => void                                                                                  ;
 }
 
 /** Handles artifact and management commands that do not own Native turn lifecycle. */
 export class WorkbenchCommandHandlers {
-	private readonly promotionDrafts = new Map<string, ReturnType<typeof canonicalTNoteDraft>>();
 	private readonly reviewPreviews = new Map<string, { provider: ReviewProvider; packet: ReviewPacket }>();
 
 	public constructor(private readonly dependencies: WorkbenchCommandHandlerDependencies) {}
@@ -60,15 +55,12 @@ export class WorkbenchCommandHandlers {
 			case "mcp.enable"         : return this.setMcpServerEnabled(commandId, command.name, true);
 			case "mcp.disable"        : return this.setMcpServerEnabled(commandId, command.name, false);
 			case "mcp.reload"         : return this.reloadMcpServers   (commandId);
-			case "woo-entry.refresh"  : return this.refreshWooEntry    (commandId);
 			case "todo.create"        : return this.mutateTodo         (commandId, "Todo 생성", () => this.requireTodos().create(command.title, command.items, command.storyId));
 			case "todo.add"           : return this.mutateTodo         (commandId, "Todo 항목 추가", () => this.requireTodos().add(command.content, command.placement));
 			case "todo.details"       : return this.mutateTodo         (commandId, "Todo 세부 항목 추가", () => this.requireTodos().addDetails(command.itemId, command.details));
 			case "todo.transition"    : return this.transitionTodo     (commandId, command.action, command.itemId);
 			case "todo.evidence"      : return this.recordTodoEvidence (commandId, command.activityId);
 			case "todo.import-legacy" : return this.importLegacyTodo   (commandId);
-			case "promotion.accept"   : return this.acceptPromotion    (commandId, command.noteId, command.acceptedBy);
-			case "promotion.confirm"  : return this.confirmPromotion   (commandId, command.token);
 			case "review.preview"     : return this.previewReview      (commandId, command.provider, command.noteId, command.request, command.confirmedPublic);
 			case "review.send"        : return this.sendReview         (commandId, command.digest);
 			default                   : return null;
@@ -119,21 +111,6 @@ export class WorkbenchCommandHandlers {
 		return { state: "accepted", commandId };
 	}
 
-	private async refreshWooEntry(commandId: string): Promise<WorkbenchCommandReceipt> {
-		const entry = this.dependencies.wooEntry;
-		if (!entry) return { state: "rejected", commandId, reason: "woo-entry가 이 세션에 연결되지 않았습니다." };
-		const snapshot = await entry.refresh();
-		this.dependencies.publish();
-		if (snapshot.state === "blocked") return { state: "rejected", commandId, reason: `woo-entry BLOCKED: ${snapshot.reason}` };
-		if (snapshot.state === "loading") return { state: "rejected", commandId, reason: "woo-entry 수집이 아직 끝나지 않았습니다." };
-		const signalCount = snapshot.payload.signals.length;
-		return {
-			state: "accepted",
-			commandId,
-			message: signalCount > 0 ? `woo-entry를 갱신했습니다 · signal ${signalCount}개` : "woo-entry를 갱신했습니다.",
-		};
-	}
-
 	private async mutateTodo(commandId: string, title: string, operation: () => Promise<TodoDocument>): Promise<WorkbenchCommandReceipt> {
 		if (this.dependencies.hasLegacyRuntimeRequests()) return { state: "rejected", commandId, reason: "과거 Request Runtime 기록이 소유한 Todo입니다." };
 		const document = await operation();
@@ -165,30 +142,6 @@ export class WorkbenchCommandHandlers {
 	private requireTodos(): TodoCommandSource {
 		if (!this.dependencies.todos) throw new Error("Todo 저장소가 연결되지 않았습니다.");
 		return this.dependencies.todos;
-	}
-
-	private async acceptPromotion(commandId: string, noteId: string, acceptedBy: string): Promise<WorkbenchCommandReceipt> {
-		const promotions = this.dependencies.promotions;
-		if (!promotions) return { state: "rejected", commandId, reason: "정본 승격 서비스가 연결되지 않았습니다." };
-		const note = this.dependencies.note(noteId);
-		if (!note) return { state: "rejected", commandId, reason: `Note를 찾을 수 없습니다: ${noteId}` };
-		const draft = canonicalTNoteDraft(note, this.dependencies.projectId);
-		const accepted = await promotions.accept(draft, acceptedBy);
-		this.promotionDrafts.set(accepted.token, draft);
-		this.dependencies.setActionResult("promotion", `승격 승인 대기: ${accepted.target}`, `${accepted.diff}\n\n확인 토큰: ${accepted.token}`, accepted.afterDigest);
-		return { state: "accepted", commandId, message: "diff를 확인한 뒤 one-time token으로 승격을 확정하세요." };
-	}
-
-	private async confirmPromotion(commandId: string, token: string): Promise<WorkbenchCommandReceipt> {
-		const promotions = this.dependencies.promotions;
-		if (!promotions) return { state: "rejected", commandId, reason: "정본 승격 서비스가 연결되지 않았습니다." };
-		const draft = this.promotionDrafts.get(token);
-		if (!draft) return { state: "rejected", commandId, reason: "알 수 없거나 이미 사용한 승격 토큰입니다." };
-		const promoted = await promotions.promote(draft, token);
-		if (promoted.status === "promoted") this.promotionDrafts.delete(token);
-		this.dependencies.setActionResult("promotion", promoted.status === "promoted" ? `정본 승격 완료: ${promoted.target}` : `승격 재승인 필요: ${promoted.reason}`, promoted.diff, promoted.afterDigest);
-		if (promoted.status !== "promoted") return { state: "rejected", commandId, reason: `승격 초안이 오래되었습니다: ${promoted.reason}` };
-		return { state: "accepted", commandId, message: "정본 파일에 기록했습니다. Git 상태는 uncommitted입니다." };
 	}
 
 	private async previewReview(commandId: string, provider: ReviewProvider, noteId: string, request: string, confirmedPublic: true): Promise<WorkbenchCommandReceipt> {

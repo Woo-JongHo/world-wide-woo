@@ -1,8 +1,8 @@
-import type { CacheLayerId, CacheLayerObservation } from "@/core/domain/observability/cache-telemetry.js";
-import type { ProjectActivity }                     from "@/core/domain/execution/project-activity.js";
-import { projectNativeDelegation }                  from "@/core/domain/work/delegation.js";
+import type { CacheLayerId, CacheLayerObservation } from "@/core/domain/observability/cache-telemetry.js" ;
+import type { ProjectActivity                     } from "@/core/domain/execution/project-activity.js"    ;
+import      { projectNativeDelegation             } from "@/core/domain/work/delegation.js"               ;
 
-type CacheKind = "context" | "model" | "dashboard";
+type CacheKind = "context" | "model";
 
 interface CacheAccessTelemetry {
 	hits               : number        ;
@@ -13,13 +13,10 @@ interface CacheAccessTelemetry {
 }
 
 interface CacheObservationInput {
-	readonly requestCached      : boolean                      ;
-	readonly modelEntries       : number                       ;
-	readonly modelStale         : boolean                      ;
-	readonly dashboardConnected : boolean                      ;
-	readonly dashboardReady     : boolean                      ;
-	readonly dashboardFetched   : boolean                      ;
-	readonly journal            : CacheLayerObservation | null ;
+	readonly requestCached : boolean                      ;
+	readonly modelEntries  : number                       ;
+	readonly modelStale    : boolean                      ;
+	readonly journal       : CacheLayerObservation | null ;
 }
 
 /** Owns Workbench projection caches and their access telemetry. */
@@ -27,7 +24,6 @@ export class WorkbenchCacheProjection {
 	private readonly telemetry = {
 		context   : emptyTelemetry(),
 		model     : emptyTelemetry(),
-		dashboard : emptyTelemetry(),
 	};
 	private delegationCache: {
 		length   : number                                     ;
@@ -54,8 +50,8 @@ export class WorkbenchCacheProjection {
 			this.hit("context");
 			return this.delegationCache.value;
 		}
-		const startedAt = performance.now();
-		const value = threadId ? projectNativeDelegation(activities, threadId) : [];
+		const startedAt = performance.now()                                             ;
+		const value     = threadId ? projectNativeDelegation(activities, threadId) : [] ;
 		this.miss("context", performance.now() - startedAt, this.delegationCache !== null);
 		this.delegationCache = { length: activities.length, threadId, value };
 		return value;
@@ -66,9 +62,6 @@ export class WorkbenchCacheProjection {
 			observation("context-projection", Number(input.requestCached) + Number(this.delegationCache !== null), this.telemetry.context),
 			observation("model-catalog", input.modelEntries, this.telemetry.model, input.modelStale ? "stale" : "ready"),
 		];
-		if (input.dashboardConnected && input.dashboardFetched) {
-			observations.push(observation("dashboard-data", 1, this.telemetry.dashboard, input.dashboardReady ? "ready" : "stale"));
-		}
 		if (input.journal) observations.push(input.journal);
 		return observations;
 	}

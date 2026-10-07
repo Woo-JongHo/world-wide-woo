@@ -26,6 +26,7 @@ export interface ObservedTestRun {
 	readonly fail            : number | null                                    ;
 	readonly skip            : number | null                                    ;
 	readonly suites          : readonly ObservedTestSuite[]                     ;
+	readonly caseNames       : readonly string[]                                ;
 	readonly failureNames    : readonly string[]                                ;
 	readonly totalsSource    : "command-output" | "log-readback" | "unobserved" ;
 	readonly outputTruncated : boolean                                          ;
@@ -54,8 +55,9 @@ function readbackOutput(activities: readonly ProjectActivity[], last: ProjectAct
 	}).map(activity => String(itemOf(activity).aggregatedOutput).replace(/^\d+:/gmu, "")).join("\n");
 }
 
-function parseBunOutput(output: string): Pick<ObservedTestRun, "suites" | "pass" | "fail" | "skip" | "durationMs" | "failureNames"> & { summaryObserved: boolean } {
+function parseBunOutput(output: string): Pick<ObservedTestRun, "suites" | "pass" | "fail" | "skip" | "durationMs" | "caseNames" | "failureNames"> & { summaryObserved: boolean } {
 	const suites       : { name: string; pass: number; fail: number; skip: number; durationMs: number | null; failures: ObservedFailedTest[] }[] = []   ;
+	const caseNames    : string[]                                                                                                                = []   ;
 	const failureNames : string[]                                                                                                                = []   ;
 	let suite          : (typeof suites)[number] | null                                                                                          = null ;
 	let failed         : { name: string; lines: string[] } | null                                                                                = null ;
@@ -77,6 +79,7 @@ function parseBunOutput(output: string): Pick<ObservedTestRun, "suites" | "pass"
 			continue;
 		}
 		const caseLine = /^\((pass|fail|skip)\) (.*?)(?: \[([^\]]+)\])?\s*$/u.exec(line);
+		if (caseLine && caseNames.length < 8) caseNames.push(caseLine[2]!);
 		if (caseLine?.[1] === "fail") failureNames.push(caseLine[2]!);
 		if (caseLine && suite) {
 			flushFailure();
@@ -110,7 +113,7 @@ function parseBunOutput(output: string): Pick<ObservedTestRun, "suites" | "pass"
 	}
 	if (skip === null && observedTotal !== null && pass !== null && fail !== null) skip = observedTotal >= pass + fail ? observedTotal - pass - fail : null;
 	if (skip === null && observedTotal === null && suites.length) skip = suites.reduce((total, current) => total + current.skip, 0);
-	return { suites, pass, fail, skip, durationMs, failureNames: [...new Set(failureNames)], summaryObserved: observedTotal !== null && pass !== null && fail !== null };
+	return { suites, pass, fail, skip, durationMs, caseNames, failureNames: [...new Set(failureNames)], summaryObserved: observedTotal !== null && pass !== null && fail !== null };
 }
 
 /** Only commandExecution observations and literal runner output contribute to this projection. */
@@ -150,7 +153,7 @@ export function projectRequestTestWorkspace(input: { readonly activities: readon
 		const outputTruncated = events.some(event => event.payload.observationTruncated === true)                                                                              ;
 		const totalsObserved  = parsed.summaryObserved || !outputTruncated && !readback                                                                                        ;
 		const totalsSource    = parsed.summaryObserved ? readback && !parseBunOutput(ownOutput).summaryObserved ? "log-readback" : "command-output" : "unobserved"             ;
-		return { id: first.nativeRefs.itemId ?? first.id, turnId: first.nativeRefs.turnId ?? null, command, executedCommand, status: !terminal ? "running" : exitCode === 0 ? "passed" : exitCode !== null || last.phase === "failed" ? "failed" : "unknown", exitCode, durationMs, pass: totalsObserved ? parsed.pass : null, fail: totalsObserved ? parsed.fail : null, skip: totalsObserved ? parsed.skip : null, suites: parsed.suites, failureNames: parsed.failureNames, totalsSource, outputTruncated, sequence: first.sequence } satisfies ObservedTestRun;
+		return { id: first.nativeRefs.itemId ?? first.id, turnId: first.nativeRefs.turnId ?? null, command, executedCommand, status: !terminal ? "running" : exitCode === 0 ? "passed" : exitCode !== null || last.phase === "failed" ? "failed" : "unknown", exitCode, durationMs, pass: totalsObserved ? parsed.pass : null, fail: totalsObserved ? parsed.fail : null, skip: totalsObserved ? parsed.skip : null, suites: parsed.suites, caseNames: parsed.caseNames, failureNames: parsed.failureNames, totalsSource, outputTruncated, sequence: first.sequence } satisfies ObservedTestRun;
 	});
 	return { runs: runs.sort((a, b) => a.sequence - b.sequence) };
 }

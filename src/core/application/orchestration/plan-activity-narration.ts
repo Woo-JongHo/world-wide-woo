@@ -1,24 +1,28 @@
-import { isReasoningActivityPayload }                     from "@/core/domain/execution/project-activity.js";
-import type { ProjectActivity }                           from "@/core/domain/execution/project-activity.js";
-import { redactForExternalReview }                        from "@/core/domain/review/redaction.js";
-import { sanitizeTerminalTextExcerpt }                    from "@/core/domain/execution/terminal.js";
-import type { PlanActivity }                              from "@/core/domain/work/workbench.js";
-import type { ActivityNarrationResult, ActivityNarrator } from "@/core/application/orchestration/activity-narrator.js";
-import { verificationCommand }                            from "@/core/domain/observability/request-test-workspace.js";
+import      { isReasoningActivityPayload                } from "@/core/domain/execution/project-activity.js"           ;
+import type { ProjectActivity                           } from "@/core/domain/execution/project-activity.js"           ;
+import      { redactForExternalReview                   } from "@/core/domain/review/redaction.js"                     ;
+import      { sanitizeTerminalTextExcerpt               } from "@/core/domain/execution/terminal.js"                   ;
+import type { PlanActivity                              } from "@/core/domain/work/workbench.js"                       ;
+import type { ActivityNarrationResult, ActivityNarrator } from "@/core/application/orchestration/activity-narrator.js" ;
+import      { verificationCommand                       } from "@/core/domain/observability/request-test-workspace.js" ;
+import      { immediateShellSummary                     } from "@/core/domain/execution/shell-description.js"          ;
 
 export interface PlanActivityContext {
-	turnId    : string ;
-	stepId    : string ;
-	stepTitle : string ;
-	goal      : string ;
-	kind?     : "plan-progress" | "tool-action"
+	turnId    : string                          ;
+	stepId    : string                          ;
+	stepTitle : string                          ;
+	goal      : string                          ;
+	kind?     : "plan-progress" | "tool-action" ;
+	/** Runner output or log read-back observed these names; omit when none were observed. */
+	testNames?: readonly string[]
 }
 interface Entry {
-	activity : PlanActivity                                    ;
-	input    : string                                          ;
-	goal     : string                                          ;
-	kind     : "plan-progress" | "tool-action" | "test-action" ;
-	result?  : ActivityNarrationResult                         ;
+	activity       : PlanActivity                                    ;
+	input          : string                                          ;
+	goal           : string                                          ;
+	kind           : "plan-progress" | "tool-action" | "test-action" ;
+	latestSequence : number                                          ;
+	result?        : ActivityNarrationResult                         ;
 	failed?: boolean
 }
 
@@ -48,19 +52,23 @@ export class PlanActivityNarration {
 		const testAction = context.kind === "tool-action" && observation.kind === "tool" && typeof item.command === "string" && verificationCommand(item.command)                                                                 ;
 		if (testAction && !["completed", "failed", "cancelled"].includes(observation.phase)) return;
 		if (previous) {
+			if (observation.sequence <= previous.latestSequence) return;
+			previous.latestSequence = observation.sequence;
+			if (previous.activity.status === status) return;
 			previous.activity = { ...previous.activity, status };
+			this.changed(previous.activity.stepId);
 			return;
 		}
-		const input = testAction ? publicTestActionInput(observation) : publicActionInput(observation);
+		const input = testAction ? publicTestActionInput(observation, context.testNames) : publicActionInput(observation);
 		if (!input) return;
-		this.entries.set(id, { activity: { id, turnId: context.turnId, stepId: context.stepId, stepTitle: context.stepTitle, summary: "", status, sequence: observation.sequence }, input, goal: safe(context.goal), kind: testAction ? "test-action" : context.kind ?? "plan-progress" });
+		this.entries.set(id, { activity: { id, turnId: context.turnId, stepId: context.stepId, stepTitle: context.stepTitle, summary: "", status, sequence: observation.sequence }, input, goal: safe(context.goal), kind: testAction ? "test-action" : context.kind ?? "plan-progress", latestSequence: observation.sequence });
 		const summary = context.kind === "tool-action" && !testAction && typeof item.command === "string"
-			? immediateShellSummary(item.command, this.language()) : null;
+			? safe(immediateShellSummary(item.command, this.language()) ?? input) : null;
 		if (summary) {
 			const entry = this.entries.get(id)!;
-			entry.result = { what: summary, inputSummary: [input] };
-			entry.activity = { ...entry.activity, summary };
-		} else this.queue.add(id);
+			entry.activity = { ...entry.activity, summary, narrationSource: "command", narrationStatus: "pending" };
+		}
+		this.queue.add(id);
 		// Bound memory and stale queued work even when events arrive faster than the model.
 		while (this.entries.size > 20) {
 			const oldest = this.entries.keys().next().value!;
@@ -72,12 +80,12 @@ export class PlanActivityNarration {
 	}
 
 	public snapshot(stepId?: string): { planActivities: readonly PlanActivity[]; planActivityStatus: "pending" | "ready" | "unavailable" } {
-		const entries      = [...this.entries.values()].filter(entry => !stepId || entry.activity.stepId === stepId) ;
-		const interpreted  = entries.filter(entry => entry.result).map(entry => entry.activity)                      ;
-		const latestByStep = new Map<string, PlanActivity>()                                                         ;
+		const entries      = [...this.entries.values()].filter(entry => !stepId || entry.activity.stepId === stepId)                                         ;
+		const interpreted  = entries.filter(entry => entry.result || (this.projection === "actions" && entry.activity.summary)).map(entry => entry.activity) ;
+		const latestByStep = new Map<string, PlanActivity>()                                                                                                 ;
 		if (this.projection === "steps") for (const activity of interpreted) latestByStep.set(activity.stepId, activity);
 		const planActivities = (this.projection === "steps" ? [...latestByStep.values()] : interpreted).sort((a, b) => a.sequence - b.sequence).slice(this.projection === "steps" ? -5 : -20);
-		return { planActivities, planActivityStatus: entries.some(entry => !entry.result && !entry.failed) ? "pending" : planActivities.length ? "ready" : entries.some(entry => entry.failed) ? "unavailable" : "pending" };
+		return { planActivities, planActivityStatus: entries.some(entry => !entry.result && !entry.failed) ? "pending" : entries.some(entry => entry.result) ? "ready" : entries.some(entry => entry.failed) ? "unavailable" : "pending" };
 	}
 
 	private async drain(): Promise<void> {
@@ -94,12 +102,14 @@ export class PlanActivityNarration {
 					if (this.signal.aborted || this.entries.get(id) !== entry) continue;
 					const summary = conciseSentence(result.what);
 					if (!summary || /\b(?:item|turn)\/(?:started|completed|updated)|commandExecution|function_call|tool_call/iu.test(result.what) || summary === "[redacted:local-path]") throw new Error("Technical event is not an activity summary");
-					entry.result = { ...result, what: summary };
-					entry.activity = { ...entry.activity, summary };
+					const why = result.why ? conciseSentence(result.why) : "";
+					entry.result = { what: summary, inputSummary: result.inputSummary, ...(why ? { why } : {}) };
+					entry.activity = { ...entry.activity, summary, narrationSource: "model", narrationStatus: "ready", ...(why ? { why } : {}) };
 					this.changed(entry.activity.stepId, entry.result);
 				} catch {
 					if (this.signal.aborted || this.entries.get(id) !== entry) continue;
 					entry.failed = true;
+					entry.activity = { ...entry.activity, narrationStatus: "unavailable" };
 					this.changed(entry.activity.stepId);
 				}
 			}
@@ -144,8 +154,8 @@ function publicActionInput(activity: ProjectActivity): string | null {
 	if (isReasoningActivityPayload(activity.payload) || !["tool", "file-change"].includes(activity.kind)) return null;
 	const item = actionItem(activity);
 	// Only invocation metadata: never command output, tool results, or private reasoning.
-	const values = [item.command, item.name, item.tool, item.toolName, item.path].filter((value): value is string => typeof value === "string");
-	const args = item.arguments && typeof item.arguments === "object" ? item.arguments as Record<string, unknown> : {};
+	const values = [item.command, item.name, item.tool, item.toolName, item.path].filter((value): value is string => typeof value === "string") ;
+	const args   = item.arguments && typeof item.arguments === "object" ? item.arguments as Record<string, unknown> : {}                        ;
 	for (const field of ["command", "path", "query"]) if (typeof args[field] === "string") values.push(args[field] as string);
 	if (Array.isArray(item.changes)) for (const change of item.changes.slice(0, 4)) {
 		if (change && typeof change === "object" && typeof change.path === "string") values.push(`file: ${change.path}`);
@@ -154,39 +164,19 @@ function publicActionInput(activity: ProjectActivity): string | null {
 	return safe(values.join(" · ")) || null;
 }
 
-function publicTestActionInput(activity: ProjectActivity): string | null {
+function publicTestActionInput(activity: ProjectActivity, observedNames: readonly string[] = []): string | null {
 	const command = publicActionInput(activity);
 	if (!command) return null;
-	const item = actionItem(activity);
-	const output = typeof item.aggregatedOutput === "string" ? item.aggregatedOutput : "";
+	const item   = actionItem(activity)                                                   ;
+	const output = typeof item.aggregatedOutput === "string" ? item.aggregatedOutput : "" ;
 	const cases = [...output.matchAll(/^\((?:pass|fail|skip)\)\s+(.+?)(?:\s+\[[^\]]+\])?\s*$/gmu)]
 		.slice(0, 8).map(match => safe(match[1] ?? "")).filter(Boolean);
-	const outcome = typeof item.exitCode === "number" ? `exit ${item.exitCode}` : "종료 코드 미관측";
-	return safe([command, cases.length ? `관측된 테스트: ${cases.join("; ")}` : "테스트 이름 미관측", outcome].join(" · "));
+	const names   = cases.length ? cases : observedNames.slice(0, 8).map(safe).filter(Boolean)       ;
+	const outcome = typeof item.exitCode === "number" ? `exit ${item.exitCode}` : "종료 코드 미관측" ;
+	return safe([command, names.length ? `관측된 테스트: ${names.join("; ")}` : "테스트 이름 미관측", outcome].join(" · "));
 }
 
 function actionItem(activity: ProjectActivity): Record<string, unknown> {
 	const params = activity.payload.params as Record<string, unknown> | undefined;
 	return (params?.item ?? activity.payload.item ?? params ?? activity.payload) as Record<string, unknown>;
-}
-
-/** Describe only a single recognized invocation; compound shell syntax stays with the interpreter. */
-function immediateShellSummary(command: string, language: "ko" | "en"): string | null {
-	const invocation = command.trim();
-	if (/[|;&<>`\n]|\$\(/u.test(invocation)) return null;
-	const match = /^(cat|head|tail|sed|rg|git|jq)\s+(.+)$/u.exec(invocation);
-	if (!match) return null;
-	const executable = match[1]!;
-	const argumentsText = safe(match[2]!);
-	if (!argumentsText) return null;
-	const labels: Record<string, readonly [string, string]> = {
-		cat  : ["파일 내용 읽기", "Read file contents"],
-		head : ["파일 앞부분 읽기", "Read the beginning of a file"],
-		tail : ["파일 끝부분 읽기", "Read the end of a file"],
-		sed  : ["텍스트 처리", "Process text"],
-		rg   : ["텍스트·파일 검색", "Search text or files"],
-		git  : ["Git 명령 실행", "Run Git command"],
-		jq   : ["JSON 처리", "Process JSON"],
-	};
-	return `${labels[executable]![language === "en" ? 1 : 0]}: ${argumentsText}`;
 }

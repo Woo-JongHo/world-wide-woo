@@ -1,20 +1,36 @@
-import { describe, expect, test }               from "bun:test";
+import      {
+              describe                   ,
+              expect                     ,
+              test                       ,
+                                           } from "bun:test"                                                                  ;
 import chalk                                    from "chalk";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
-import { getScrollViewsAt, renderLayoutFrame }  from "@earendil-works/pi-tui/dist/layout.js";
-import { wwwFixture }                           from "./fixtures/www-snapshot";
-import { WwwPlanView }                          from "../src/adapters/inbound/tui/features/plan/view/www-plan-view";
-import { wwwNowLabel, executionHeading }        from "../src/adapters/inbound/tui/features/chat/view/www-execution";
-import {
-	requestRuntimeMotionActive,
-	requestRuntimeRows,
-} from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view";
-import { statusCardRows }                       from "../src/adapters/inbound/tui/foundation/components/status-card";
-import { REQUEST_STAGES }                       from "../src/core/domain/execution/request-runtime";
-import { WwwWorkspace }                         from "../src/adapters/inbound/tui/shell/www-surface";
-import type { PlanFeatureProjection }           from "../src/core/application/orchestration/workbench-feature-reads";
-import type { PlanActivity, WorkbenchSnapshot } from "../src/core/domain/work/workbench";
-import { projectWorkFlow }                      from "../src/core/domain/work/workflow-projection";
+import      {
+              stripTerminalSequences     ,
+              visibleWidth               ,
+                                           } from "@earendil-works/pi-tui"                                                    ;
+import      {
+              getScrollViewsAt           ,
+              renderLayoutFrame          ,
+                                           } from "@earendil-works/pi-tui/dist/layout.js"                                     ;
+import      { wwwFixture                   } from "./fixtures/www-snapshot"                                                   ;
+import      { WwwPlanView                  } from "../src/adapters/inbound/tui/features/plan/view/www-plan-view"              ;
+import      {
+              wwwNowLabel                ,
+              executionHeading           ,
+                                           } from "../src/adapters/inbound/tui/features/chat/view/www-execution"              ;
+import      {
+              requestRuntimeMotionActive ,
+              requestRuntimeRows         ,
+                                           } from "../src/adapters/inbound/tui/features/monitoring/view/request-runtime-view" ;
+import      { statusCardRows               } from "../src/adapters/inbound/tui/foundation/components/status-card"             ;
+import      { REQUEST_STAGES               } from "../src/core/domain/execution/request-runtime"                              ;
+import      { WwwWorkspace                 } from "../src/adapters/inbound/tui/shell/www-surface"                             ;
+import type { PlanFeatureProjection        } from "../src/core/application/orchestration/workbench-feature-reads"             ;
+import type {
+              PlanActivity               ,
+              WorkbenchSnapshot          ,
+                                           } from "../src/core/domain/work/workbench"                                         ;
+import      { projectWorkFlow              } from "../src/core/domain/work/workflow-projection"                               ;
 
 function activity(index: number): PlanActivity {
 	return { id: `activity-${index}`, turnId: "preview-turn", stepId: "step", stepTitle: "회귀 검증", summary: `검사 ${index}의 표시 동작을 확인합니다.`, status: "completed", sequence: index };
@@ -52,7 +68,8 @@ describe("interpreted Plan activity and cards", () => {
 			const view = new WwwPlanView(() => snapshot, compact)           ;
 			const text = stripTerminalSequences(view.render(80).join("\n")) ;
 			const feed = text.slice(text.indexOf("PROGRESS"))               ;
-			expect(feed)    .toContain("✓ 검사"   ) ;
+			expect(feed)    .toContain("검사"   ) ;
+			expect(feed)    .not.toContain("✓ 검사") ;
 			expect(feed).not.toContain("╭"        ) ;
 			expect(feed)    .toContain("최근 5개" ) ;
 			expect(feed).not.toContain("검사 1의" ) ;
@@ -119,8 +136,8 @@ describe("interpreted Plan activity and cards", () => {
 		expect(rows.every(row => visibleWidth(row) <= 40))    .toBe     (true                              ) ;
 		const page = stripTerminalSequences(new WwwPlanView(() => snapshot, false, Date.now, false, presentation).render(80).join("\n"));
 		for (const stage of REQUEST_STAGES) expect(page).toContain(stage);
-		expect(page).toContain("✓ 검사 1의");
-		expect(text).toContain("✓ 검사 1의");
+		expect(page).toContain("검사 1의");
+		expect(text).toContain("검사 1의");
 
 		const workspace = new WwwWorkspace(() => snapshot, () => [], height => height, () => 2400, false, presentation)                                        ;
 		const layout    = (width: number, height: number) => renderLayoutFrame(workspace.component, width, height, () => {}).lines.map(stripTerminalSequences) ;
@@ -194,11 +211,11 @@ describe("interpreted Plan activity and cards", () => {
 		snapshot = { ...snapshot, planActivities: [{ ...activity(1), status: "running" }] };
 		const running = stripTerminalSequences(view.render(100).join("\n"));
 		expect(running.slice(running.indexOf("PROGRESS"))).not.toContain("진행 중");
-		expect(running).toContain("› 검사 1의");
+		expect(running).toContain("검사 1의");
 		snapshot = { ...snapshot, planActivities: [activity(1)], planActivityStatus: "ready" };
 		const complete = stripTerminalSequences(view.render(100).join("\n"));
 		expect(complete.slice(complete.indexOf("PROGRESS"))).not.toContain   ("완료"      ) ;
-		expect(complete                                    )    .toContain   ("✓ 검사 1의") ;
+		expect(complete                                    )    .toContain   ("검사 1의") ;
 		expect(complete.match(/검사 1의/gu)                )    .toHaveLength(1           ) ;
 		snapshot = { ...snapshot, planActivities: [], planActivityStatus: "unavailable" };
 		expect(stripTerminalSequences(view.render(100).join("\n"))).toContain("작업 내용을 아직 정리하지 못했습니다.");
@@ -231,7 +248,7 @@ describe("interpreted Plan activity and cards", () => {
 			},
 			planActivities: [{ ...activity(1), summary: "하나의 Progress 문장이 좁은 화면에서도 원문을 변경하지 않고 레일에서는 두 줄, Plan 페이지에서는 여섯 줄까지 보입니다. ".repeat(3) }],
 		};
-		const itemRows = (rows: readonly string[]): number => rows.filter(row => row.trim() && /^[✓›×·○ ] /u.test(row)).length;
+		const itemRows = (rows: readonly string[]): number => rows.filter(row => row.trim() && !/^(?:PLAN|PROGRESS|─)/u.test(row)).length;
 		for (const compact of [true, false] as const) {
 			const output        = new WwwPlanView(() => snapshot, compact).render(24).map(stripTerminalSequences) ;
 			const planStart     = output.findIndex(row => row.includes("Plan"))                                   ;

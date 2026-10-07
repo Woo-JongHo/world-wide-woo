@@ -1,70 +1,82 @@
 import legacyJournal                                          from "./fixtures/legacy-execution-receipt.json";
-import type { RuntimeToolHandler, RuntimeToolDefinition }     from "../src/core/ports/execution/runtime-tool-port";
-import { REQUEST_STAGES }                                     from "../src/core/domain/execution/request-runtime";
-import type { RequestRuntimeRecord }                          from "../src/core/domain/execution/request-runtime";
-import { projectRequestTodo }                                 from "../src/core/domain/work/request-projections";
-import { describe, expect, test }                             from "bun:test";
-import type { ExecutorPort }                                  from "../src/core/ports/execution/executor-port";
 import type {
-	ActivityNarrationRequest,
-	ActivityNarrator,
-} from "../src/core/application/orchestration/activity-narrator";
-import { ProjectWorkbench }                                   from "../src/core/application/orchestration/project-workbench";
+              RuntimeToolHandler             ,
+              RuntimeToolDefinition          ,
+                                               } from "../src/core/ports/execution/runtime-tool-port"                 ;
+import      { REQUEST_STAGES                   } from "../src/core/domain/execution/request-runtime"                  ;
+import type { RequestRuntimeRecord             } from "../src/core/domain/execution/request-runtime"                  ;
+import      { projectRequestTodo               } from "../src/core/domain/work/request-projections"                   ;
+import      { describe, expect, test           } from "bun:test"                                                      ;
+import type { ExecutorPort                     } from "../src/core/ports/execution/executor-port"                     ;
 import type {
-	WorkbenchActivityJournal,
-	WorkbenchTNoteSource,
-	WorkbenchTodoSource,
-} from "../src/core/application/orchestration/project-workbench";
+              ActivityNarrationRequest       ,
+              ActivityNarrator               ,
+                                               } from "../src/core/application/orchestration/activity-narrator"       ;
+import      { ProjectWorkbench                 } from "../src/core/application/orchestration/project-workbench"       ;
 import type {
-	NativeApprovalResolution,
-	NativeHarnessEvent,
-	NativeThreadRead,
-	NativeThreadList,
-	NativeThreadResume,
-	NativeThreadSnapshot,
-	NativeThreadStart,
-	NativeThreadSummary,
-	NativeTurnInterrupt,
-	NativeTurnSnapshot,
-	NativeTurnStart,
-	NativeTurnSteer,
-	NativeTurnSteerResult,
-} from "../src/core/domain/execution/native-session";
+              WorkbenchActivityJournal       ,
+              WorkbenchTNoteSource           ,
+              WorkbenchTodoSource            ,
+                                               } from "../src/core/application/orchestration/project-workbench"       ;
 import type {
-	ProjectActivity,
-	ProjectActivityAppendResult,
-	ProjectActivityInput,
-} from "../src/core/domain/execution/project-activity";
-import { CanonicalPromotionService, digestCanonicalDocument } from "../src/core/application/work/canonical-promotion";
-import { ReviewService }                                      from "../src/core/application/review/review-service";
-import { SessionModelUsageAccumulator }                       from "../src/core/application/session/session-model-usage";
-import { TodoWriteConflictError }                             from "../src/core/application/work/todo-ledger";
-import { WooEntry }                                           from "../src/core/application/orchestration/woo-entry";
-import type { WooEntryCollection }                            from "../src/core/application/orchestration/woo-entry";
-import type { TodoDocument }                                  from "../src/core/domain/work/todos";
-import type { WorkFlowProjection }                            from "../src/core/domain/work";
-import type { WorkbenchSnapshot }                             from "../src/core/domain/work/workbench";
-import { ProviderReviewAdapter, sha256ReviewDigest }          from "../src/adapters/outbound/review/review-adapters";
-import { TNoteService }                                       from "../src/core/application/work/t-note-service";
-import type { DetachedTextGenerator }                         from "../src/core/application/orchestration/detached-text-generator";
-import { FileTNoteStore }                                     from "../src/adapters/outbound/persistence/t-note-store";
-import { projectTNoteCompletionIndex, sanitizeTNoteText }     from "../src/core/domain/work/t-notes";
-import { mkdtemp, rm, writeFile, readFile, realpath }         from "node:fs/promises";
-import { createHash }                                         from "node:crypto";
-import { pinnedFileCapabilities }                             from "../src/adapters/outbound/workspace/pinned-file-capabilities";
-import { tmpdir }                                             from "node:os";
-import { join }                                               from "node:path";
+              NativeApprovalResolution       ,
+              NativeHarnessEvent             ,
+              NativeThreadRead               ,
+              NativeThreadList               ,
+              NativeThreadResume             ,
+              NativeThreadSnapshot           ,
+              NativeThreadStart              ,
+              NativeThreadSummary            ,
+              NativeTurnInterrupt            ,
+              NativeTurnSnapshot             ,
+              NativeTurnStart                ,
+              NativeTurnSteer                ,
+              NativeTurnSteerResult          ,
+                                               } from "../src/core/domain/execution/native-session"                   ;
+import type {
+              ProjectActivity                ,
+              ProjectActivityAppendResult    ,
+              ProjectActivityInput           ,
+                                               } from "../src/core/domain/execution/project-activity"                 ;
+import      { ReviewService                    } from "../src/core/application/review/review-service"                 ;
+import      { SessionModelUsageAccumulator     } from "../src/core/application/session/session-model-usage"           ;
+import      { TodoWriteConflictError           } from "../src/core/application/work/todo-ledger"                      ;
+import type { TodoDocument                     } from "../src/core/domain/work/todos"                                 ;
+import type { WorkFlowProjection               } from "../src/core/domain/work"                                       ;
+import type { WorkbenchSnapshot                } from "../src/core/domain/work/workbench"                             ;
+import      {
+              ProviderReviewAdapter          ,
+              sha256ReviewDigest             ,
+                                               } from "../src/adapters/outbound/review/review-adapters"               ;
+import      { TNoteService                     } from "../src/core/application/work/t-note-service"                   ;
+import type { DetachedTextGenerator            } from "../src/core/application/orchestration/detached-text-generator" ;
+import      { FileTNoteStore                   } from "../src/adapters/outbound/persistence/t-note-store"             ;
+import      {
+              projectTNoteCompletionIndex    ,
+              sanitizeTNoteText              ,
+                                               } from "../src/core/domain/work/t-notes"                               ;
+import      {
+              mkdtemp                        ,
+              rm                             ,
+              writeFile                      ,
+              readFile                       ,
+              realpath                       ,
+                                               } from "node:fs/promises"                                              ;
+import      { createHash                       } from "node:crypto"                                                   ;
+import      { pinnedFileCapabilities           } from "../src/adapters/outbound/workspace/pinned-file-capabilities"   ;
+import      { tmpdir                           } from "node:os"                                                       ;
+import      { join                             } from "node:path"                                                     ;
 
-import {
-	ApprovalPreparationGateJournal,
-	FakeActivityNarrator,
-	FakeNativeHarness,
-	MemoryJournal,
-	MessageCompletionGateJournal,
-	ToolObservationGateJournal,
-	ready,
-	todoDocument,
-} from "./project-workbench.fixtures";
+import      {
+              ApprovalPreparationGateJournal ,
+              FakeActivityNarrator           ,
+              FakeNativeHarness              ,
+              MemoryJournal                  ,
+              MessageCompletionGateJournal   ,
+              ToolObservationGateJournal     ,
+              ready                          ,
+              todoDocument                   ,
+                                               } from "./project-workbench.fixtures"                                  ;
 
 describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	test("keeps the selected flow while exposing a pending turn goal", async () => {
@@ -101,8 +113,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 
 	test("drains FIFO only for exact interrupted and failed turn lifecycle notifications", async () => {
 		for (const method of ["turn/interrupted", "turn/failed"] as const) {
-			const native = new FakeNativeHarness();
-			const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+			const native    = new FakeNativeHarness()                                                                                      ;
+			const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 			await ready(workbench);
 			await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
 			await workbench.dispatch({ type: "chat.send", text: "다음 요청" });
@@ -117,8 +129,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("keeps a normally started turn active when an item event arrives before its local start activity is journaled", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MessageCompletionGateJournal();
+		const native  = new FakeNativeHarness()            ;
+		const journal = new MessageCompletionGateJournal() ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -189,8 +201,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	test("shows the first optimistic request once while request journaling is pending", async () => {
 		let release!: () => void;
 		let reached!: () => void;
-		const gate = new Promise<void>(resolve => { release = resolve; });
-		const entered = new Promise<void>(resolve => { reached = resolve; });
+		const gate    = new Promise<void>(resolve => { release = resolve; }) ;
+		const entered = new Promise<void>(resolve => { reached = resolve; }) ;
 		class SubmissionGateJournal extends MemoryJournal {
 			override async append(input: ProjectActivityInput): Promise<ProjectActivityAppendResult> {
 				if (input.payload.method === "request/submitted") {
@@ -343,14 +355,14 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 				return super.append(input);
 			}
 		}
-		const native = new FakeNativeHarness();
-		const journal = new FinalMessageGateJournal();
+		const native  = new FakeNativeHarness()       ;
+		const journal = new FinalMessageGateJournal() ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId : "sample-project",
 			cwd       : "/workspace/sample",
 		});
-		const snapshots: WorkbenchSnapshot[] = [];
-		let unsubscribe: () => void = () => undefined;
+		const snapshots : WorkbenchSnapshot[] = []              ;
+		let unsubscribe : () => void          = () => undefined ;
 		try {
 			await ready(workbench);
 			await workbench.dispatch({ type: "chat.send", text: "streaming 요청" });
@@ -463,8 +475,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("does not turn a Native userMessage completion into a missing assistant response", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -539,8 +551,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 			status  : "cancelled",
 			partial : true,
 		});
-		const preserved = journal.records.find((activity) => activity.payload.finalObservation === "missing");
-		const terminal = journal.records.find((activity) => activity.payload.method === "turn/completed");
+		const preserved = journal.records.find((activity) => activity.payload.finalObservation === "missing") ;
+		const terminal  = journal.records.find((activity) => activity.payload.method === "turn/completed"   ) ;
 		expect(preserved               ).toMatchObject({ phase: "cancelled", payload: { terminalMethod: "turn/completed" } }) ;
 		expect(terminal                ).toMatchObject({ phase: "cancelled" }                                               ) ;
 		expect(tnoteCreates            ).toBe         (0                                                                    ) ;
@@ -549,8 +561,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("renders an outputless interrupted turn as a terminal state notice", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -672,8 +684,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("preserves a partial answer and marks a completed turn with no final item as incomplete", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -704,8 +716,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		expect(workbench.snapshot.activities.find((activity) => activity.id === assistant[0]?.activityId)?.nativeRefs)
 			.toEqual({ threadId: "thread-1", turnId: "turn-1", itemId: "partial-message" });
 		expect(workbench.snapshot.draft).toBe("");
-		const partialIndex = journal.records.findIndex((activity) => activity.payload.finalObservation === "missing");
-		const terminalIndex = journal.records.findIndex((activity) => activity.payload.method === "turn/completed");
+		const partialIndex  = journal.records.findIndex((activity) => activity.payload.finalObservation === "missing") ;
+		const terminalIndex = journal.records.findIndex((activity) => activity.payload.method === "turn/completed"   ) ;
 		expect(partialIndex).toBeGreaterThanOrEqual(0);
 		expect(partialIndex).toBeLessThan(terminalIndex);
 		expect(journal.records[partialIndex]).toMatchObject({
@@ -844,8 +856,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("ignores duplicate completion and late delta only for the exact terminal item owner", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -896,8 +908,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("remembers a terminal message observation without relying on an item method prefix", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -941,8 +953,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("does not accept a sparse assistant completion without a turn owner", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -1051,8 +1063,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("hydrates terminal item identity from the local journal before accepting resumed deltas", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		await journal.append({
 			projectId    : "sample-project",
 			kind         : "message",
@@ -1117,8 +1129,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	test("records one failed bubble and recovers after a definite first-send failure", async () => {
 		const native = new FakeNativeHarness();
 		native.startTurnErrors.set(1, new Error("definite send failure"));
-		const journal = new MemoryJournal();
-		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" });
+		const journal   = new MemoryJournal()                                                                              ;
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 		expect(await workbench.dispatch({ type: "chat.send", text: "실패할 요청" })).toMatchObject({ state: "rejected" }                       ) ;
 		expect(workbench.snapshot.chat                                             ).toHaveLength (1                                           ) ;
@@ -1135,8 +1147,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	test("continues FIFO after a definite queued-send failure without duplicate bubbles", async () => {
 		const native = new FakeNativeHarness();
 		native.startTurnErrors.set(2, new Error("definite queued failure"));
-		const journal = new MemoryJournal();
-		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" });
+		const journal   = new MemoryJournal()                                                                              ;
+		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
 		await workbench.dispatch({ type: "chat.send", text: "실패할 큐 요청" });
@@ -1163,8 +1175,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
-		const uncertainQueued = await workbench.dispatch({ type: "chat.send", text: "수신 불명 요청" });
-		const finalQueued = await workbench.dispatch({ type: "chat.send", text: "마지막 요청" });
+		const uncertainQueued = await workbench.dispatch({ type: "chat.send", text: "수신 불명 요청"}) ;
+		const finalQueued     = await workbench.dispatch({ type: "chat.send", text: "마지막 요청"   }) ;
 		expect(uncertainQueued).toMatchObject({ state: "queued", position: 1 });
 		expect(finalQueued).toMatchObject({ state: "queued", position: 2 });
 
@@ -1321,8 +1333,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("does not drain queued chat after the workbench closes", async () => {
-		const native = new FakeNativeHarness();
-		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		const native    = new FakeNativeHarness()                                                                                      ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "첫 요청" });
 		await workbench.dispatch({ type: "chat.send", text: "닫힌 뒤 요청" });
@@ -1337,8 +1349,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("keeps an active turn through item and hook completion until the turn lifecycle terminates", async () => {
-		const native = new FakeNativeHarness();
-		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		const native    = new FakeNativeHarness()                                                                                      ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "진행" });
 		expect(workbench.snapshot.activeTurnId).toBe("turn-1");
@@ -1355,8 +1367,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("resolves a pending approval by request id when the resolution omits its thread ref", async () => {
-		const native = new FakeNativeHarness();
-		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		const native    = new FakeNativeHarness()                                                                                      ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 		native.emit({
 			type: "approval-requested",
@@ -1391,8 +1403,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("does not resend another decision after approval delivery becomes uncertain", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		native.approvalResponseError = new Error("transport failed after write");
 		const workbench = new ProjectWorkbench(native, journal, { projectId: "sample-project", cwd: "/workspace/sample" });
 		await ready(workbench);
@@ -1423,8 +1435,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 		await Bun.sleep(5);
 		expect(await first.dispatch({ type: "approval.resolve", requestId: 49, response: { decision: "accept" } })).toMatchObject({ state: "accepted" });
 		await first.close();
-		const resumedNative = new FakeNativeHarness();
-		const resumed = new ProjectWorkbench(resumedNative, journal, { projectId: "sample-project", cwd: "/workspace/sample", resumeThreadId: "thread-1" });
+		const resumedNative = new FakeNativeHarness()                                                                                                             ;
+		const resumed       = new ProjectWorkbench(resumedNative, journal, { projectId: "sample-project", cwd: "/workspace/sample", resumeThreadId: "thread-1" }) ;
 		await ready(resumed);
 		resumedNative.emit({ type: "approval-requested", approval });
 		await Bun.sleep(5);
@@ -1473,8 +1485,8 @@ describe("ProjectWorkbench · delivery lifecycle and chat identity", () => {
 	});
 
 	test("holds multiple queued messages through approval and drains them only after resolution and turn completion", async () => {
-		const native = new FakeNativeHarness();
-		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" });
+		const native    = new FakeNativeHarness()                                                                                      ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample-project", cwd: "/workspace/sample" }) ;
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "승인이 필요한 요청" });
 		native.emit({

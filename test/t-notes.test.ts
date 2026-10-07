@@ -1,21 +1,32 @@
-import { afterEach, describe, expect, test }            from "bun:test";
-import { appendFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir }                                       from "node:os";
-import { join }                                         from "node:path";
-import {
-	TNoteOperationError,
-	TNoteService,
-	validateCanonicalTNote,
-} from "../src/core/application/work/t-note-service.js";
-import type { DetachedTextGenerator }                   from "../src/core/application/orchestration/detached-text-generator.js";
-import { FileTNoteStore }                               from "../src/adapters/outbound/persistence/t-note-store.js";
-import {
-	createTNotePacket,
-	projectActivityToTNoteSource,
-	sanitizeTNoteText,
-	validateTNotePacket,
-	tNoteSourceIdempotencyKey,
-} from "../src/core/domain/work/t-notes.js";
+import      {
+              afterEach                    ,
+              describe                     ,
+              expect                       ,
+              test                         ,
+                                             } from "bun:test"                                                         ;
+import      {
+              appendFile                   ,
+              mkdtemp                      ,
+              readFile                     ,
+              rm                           ,
+              writeFile                    ,
+                                             } from "node:fs/promises"                                                 ;
+import      { tmpdir                         } from "node:os"                                                          ;
+import      { join                           } from "node:path"                                                        ;
+import      {
+              TNoteOperationError          ,
+              TNoteService                 ,
+              validateCanonicalTNote       ,
+                                             } from "../src/core/application/work/t-note-service.js"                   ;
+import type { DetachedTextGenerator          } from "../src/core/application/orchestration/detached-text-generator.js" ;
+import      { FileTNoteStore                 } from "../src/adapters/outbound/persistence/t-note-store.js"             ;
+import      {
+              createTNotePacket            ,
+              projectActivityToTNoteSource ,
+              sanitizeTNoteText            ,
+              validateTNotePacket          ,
+              tNoteSourceIdempotencyKey    ,
+                                             } from "../src/core/domain/work/t-notes.js"                               ;
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true }))); });
@@ -64,9 +75,9 @@ describe("Note service", () => {
 			"변경 상태:\nNo code, document, GitHub, or Linear change observed.",
 			"Commit·Evidence:\nNot observed",
 		].join("\n\n");
-		expect(validateCanonicalTNote(english, "Review the request").valid).toBe(true);
-		expect(validateCanonicalTNote(english.replace("The work stayed", "I will continue. The work stayed"), "Review the request").valid).toBe(false);
-		expect(validateCanonicalTNote(english.replace("Reviewed the implementation", "Expected: 1\nReviewed the implementation"), "Review the request").valid).toBe(false);
+		expect(validateCanonicalTNote(english, "Review the request").valid                                                                                   ).toBe(true ) ;
+		expect(validateCanonicalTNote(english.replace("The work stayed", "I will continue. The work stayed"), "Review the request").valid                    ).toBe(false) ;
+		expect(validateCanonicalTNote(english.replace("Reviewed the implementation", "Expected: 1\nReviewed the implementation"), "Review the request").valid).toBe(false) ;
 	});
 	test("accepts the request-wide report contract and rejects legacy generation shapes", () => {
 		const current = report("HUD 한 줄 통합 결과");
@@ -90,8 +101,8 @@ describe("Note service", () => {
 	});
 
 	test("연속된 저장소 경로를 재검사해도 Note packet digest가 유지된다", async () => {
-		const body = "git diff -- src/test/www-ui.test.ts test/www-provider-logos.test.ts";
-		const digest = (value: string) => new Bun.CryptoHasher("sha256").update(value).digest("hex");
+		const body   = "git diff -- src/test/www-ui.test.ts test/www-provider-logos.test.ts"         ;
+		const digest = (value: string) => new Bun.CryptoHasher("sha256").update(value).digest("hex") ;
 		const packet = createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [{
 			id: "path-command", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z",
 			kind: "tool.completed", title: "검증", body,
@@ -155,8 +166,8 @@ describe("Note service", () => {
 	});
 
 	test("creates an immutable redacted packet and replays an append-only detached draft", async () => {
-		const draftStore = await store();
-		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-1");
+		const draftStore = await store()                                                                                        ;
+		const service    = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-1") ;
 		const note = await service.create({
 			projectId        : "project-1",
 			expectedQuestion : "무엇을 확인했나",
@@ -177,6 +188,24 @@ describe("Note service", () => {
 		expect(text).not.toContain("secret-value"    ) ;
 		expect(text).not.toContain("customer-X"      ) ;
 		expect(text).not.toContain("Acme"            ) ;
+	});
+
+	test("persists a canonical report after redacting generated local paths", async () => {
+		const draftStore = await store()                                                                                                                                            ;
+		const generated  = report("경로 확인").replace("선택 범위의 조사, 결정, 변경과 검증을 시간 순서로 확인했습니다.", "로컬 /Users/example/private/report.txt를 확인했습니다.") ;
+		const service = new TNoteService({
+			async generate() {
+				return { text: generated, provenance: { provider: "test", model: "test", version: "test" }, isolation: { appliedPolicy: policy, projectRootVisible: false, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } };
+			},
+		}, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-redacted-report");
+		const note = await service.create({
+			projectId: "project-1", expectedQuestion: "경로 확인", range: { startSequence: 1, endSequence: 1 },
+			activities: [{ id: "activity-1", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "message", title: "질문", body: "경로 확인" }],
+			instruction: "완료 보고를 작성한다",
+		});
+		expect(note.text                                       )    .toContain("[redacted:local-path]" ) ;
+		expect(note.text                                       ).not.toContain("/Users/example/private") ;
+		expect((await draftStore.readAll("project-1"))[0]?.text)    .toBe     (note.text               ) ;
 	});
 
 	test("serializes concurrent distinct Summary records with stable identity and append sequence", async () => {
@@ -241,8 +270,8 @@ describe("Note service", () => {
 			activities       : [{ id: "completed-activity", projectId: "project-1", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "progress.completed", title: "완료", body: "검증 완료" }],
 			instruction      : "동일 packet 요약",
 		};
-		const firstCapture = new TNoteService(firstGenerator, firstStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "first-attempt");
-		const secondCapture = new TNoteService(secondGenerator, secondStore, () => new Date("2026-09-01T00:01:00.000Z"), () => "retry-attempt");
+		const firstCapture  = new TNoteService(firstGenerator , firstStore , () => new Date("2026-09-01T00:00:00.000Z"), () => "first-attempt") ;
+		const secondCapture = new TNoteService(secondGenerator, secondStore, () => new Date("2026-09-01T00:01:00.000Z"), () => "retry-attempt") ;
 
 		const [first, second] = await Promise.all([
 			firstCapture.create(request),
@@ -299,8 +328,8 @@ describe("Note service", () => {
 	});
 
 	test("appends Test from completed external-runtime observations instead of generated prose", async () => {
-		const draftStore = await store();
-		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-test-summary");
+		const draftStore = await store()                                                                                                   ;
+		const service    = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-test-summary") ;
 		const note = await service.create({
 			projectId        : "project-1",
 			expectedQuestion : "무엇을 확인했나",
@@ -317,8 +346,8 @@ describe("Note service", () => {
 	});
 
 	test("appends observed CHANGE and CHECK rows without exposing absolute paths", async () => {
-		const draftStore = await store();
-		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-operation-rows");
+		const draftStore = await store()                                                                                                     ;
+		const service    = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-operation-rows") ;
 		const note = await service.create({
 			projectId        : "project-1",
 			expectedQuestion : "무엇을 확인했나",
@@ -337,8 +366,8 @@ describe("Note service", () => {
 	});
 
 	test("counts and previews raw content when a completed file change adds a file", async () => {
-		const draftStore = await store();
-		const service = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-added-file");
+		const draftStore = await store()                                                                                                 ;
+		const service    = new TNoteService(generator, draftStore, () => new Date("2026-09-01T00:00:00.000Z"), () => "tnote-added-file") ;
 		const note = await service.create({
 			projectId        : "project-1",
 			expectedQuestion : "무엇을 변경했나",
@@ -360,8 +389,8 @@ describe("Note service", () => {
 	});
 
 	test("sanitizes a question embedded in the instruction before detached generation", async () => {
-		const draftStore = await store();
-		let dispatchedInstruction = "";
+		const draftStore          = await store() ;
+		let dispatchedInstruction = ""            ;
 		const capturingGenerator: DetachedTextGenerator = {
 			async generate(request) {
 				dispatchedInstruction = request.instruction;
@@ -382,8 +411,8 @@ describe("Note service", () => {
 	});
 
 	test("rejects a cross-project, unordered range and a generator that does not confirm isolation", async () => {
-		const draftStore = await store();
-		const service = new TNoteService(generator, draftStore);
+		const draftStore = await store()                           ;
+		const service    = new TNoteService(generator, draftStore) ;
 		await expect(service.create({ projectId: "one", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 1 }, activities: [{ id: "a", projectId: "two", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("one project");
 		await expect(service.create({ projectId: "one", expectedQuestion: "무엇을 확인했나", range: { startSequence: 1, endSequence: 2 }, activities: [{ id: "b", projectId: "one", sequence: 2, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }, { id: "a", projectId: "one", sequence: 1, occurredAt: "2026-09-01T00:00:00.000Z", kind: "x", title: "x", body: "x" }], instruction: "요약" })).rejects.toThrow("sorted");
 		const unsafe: DetachedTextGenerator = { async generate() { return { text: "x", provenance: { provider: "p", model: "m", version: "v" }, isolation: { appliedPolicy: policy, projectRootVisible: true, toolCalls: 0, networkCalls: 0, filesystemWrites: 0 } as never }; } };
@@ -391,8 +420,8 @@ describe("Note service", () => {
 	});
 
 	test("persists strictly increasing sparse global source sequences", async () => {
-		const draftStore = await store();
-		const service = new TNoteService(generator, draftStore);
+		const draftStore = await store()                           ;
+		const service    = new TNoteService(generator, draftStore) ;
 		const note = await service.create({
 			projectId        : "project-1",
 			expectedQuestion : "무엇을 확인했나",
@@ -408,8 +437,8 @@ describe("Note service", () => {
 	});
 
 	test("retries one missing sparse interleaved-turn note after a failed generation", async () => {
-		const draftStore = await store();
-		let attempts = 0;
+		const draftStore = await store() ;
+		let attempts     = 0             ;
 		const recovering: DetachedTextGenerator = {
 			async generate() {
 				attempts += 1;
@@ -520,8 +549,8 @@ describe("Note service", () => {
 		expect(source.body).not.toContain     ("비공개 reasoning 원문"       ) ;
 		expect(source     ).not.toHaveProperty("nativeRefs"                  ) ;
 
-		const packet = createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [source], "2026-09-01T00:00:00.000Z", () => "c".repeat(64));
-		const serialized = JSON.stringify(packet);
+		const packet     = createTNotePacket("project-1", { startSequence: 1, endSequence: 1 }, [source], "2026-09-01T00:00:00.000Z", () => "c".repeat(64)) ;
+		const serialized = JSON.stringify(packet)                                                                                                           ;
 		expect(serialized).not.toContain("비공개 reasoning 원문") ;
 		expect(serialized).not.toContain("thread-1"             ) ;
 		expect(serialized).not.toContain("reasoning-item-1"     ) ;

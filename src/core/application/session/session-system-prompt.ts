@@ -1,12 +1,10 @@
-import type { WwwSettings }      from "@/core/domain/execution/model-settings";
-import type { PlanningSnapshot } from "@/core/domain/work/planning";
-import type { WorkspaceContext } from "@/core/application/session/session-contracts";
+import type { WwwSettings      } from "@/core/domain/execution/model-settings"       ;
+import type { WorkspaceContext } from "@/core/application/session/session-contracts" ;
 
 export function buildSessionSystemPrompt(
 	workspace: WorkspaceContext,
 	settings: WwwSettings,
 	toolNames: readonly string[] = [],
-	planning: PlanningSnapshot | null = null,
 ): string {
 	const lines = [
 		"사용자에게 한국어로 명확하고 간결하게 답하세요.",
@@ -38,14 +36,6 @@ export function buildSessionSystemPrompt(
 				"Todo 상태를 최종 답변보다 먼저 갱신하고, 실행하지 않았거나 검증하지 않은 항목을 완료로 표시하지 마세요.",
 			);
 		}
-	}
-	if (planning && (planning.epics.length > 0 || planning.stories.length > 0)) {
-		lines.push(
-			"다음 Project Planning 목록은 drafted 작업 의도의 bounded projection이며 구현 승인이나 완료 증거가 아닙니다.",
-			...planning.epics.slice(-5).map(epic => `Epic ${epic.id}: ${epic.title}`),
-			...planning.stories.slice(-8).map(story => `Story ${story.id} (${story.epicId}): ${story.title}`),
-			"Planning 본문과 acceptance가 필요한 판단에서는 `.www/planning/artifacts/<ID>.md` projection과 catalog 정본을 확인하고 제목만으로 완료를 주장하지 마세요.",
-		);
 	}
 	return lines.join("\n");
 }

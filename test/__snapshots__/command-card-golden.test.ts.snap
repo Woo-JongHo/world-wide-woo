@@ -1,0 +1,25 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`command card golden frames running frame retains the complete 32-column layout 1`] = `
+"╭──────────────────────────────╮
+│ Bash · RUNNING               │
+│ $ printf '안녕\\n'            │
+│ cwd: $PROJECT                │
+│ stdout                       │
+│   안녕                       │
+╰──────────────────────────────╯"
+`;
+
+exports[`command card golden frames failed frame shows bounded mixed streams and terminal details 1`] = `
+"╭──────────────────────────────╮
+│ Bash · FAILED                │
+│ $ printf '안녕\\n'            │
+│ cwd: $PROJECT                │
+│ … 2 earlier lines omitted    │
+│ stdout                       │
+│   three                      │
+│ stderr                       │
+│   실패                       │
+│ exit 7 · 42ms                │
+╰──────────────────────────────╯"
+`;

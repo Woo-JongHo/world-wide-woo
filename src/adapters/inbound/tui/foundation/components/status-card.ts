@@ -1,6 +1,6 @@
-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { a, fit, mark, prose, safe }     from "@/adapters/inbound/tui/foundation/theme/www-theme";
-import { semantic }                      from "@/adapters/inbound/tui/foundation/theme/theme";
+import      { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui"                            ;
+import      { a, fit, prose, safe           } from "@/adapters/inbound/tui/foundation/theme/www-theme" ;
+import      { semantic                      } from "@/adapters/inbound/tui/foundation/theme/theme"     ;
 
 const labels: Readonly<Record<string, string>> = {
 	pending: "", running: "", completed: "", skipped: "생략",
@@ -32,15 +32,18 @@ export function statusCardRows(title: string, status: string, requestedWidth: nu
  * A bounded wrap keeps the scan fast; the `…` tail marks a kept-in-full source, not a loss. */
 export function compactStatusRows(title: string, status: string, requestedWidth: number, maximumLines = 2): string[] {
 	const width        = Math.max(0, Math.floor(requestedWidth))     ;
-	const contentWidth = Math.max(1, width - 2)                      ;
+	const contentWidth = Math.max(1, width)                          ;
 	const wrapped      = prose(safe(title), contentWidth)            ;
 	const bounded      = wrapped.slice(0, Math.max(1, maximumLines)) ;
 	if (wrapped.length > bounded.length && bounded.length) bounded[bounded.length - 1] = withContinuationMark(bounded[bounded.length - 1]!, contentWidth);
-	const lines        = bounded.length && bounded[0] !== "" ? bounded : [a.muted("—")]   ;
-	return lines.map((line, index) => fit(`${index === 0 ? mark(status) : " "} ${a.muted(line)}`, width));
+	const lines        = bounded.length && bounded[0] !== "" ? bounded : ["—"];
+	const ink          = status === "completed" || status === "passed" ? a.success
+		: status === "running" ? a.active
+		: status === "failed" || status === "blocked" ? a.failure : a.muted;
+	return lines.map(line => fit(ink(line), width));
 }
 
-/** The wrapped lines are plain text, so one visible column is freed for the marker. */
+/** The wrapped lines are plain text; the final cell is reserved only when an ellipsis is needed. */
 function withContinuationMark(line: string, maxWidth: number): string {
 	let characters = Array.from(line);
 	while (characters.length && visibleWidth(characters.join("")) + 1 > maxWidth) characters = characters.slice(0, -1);

@@ -1,13 +1,13 @@
-import { createHash }             from "node:crypto";
+import      { createHash             } from "node:crypto"                                               ;
 import type {
-	ProjectActivity,
-	ProjectActivityKind,
-	ProjectActivityPhase,
-} from "@/core/domain/execution/project-activity.js";
-import type { NativeRefs }        from "@/core/domain/execution/native-session.js";
-import { ExecutionJournal }       from "@/core/application/orchestration/execution-journal.js";
-import type { ExecutionRunState } from "@/core/runtime/execution-run.js";
-import { stableJson }             from "@/core/application/orchestration/workbench-projections.js";
+              ProjectActivity      ,
+              ProjectActivityKind  ,
+              ProjectActivityPhase ,
+                                     } from "@/core/domain/execution/project-activity.js"               ;
+import type { NativeRefs             } from "@/core/domain/execution/native-session.js"                 ;
+import      { ExecutionJournal       } from "@/core/application/orchestration/execution-journal.js"     ;
+import type { ExecutionRunState      } from "@/core/runtime/execution-run.js"                           ;
+import      { stableJson             } from "@/core/application/orchestration/workbench-projections.js" ;
 
 interface ActivityJournalPort {
 	append(input: {
@@ -22,20 +22,18 @@ interface ActivityJournalPort {
 }
 
 interface JournalCoordinatorOptions {
-	readonly projectId                    : string                                                       ;
-	readonly activityJournalProjectId?    : string                                                       ;
-	readonly provider?                    : string                                                       ;
-	readonly developmentObserver?         : { capture(activity: ProjectActivity): void | Promise<void> } ;
-	readonly journal                      : ActivityJournalPort                                          ;
-	readonly activities                   : ProjectActivity[]                                            ;
-	readonly visibleActivities            : ProjectActivity[]                                            ;
-	readonly visibleThreadId              : () => string | null                                          ;
-	readonly visibleAfterSequence         : () => number                                                 ;
-	readonly selectedTurn                 : () => { threadId: string | null; turnId: string | null }     ;
-	readonly onAdded                      : (activity: ProjectActivity) => void                          ;
-	readonly onDurable                    : (activity: ProjectActivity) => void                          ;
-	readonly setDevelopmentRecordingError : (message: string) => void                                    ;
-	readonly publish                      : () => void                                                   ;
+	readonly projectId                 : string                                                   ;
+	readonly activityJournalProjectId? : string                                                   ;
+	readonly provider?                 : string                                                   ;
+	readonly journal                   : ActivityJournalPort                                      ;
+	readonly activities                : ProjectActivity[]                                        ;
+	readonly visibleActivities         : ProjectActivity[]                                        ;
+	readonly visibleThreadId           : () => string | null                                      ;
+	readonly visibleAfterSequence      : () => number                                             ;
+	readonly selectedTurn              : () => { threadId: string | null; turnId: string | null } ;
+	readonly onAdded                   : (activity: ProjectActivity) => void                      ;
+	readonly onDurable                 : (activity: ProjectActivity) => void                      ;
+	readonly publish                   : () => void                                               ;
 }
 
 export class WorkbenchJournalCoordinator {
@@ -80,12 +78,8 @@ export class WorkbenchJournalCoordinator {
 			sourceDigest: digest,
 			payload,
 		});
-		const durableActivity = immutable(result.activity);
-		if (result.appended && this.options.developmentObserver) {
-			try { await this.options.developmentObserver.capture(durableActivity); }
-			catch (error) { this.options.setDevelopmentRecordingError(errorMessage(error)); }
-		}
-		const added = result.appended || !this.options.activities.some(activity => activity.id === result.activity.id);
+		const durableActivity = immutable(result.activity)                                                                       ;
+		const added           = result.appended || !this.options.activities.some(activity => activity.id === result.activity.id) ;
 		if (added) {
 			this.options.activities.push(durableActivity);
 			const reduction = this.observe(durableActivity);

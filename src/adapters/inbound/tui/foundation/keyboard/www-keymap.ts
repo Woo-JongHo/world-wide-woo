@@ -1,5 +1,5 @@
-import { matchesKey } from "@earendil-works/pi-tui";
-import type { KeyId } from "@earendil-works/pi-tui";
+import      { matchesKey } from "@earendil-works/pi-tui" ;
+import type { KeyId      } from "@earendil-works/pi-tui" ;
 
 // Www 키맵 단일 원본. 바인딩을 키가 아니라 동작 이름(action)으로 소유하고,
 // F키 테이블·Ctrl+G 뷰 테이블·HelpView·실행 문서의 키보드 표는 모두 여기서 파생한다.
@@ -12,7 +12,6 @@ export type WwwKeyAction =
 	| "page.monitor"
 	| "page.stats"
 	| "page.dashboard"
-	| "page.map"
 	| "page.test"
 	| "page.workflow"
 	| "plan.sidebar"
@@ -47,7 +46,6 @@ export const WWW_KEYMAP: Readonly<Record<WwwKeyAction, WwwKeyBinding>> = {
 	"page.monitor"    : { label: "Monitor · 실시간", command: "/monitor", functionKey: "f4", viewNumber: "3", doc: ["Ctrl+G → 3"] },
 	"page.stats"      : { label: "통계", command: "/stats", functionKey: "f5", viewNumber: "4", doc: ["Ctrl+G → 4"] },
 	"page.dashboard"  : { label: "세션", command: "/dashboard", functionKey: "f6", viewNumber: "5", doc: ["Ctrl+G → 5"] },
-	"page.map"        : { label: "개발 지도", command: "/map", functionKey: "f7", viewNumber: "6", doc: ["Ctrl+G → 6"] },
 	"page.test"       : { label: "VERIFY", command: "/test", functionKey: "f9", viewNumber: "8", doc: ["Ctrl+G → 8"] },
 	"page.workflow"   : { label: "Workflow · Subagents", command: "/workflow", viewNumber: "9", doc: ["Ctrl+G → 9"] },
 	"plan.sidebar"    : { label: "넓은 실행 화면의 계획 사이드바 열기/닫기", keys: ["ctrl+b"], doc: ["Ctrl+B"] },

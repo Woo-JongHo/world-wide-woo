@@ -1,35 +1,41 @@
-import { describe, expect, test }               from "bun:test";
-import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
-import type { LayoutBox }                       from "@earendil-works/pi-tui/dist/layout.js";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import      {
+              describe                       ,
+              expect                         ,
+              test                           ,
+                                               } from "bun:test"                                                                       ;
+import      { renderLayoutFrame                } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import type { LayoutBox                        } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import      {
+              stripTerminalSequences         ,
+              visibleWidth                   ,
+                                               } from "@earendil-works/pi-tui"                                                         ;
 import chalk                                    from "chalk";
-import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
-import { createDashboardLayout }                from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import {
-	StatusLine,
-	WorkspaceTodoView,
-} from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
-import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
-import { EntryDashboardView }                   from "../src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
-import { TNotesSourceView }                     from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view";
-import { WorkbenchMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
-import { WorkbenchTracerView }                  from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
-import { boundedPublicProjection }              from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
-import {
-	approvalCardRows,
-	projectApprovalBackgroundState,
-} from "../src/adapters/inbound/tui/features/approval/view/approval-presentation";
-import { projectWorkFlow }                      from "../src/core/domain/work";
-import type { DplanHash }                       from "../src/core/domain/work";
+import type { WorkbenchSnapshot                } from "../src/core/domain/work/workbench"                                              ;
+import      { createDashboardLayout            } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout"                 ;
+import      {
+              StatusLine                     ,
+              WorkspaceTodoView              ,
+                                               } from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views"     ;
+import      { WorkbenchChatView                } from "../src/adapters/inbound/tui/features/chat/view/workbench-views"                 ;
+import      { TNotesSourceView                 } from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view"            ;
+import      { WorkbenchMonitorView             } from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view"    ;
+import      { WorkbenchTracerView              } from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view"          ;
+import      { boundedPublicProjection          } from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
+import      {
+              approvalCardRows               ,
+              projectApprovalBackgroundState ,
+                                               } from "../src/adapters/inbound/tui/features/approval/view/approval-presentation"       ;
+import      { projectWorkFlow                  } from "../src/core/domain/work"                                                        ;
+import type { DplanHash                        } from "../src/core/domain/work"                                                        ;
 
-import {
-	allScrollContent,
-	approvalPresentation,
-	fixtureWorkFlow,
-	hash,
-	renderChatWithDashboard,
-	snapshot,
-} from "./workbench-views.fixtures";
+import      {
+              allScrollContent               ,
+              approvalPresentation           ,
+              fixtureWorkFlow                ,
+              hash                           ,
+              renderChatWithDashboard        ,
+              snapshot                       ,
+                                               } from "./workbench-views.fixtures"                                                     ;
 
 describe("workbench public projection and layout views", () => {
 	test("leaves the resting status line blank instead of advertising commands", () => {
@@ -43,8 +49,8 @@ describe("workbench public projection and layout views", () => {
 		const withAction = {
 			...snapshot,
 			actionResult: {
-				kind      : "promotion",
-				title     : "Note promotion preview",
+				kind      : "notice",
+				title     : "Local action preview",
 				body      : "--- Todo.md\n+++ Todo.md\n@@\n- old\n+ new\ncurrentSource: # current\npending: # pending",
 				digest    : "a".repeat(64),
 				createdAt : "2026-09-01T00:00:02.000Z",
@@ -53,7 +59,7 @@ describe("workbench public projection and layout views", () => {
 		const output = stripTerminalSequences(new TNotesSourceView(() => withAction).render(100).join("\n"));
 		expect(output)    .toContain("note-1"                ) ;
 		expect(output).not.toContain("ACTION"                ) ;
-		expect(output).not.toContain("Note promotion preview") ;
+		expect(output).not.toContain("Local action preview"  ) ;
 		expect(output).not.toContain("currentSource"         ) ;
 	});
 
@@ -187,7 +193,7 @@ describe("workbench public projection and layout views", () => {
 			chat               : [],
 			selectedActivityId : null,
 			actionResult: {
-				kind: "promotion",
+				kind: "notice",
 				title: "large preview",
 				body: [
 					`action-start password=front-password ${"x".repeat(3 * 1024 * 1024)}`,
@@ -280,8 +286,8 @@ describe("workbench public projection and layout views", () => {
 				workFlow: projectWorkFlow([]),
 			};
 		};
-		const initial = failedConversation(6);
-		const chat = new WorkbenchChatView(initial);
+		const initial = failedConversation(6)          ;
+		const chat    = new WorkbenchChatView(initial) ;
 		const layout = createDashboardLayout(
 			() => "WWW · sample-project",
 			{ color: text => text, component: chat },
@@ -292,8 +298,8 @@ describe("workbench public projection and layout views", () => {
 		const previousScrollTop = layout.leftScroll.scrollTop;
 
 		chat.update(failedConversation(7));
-		const frame = renderLayoutFrame(layout.component, 120, 14, () => undefined);
-		const output = stripTerminalSequences(frame.lines.join("\n"));
+		const frame  = renderLayoutFrame(layout.component, 120, 14, () => undefined) ;
+		const output = stripTerminalSequences(frame.lines.join("\n"))                ;
 
 		expect(layout.leftScroll.isFollowingEnd).toBe           (true             ) ;
 		expect(layout.leftScroll.scrollTop     ).toBeGreaterThan(previousScrollTop) ;

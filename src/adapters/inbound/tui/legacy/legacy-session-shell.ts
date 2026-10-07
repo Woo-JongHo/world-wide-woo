@@ -1,49 +1,61 @@
-import {
-	CombinedAutocompleteProvider,
-	Editor,
-	Key,
-	ProcessTerminal,
-	TuiAltScreen,
-	VStack,
-	isViewportTUI,
-	matchesKey,
-} from "@earendil-works/pi-tui";
-import type { OverlayHandle, Terminal }                    from "@earendil-works/pi-tui";
-import type { TodoController }                             from "@/core/ports/execution/todo-controller-port";
-import type { AuthController }                             from "@/core/ports/integration/auth-controller-port";
-import type { RepositoryInsights }                         from "@/core/ports/integration/repository-insights-port";
-import type { UsageMonitor }                               from "@/core/ports/observability/usage-monitor-port";
-import type { ComposerDraftController }                    from "@/core/ports/persistence/composer-draft-port";
-import type { RouterSettingsController }                   from "@/core/ports/persistence/settings-repository";
-import type { SessionRuntime }                             from "@/core/application/session/session-runtime";
-import type { SessionMonitor }                             from "@/core/application/session/session-monitor";
-import type { PlanningService }                            from "@/core/application/work/planning-service";
-import { MODELS }                                          from "@/core/domain/execution/model-settings";
-import type { WwwSettings }                                from "@/core/domain/execution/model-settings";
-import { todoProgress }                                    from "@/core/domain/work/todos";
-import { sanitizeTerminalText }                            from "@/core/domain/execution/terminal";
-import { AuthFlowOverlay }                                 from "@/adapters/inbound/tui/features/authentication/view/auth-overlay";
-import { createDashboardLayout }                           from "@/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import { RouterModelView, TranscriptView, UsageStripView } from "@/adapters/inbound/tui/legacy/legacy-dashboard-views";
-import { StatusLine, WorkspaceTodoView }                   from "@/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
-import { OverlaySheet }                                    from "@/adapters/inbound/tui/foundation/components/overlay-sheet";
-import {
-	IssueListOverlay,
-	RepositoryActivityOverlay,
-} from "@/adapters/inbound/tui/features/repository/view/repository-overlays";
-import { LoginProviderOverlay }                            from "@/adapters/inbound/tui/legacy/router-overlays";
-import { ModelPickerOverlay }                              from "@/adapters/inbound/tui/features/model-selection/view/model-picker-overlay";
-import { MonitoringOverlay }                               from "@/adapters/inbound/tui/features/monitoring/view/monitoring-overlay";
-import { RenderScheduler }                                 from "@/adapters/inbound/tui/foundation/rendering/render-scheduler";
-import {
-	parseShellCommand,
-	parseTerminalCommand,
-	shellCommandConcurrency,
-	SLASH_COMMANDS,
-} from "@/adapters/inbound/tui/commands/slash-commands";
-import { settleWithin }                                    from "@/adapters/inbound/tui/shell/shell-lifecycle";
-import { colors, editorTheme }                             from "@/adapters/inbound/tui/foundation/theme/theme";
-import { ExitKeyPolicy }                                   from "@/adapters/inbound/tui/shell/exit-key-policy";
+import      {
+              CombinedAutocompleteProvider ,
+              Editor                       ,
+              Key                          ,
+              ProcessTerminal              ,
+              TuiAltScreen                 ,
+              VStack                       ,
+              isViewportTUI                ,
+              matchesKey                   ,
+                                             } from "@earendil-works/pi-tui"                                                    ;
+import type {
+              OverlayHandle                ,
+              Terminal                     ,
+                                             } from "@earendil-works/pi-tui"                                                    ;
+import type { TodoController                 } from "@/core/ports/execution/todo-controller-port"                               ;
+import type { AuthController                 } from "@/core/ports/integration/auth-controller-port"                             ;
+import type { RepositoryInsights             } from "@/core/ports/integration/repository-insights-port"                         ;
+import type { UsageMonitor                   } from "@/core/ports/observability/usage-monitor-port"                             ;
+import type { ComposerDraftController        } from "@/core/ports/persistence/composer-draft-port"                              ;
+import type { RouterSettingsController       } from "@/core/ports/persistence/settings-repository"                              ;
+import type { SessionRuntime                 } from "@/core/application/session/session-runtime"                                ;
+import type { SessionMonitor                 } from "@/core/application/session/session-monitor"                                ;
+import      { MODELS                         } from "@/core/domain/execution/model-settings"                                    ;
+import type { WwwSettings                    } from "@/core/domain/execution/model-settings"                                    ;
+import      { todoProgress                   } from "@/core/domain/work/todos"                                                  ;
+import      { sanitizeTerminalText           } from "@/core/domain/execution/terminal"                                          ;
+import      { AuthFlowOverlay                } from "@/adapters/inbound/tui/features/authentication/view/auth-overlay"          ;
+import      { createDashboardLayout          } from "@/adapters/inbound/tui/foundation/layout/dashboard-layout"                 ;
+import      {
+              RouterModelView              ,
+              TranscriptView               ,
+              UsageStripView               ,
+                                             } from "@/adapters/inbound/tui/legacy/legacy-dashboard-views"                      ;
+import      {
+              StatusLine                   ,
+              WorkspaceTodoView            ,
+                                             } from "@/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views"     ;
+import      { OverlaySheet                   } from "@/adapters/inbound/tui/foundation/components/overlay-sheet"                ;
+import      {
+              IssueListOverlay             ,
+              RepositoryActivityOverlay    ,
+                                             } from "@/adapters/inbound/tui/features/repository/view/repository-overlays"       ;
+import      { LoginProviderOverlay           } from "@/adapters/inbound/tui/legacy/router-overlays"                             ;
+import      { ModelPickerOverlay             } from "@/adapters/inbound/tui/features/model-selection/view/model-picker-overlay" ;
+import      { MonitoringOverlay              } from "@/adapters/inbound/tui/features/monitoring/view/monitoring-overlay"        ;
+import      { RenderScheduler                } from "@/adapters/inbound/tui/foundation/rendering/render-scheduler"              ;
+import      {
+              parseShellCommand            ,
+              parseTerminalCommand         ,
+              shellCommandConcurrency      ,
+              SLASH_COMMANDS               ,
+                                             } from "@/adapters/inbound/tui/commands/slash-commands"                            ;
+import      { settleWithin                   } from "@/adapters/inbound/tui/shell/shell-lifecycle"                              ;
+import      {
+              colors                       ,
+              editorTheme                  ,
+                                             } from "@/adapters/inbound/tui/foundation/theme/theme"                             ;
+import      { ExitKeyPolicy                  } from "@/adapters/inbound/tui/shell/exit-key-policy"                              ;
 
 const LEGACY_STATUS_NOTICE = "호환 Router · Native 기능 제한 · /model · /login · /usage · Ctrl+D 종료";
 
@@ -58,11 +70,10 @@ export interface TuiShellDependencies {
 	releaseSessionLease : () => Promise<void>      ;
 	todos               : TodoController           ;
 	monitor             : SessionMonitor           ;
-	planning            : PlanningService          ;
 }
 
 export function runTuiShell(dependencies: TuiShellDependencies): void {
-	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos, monitor, planning } = dependencies;
+	const { runtime, auth, usage, routerSettings, repository, composerDraft, releaseSessionLease, todos, monitor } = dependencies;
 	const tui           = new TuiAltScreen(dependencies.terminal ?? new ProcessTerminal(), true) ;
 	let snapshot        = runtime.snapshot                                                       ;
 	let todoSnapshot    = todos.snapshot                                                         ;
@@ -180,8 +191,8 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 		const staged = pending ?? null;
 		pendingModelSettings = staged;
 		closeOverlay();
-		let owner: OverlayHandle | null = null;
-		const closeAuthOverlay = () => closeOverlay(owner);
+		let owner: OverlayHandle | null = null                      ;
+		const closeAuthOverlay          = () => closeOverlay(owner) ;
 		const panel = new AuthFlowOverlay(
 			provider,
 			auth.methods(provider),
@@ -331,7 +342,7 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 			}
 		}
 		if (command.type === "help") {
-			status.setNotice("!<command> · /model · /login · /usage · /monitor · /planning · /epic · /story · /commits · /issues · /status · /exit");
+			status.setNotice("!<command> · /model · /login · /usage · /monitor · /commits · /issues · /status · /exit");
 		}
 		if (command.type === "status") {
 			status.setNotice(
@@ -339,35 +350,6 @@ export function runTuiShell(dependencies: TuiShellDependencies): void {
 					snapshot.auth?.configured ? `인증 ${snapshot.auth.source ?? "설정됨"}` : "인증 필요"
 				} · 세션 ${snapshot.id.slice(0, 8)} · 경로 ${snapshot.cwd}`,
 			);
-		}
-		if (command.type === "planning.status") {
-			const current = planning.current;
-			status.setNotice(current
-				? `Planning r${current.revision} · Epic ${current.epics.length} · Story ${current.stories.length}`
-				: "Planning catalog를 아직 읽지 않았습니다.");
-		}
-		if (command.type === "planning.epic.create") {
-			try {
-				const epic = await planning.createEpic(command.title, command.goal);
-				if (planning.current) runtime.updatePlanning(planning.current);
-				status.setNotice(`${epic.id} 초안을 저장했습니다. 구현 승인이나 완료 상태는 변경하지 않았습니다.`);
-			} catch (error) {
-				status.setNotice(error instanceof Error ? error.message : "Epic 초안을 저장하지 못했습니다.");
-			}
-		}
-		if (command.type === "planning.story.create") {
-			try {
-				const story = await planning.createStory(
-					command.epicId,
-					command.title,
-					command.acceptance,
-					command.supersedes,
-				);
-				if (planning.current) runtime.updatePlanning(planning.current);
-				status.setNotice(`${story.id} 초안을 저장했습니다. 현재 session Todo에는 추가하지 않았습니다.`);
-			} catch (error) {
-				status.setNotice(error instanceof Error ? error.message : "Story 초안을 저장하지 못했습니다.");
-			}
 		}
 		if (command.type === "repository.commits") return openCommits();
 		if (command.type === "repository.issues") return openIssues();

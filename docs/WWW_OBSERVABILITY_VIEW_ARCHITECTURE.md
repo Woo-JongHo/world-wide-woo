@@ -3,7 +3,9 @@
 - 상태: 구조 승인 완료·로컬 구현 검증 중
 - 기준일: 2026-09-04
 - Epic: `EP-019`
-- 입력: [`OBS-20260904-01`](../.www/planning/inputs/OBS-20260904-01.md)
+- 입력: [`OBS-20260904-01`](archive/retired-work-management/planning/inputs/OBS-20260904-01.md)
+
+2026-09-28 실행 콘솔 설계 이후 WWW의 `/dashboard`는 현재 세션과 질문 목록을 보여준다. 이 문서의 다중 세션 `Dashboard` projection은 WWW에서 `/history`로 열린다. `/monitor`는 현재 질문 또는 Dashboard에서 선택한 질문의 실행 관측을 보여준다. 아래의 `ObservabilityWorkspace` 이름과 `r/R/1/2/3` 탐색은 기존 내부 관측 화면의 계약이며, WWW의 `/dashboard` 명령과 같은 화면을 뜻하지 않는다. 현재 사용자 명령의 정본은 [실행 콘솔](WWW_EXECUTION_CONSOLE.md)이다.
 
 ## 책임 계약
 

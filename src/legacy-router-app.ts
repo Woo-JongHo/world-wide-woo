@@ -1,17 +1,17 @@
-import { runTuiShell } from "@/adapters/inbound/tui/legacy/legacy-session-shell";
+import      { runTuiShell                           } from "@/adapters/inbound/tui/legacy/legacy-session-shell"   ;
 
-import { AuthService }                           from "@/adapters/outbound/authentication/auth-service";
-import { FileCredentialStore }                   from "@/adapters/outbound/authentication/credential-store";
-import { ModelRouter, createModelRegistry }      from "@/adapters/outbound/authentication/model-router";
-import { GitHubRepositoryInsights }              from "@/adapters/outbound/git/repository-insights";
-import { UsageService }                          from "@/adapters/outbound/observability/usage-service";
-import { FileComposerDraftController }           from "@/adapters/outbound/persistence/composer-draft-store";
-import { FileSettingsStore, routerSettingsPath } from "@/adapters/outbound/persistence/settings-store";
-import { createProjectSession }                  from "@/adapters/outbound/workspace/project-session";
+import      { AuthService                           } from "@/adapters/outbound/authentication/auth-service"      ;
+import      { FileCredentialStore                   } from "@/adapters/outbound/authentication/credential-store"  ;
+import      { ModelRouter, createModelRegistry      } from "@/adapters/outbound/authentication/model-router"      ;
+import      { GitHubRepositoryInsights              } from "@/adapters/outbound/git/repository-insights"          ;
+import      { UsageService                          } from "@/adapters/outbound/observability/usage-service"      ;
+import      { FileComposerDraftController           } from "@/adapters/outbound/persistence/composer-draft-store" ;
+import      { FileSettingsStore, routerSettingsPath } from "@/adapters/outbound/persistence/settings-store"       ;
+import      { createProjectSession                  } from "@/adapters/outbound/workspace/project-session"        ;
 
-import { RouterService, reconcileInitialRouter } from "@/core/application/routing/router-service";
+import      { RouterService, reconcileInitialRouter } from "@/core/application/routing/router-service"            ;
 
-import type { TuiShellDependencies } from "@/adapters/inbound/tui/legacy/legacy-session-shell";
+import type { TuiShellDependencies                  } from "@/adapters/inbound/tui/legacy/legacy-session-shell"   ;
 
 /** Legacy SessionRuntime Router를 조립하고 TUI에 전달하는 선택 입력이다. */
 export interface RunLegacyRouterOptions {
@@ -57,7 +57,7 @@ export async function runLegacyRouter(
 		options.resumeSessionId,
 	);
 
-	const { workspace, runtime, todos, monitor, planning, releaseSessionLease } = project;
+	const { workspace, runtime, todos, monitor, releaseSessionLease } = project;
 	let handedOff = false;
 
 	try {
@@ -76,7 +76,6 @@ export async function runLegacyRouter(
 			releaseSessionLease : releaseSessionLease,
 			todos               : todos,
 			monitor             : monitor,
-			planning            : planning,
 		});
 		handedOff = true;
 	} finally {

@@ -65,7 +65,7 @@ function planRows(snapshot: PlanFeatureProjection, width: number, compact: boole
 }
 
 function progressEntries(snapshot: PlanFeatureProjection): readonly PlanActivity[] {
-	const turnId                   = snapshot.activeTurnId ?? snapshot.workFlow.source?.turnId ?? snapshot.requestRuntime?.at(-1)?.turnId                                        ;
+	const turnId                   = snapshot.workFlow.source?.turnId ?? snapshot.activeTurnId ?? snapshot.requestRuntime?.at(-1)?.turnId                                        ;
 	const entries                  = [...(snapshot.planActivities ?? [])].filter(item => item.turnId === turnId).sort((left, right) => left.sequence - right.sequence).slice(-5) ;
 	const merged  : PlanActivity[] = []                                                                                                                                          ;
 	for (const item of entries) {
@@ -77,7 +77,16 @@ function progressEntries(snapshot: PlanFeatureProjection): readonly PlanActivity
 }
 
 function progressRows(snapshot: PlanFeatureProjection, width: number, compact = false, hasPlan = false, language: OutputLanguage = "ko"): string[] {
-	const entries = progressEntries(snapshot)                                                                                                                  ;
+	const turnId  = snapshot.workFlow.source?.turnId ?? snapshot.activeTurnId                                       ;
+	const request = snapshot.requestRuntime?.findLast(item => item.turnId === turnId && item.protocolVersion === 4) ;
+	const work    = request?.checkpoints?.find(item => item.id === "WORK")                                          ;
+	const entries = progressEntries(snapshot)                                                                       ;
+	if (request && (work?.status === "observed" && work.summary || !entries.length)) {
+		const rows = [...section("PROGRESS", width, "", a.info)];
+		if (rows.at(-1) === "") rows.pop();
+		rows.push(...prose(work?.summary ? a.info(safe(work.summary, 3000)) : a.muted(language === "en" ? "Awaiting Native progress." : "Native 진행 보고 대기 중입니다."), width));
+		return rows;
+	}
 	const rows    = [...section("PROGRESS", width, entries.length ? language === "en" ? `${entries.length} recent` : `최근 ${entries.length}개` : "", a.info)] ;
 	if (rows.at(-1) === "") rows.pop();
 	let previousStepId: string | null = null;

@@ -1,20 +1,18 @@
-import { ScrollView, VStack }          from "@earendil-works/pi-tui";
-import type { Component }              from "@earendil-works/pi-tui";
-import type { DevelopmentMapSnapshot } from "@/core/domain/development/development-map";
-import type { WwwPage }                from "@/adapters/inbound/tui/shell/www-surface";
+import      { ScrollView, VStack } from "@earendil-works/pi-tui"                   ;
+import type { Component          } from "@earendil-works/pi-tui"                   ;
+import type { WwwPage            } from "@/adapters/inbound/tui/shell/www-surface" ;
 
-export type WorkbenchBaseViewMode = "workbench"                                                               ;
-export type ObservabilityViewMode = "stats" | "dashboard" | "monitor"                                         ;
-export type WorkbenchViewMode     = WorkbenchBaseViewMode | ObservabilityViewMode | "map" | "source" | "test" ;
+export type WorkbenchBaseViewMode = "workbench"                                                       ;
+export type ObservabilityViewMode = "stats" | "dashboard" | "monitor"                                 ;
+export type WorkbenchViewMode     = WorkbenchBaseViewMode | ObservabilityViewMode | "source" | "test" ;
 
 export function workbenchViewModeCommand(text: string): WorkbenchViewMode | null {
 	const command = text.trim().toLowerCase();
 	return command === "/dashboard" ? "dashboard"
 		: command === "/monitor" ? "monitor"
-			: command === "/map" ? "map"
-				: command === "/stats" ? "stats"
-					: command === "/test" ? "test"
-						: null;
+			: command === "/stats" ? "stats"
+				: command === "/test" ? "test"
+					: null;
 }
 
 export function workbenchStatsTargetCommand(text: string): "session" | "diagnostics" | "latest" | number | "invalid" | null {
@@ -54,31 +52,9 @@ export function workbenchDashboardSessionIndex(
 	selectedIndex: number,
 	next: readonly { readonly sessionId: string }[],
 ): number {
-	const selectedSessionId = previous[selectedIndex]?.sessionId;
-	const preserved = selectedSessionId ? next.findIndex(session => session.sessionId === selectedSessionId) : -1;
+	const selectedSessionId = previous[selectedIndex]?.sessionId                                                          ;
+	const preserved         = selectedSessionId ? next.findIndex(session => session.sessionId === selectedSessionId) : -1 ;
 	return preserved >= 0 ? preserved : Math.min(Math.max(0, selectedIndex), Math.max(0, next.length - 1));
-}
-
-export interface DevelopmentMapPollingSource {
-	startPolling(listener: (snapshot: DevelopmentMapSnapshot) => void, intervalMs?: number): () => void;
-}
-
-export class DevelopmentMapPollingLifecycle {
-	private stopPolling: (() => void) | null = null;
-
-	public constructor(
-		private readonly source: DevelopmentMapPollingSource | undefined,
-		private readonly listener: (snapshot: DevelopmentMapSnapshot) => void,
-	) {}
-
-	public enter(): void {
-		if (!this.stopPolling && this.source) this.stopPolling = this.source.startPolling(this.listener);
-	}
-
-	public leave(): void {
-		this.stopPolling?.();
-		this.stopPolling = null;
-	}
 }
 
 /** A stable layout slot whose active component and keyboard owner can change without rebuilding the root. */
@@ -96,7 +72,6 @@ export function createWorkbenchViewHost(
 	dashboard: Component,
 	monitor: Component,
 	source: Component,
-	map: Component,
 	stats: Component,
 	test?: Component,
 ): Component {
@@ -105,7 +80,6 @@ export function createWorkbenchViewHost(
 		{ component : dashboard         , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "dashboard" },
 		{ component : monitor           , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "monitor"   },
 		{ component : source            , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "source"    },
-		{ component : map               , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "map"       },
 		{ component : stats             , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "stats"     },
 		{ component : test ?? workbench , basis : 0 , grow : 1 , shrink : 1 , minSize : 1 , visible : () => getMode() === "test"      },
 	]);
@@ -116,7 +90,6 @@ interface NavigationTargets {
 	readonly dashboard : ScrollView ;
 	readonly monitor   : ScrollView ;
 	readonly source    : ScrollView ;
-	readonly map       : ScrollView ;
 	readonly stats     : ScrollView ;
 	readonly test      : ScrollView ;
 }
@@ -127,7 +100,7 @@ interface WwwNavigationSurface {
 	show(page: WwwPage): void;
 }
 
-/** Owns view-mode transitions, map polling, browse state, and the focus target chosen by each transition. */
+/** Owns view-mode transitions, browse state, and the focus target chosen by each transition. */
 export class WorkbenchNavigationController {
 	private currentMode: WorkbenchViewMode ;
 	private wwwBrowse           = false    ;
@@ -137,7 +110,6 @@ export class WorkbenchNavigationController {
 		initialMode: WorkbenchViewMode,
 		private readonly setFocus: (component: Component) => void,
 		private readonly targets: NavigationTargets,
-		private readonly mapPolling: DevelopmentMapPollingLifecycle,
 		private readonly www: WwwNavigationSurface | null,
 	) {
 		this.currentMode = initialMode;
@@ -158,13 +130,6 @@ export class WorkbenchNavigationController {
 	}
 
 	public openCommandView(next: WorkbenchViewMode): void {
-		if (next === "map") {
-			this.observabilityBrowse = false;
-			this.wwwBrowse = Boolean(this.www);
-			this.changeMode(next);
-			this.setFocus(this.targets.map);
-			return;
-		}
 		if (next === "test") {
 			this.observabilityBrowse = false;
 			this.wwwBrowse = Boolean(this.www);
@@ -224,25 +189,17 @@ export class WorkbenchNavigationController {
 	}
 
 	public currentScroll(): ScrollView {
-		return this.currentMode === "map" ? this.targets.map
-			: this.currentMode === "source" ? this.targets.source
-				: this.currentMode === "test" ? this.targets.test
-					: this.currentMode === "stats" ? this.targets.stats
-						: this.currentMode === "dashboard" ? this.targets.dashboard
-							: this.currentMode === "monitor" ? this.targets.monitor
-								: this.www?.currentScroll ?? this.targets.source;
-	}
-
-	public dispose(): void {
-		this.mapPolling.leave();
+		return this.currentMode === "source" ? this.targets.source
+			: this.currentMode === "test" ? this.targets.test
+				: this.currentMode === "stats" ? this.targets.stats
+					: this.currentMode === "dashboard" ? this.targets.dashboard
+						: this.currentMode === "monitor" ? this.targets.monitor
+							: this.www?.currentScroll ?? this.targets.source;
 	}
 
 	private changeMode(next: WorkbenchViewMode): void {
 		if (this.currentMode === next) return;
-		const wasMap = this.currentMode === "map";
 		this.currentMode = next;
-		if (!wasMap && next === "map") this.mapPolling.enter();
-		if (wasMap && next !== "map") this.mapPolling.leave();
 	}
 }
 

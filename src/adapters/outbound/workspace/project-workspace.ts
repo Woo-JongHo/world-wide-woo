@@ -1,6 +1,17 @@
-import { randomUUID }                                                                 from "node:crypto";
-import { chmod, lstat, mkdir, open, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
-import { basename, join }                                                             from "node:path";
+import      { randomUUID     } from "node:crypto"      ;
+import      {
+              chmod        ,
+              lstat        ,
+              mkdir        ,
+              open         ,
+              readFile     ,
+              realpath     ,
+              rename       ,
+              rm           ,
+              stat         ,
+              writeFile    ,
+                             } from "node:fs/promises" ;
+import      { basename, join } from "node:path"        ;
 
 const WORKSPACE_DIRECTORY      = ".www"                                                                     ;
 const MANIFEST_FILE            = "project.json"                                                             ;
@@ -10,6 +21,8 @@ const WORKSPACE_GITIGNORE      = "sessions/\ndrafts/\ncache/\nruntime/\ntodos/\n
 const OBSOLETE_MANAGED_IGNORES = new Set(["Todo.md"])                                                       ;
 
 type ProjectManifest = {
+	/** Absent only in manifests created before the local identity migration. */
+	id?           : string ;
 	schemaVersion : 1      ;
 	name          : string ;
 	createdAt     : string ;
@@ -23,8 +36,6 @@ export type ProjectWorkspace = {
 	draftsDirectory   : string ;
 	runtimeDirectory  : string ;
 	todosDirectory    : string ;
-	vaultDirectory    : string ;
-	canonicalTodoPath : string ;
 	legacyTodoPath    : string ;
 	manifestPath      : string ;
 };
@@ -38,6 +49,7 @@ function isManifest(value: unknown): value is ProjectManifest {
 	const manifest = value as Record<string, unknown>;
 	return (
 		manifest.schemaVersion === 1 &&
+		(manifest.id === undefined || (typeof manifest.id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(manifest.id))) &&
 		typeof manifest.name === "string" &&
 		manifest.name.length > 0 &&
 		typeof manifest.createdAt === "string" &&
@@ -113,21 +125,18 @@ export class FileProjectWorkspace {
 		if (!(await stat(resolvedCwd)).isDirectory()) {
 			throw new Error(`Workspace cwd must be a directory: ${cwd}`);
 		}
-		const root = await realpath((await gitRoot(resolvedCwd)) ?? resolvedCwd);
-		const directory = join(root, WORKSPACE_DIRECTORY);
+		const root      = await realpath((await gitRoot(resolvedCwd)) ?? resolvedCwd) ;
+		const directory = join(root, WORKSPACE_DIRECTORY)                             ;
 		await ensureDirectory(directory);
 
-		const sessionsDirectory = join(directory, "sessions")     ;
-		const draftsDirectory   = join(directory, "drafts")       ;
-		const runtimeDirectory  = join(directory, "runtime")      ;
-		const todosDirectory    = join(directory, "todos")        ;
-		const vaultDirectory    = join(directory, "vault")        ;
-		const canonicalTodoPath = join(vaultDirectory, "Todo.md") ;
-		const legacyTodoPath    = join(directory, "Todo.md")      ;
+		const sessionsDirectory = join(directory, "sessions") ;
+		const draftsDirectory   = join(directory, "drafts"  ) ;
+		const runtimeDirectory  = join(directory, "runtime" ) ;
+		const todosDirectory    = join(directory, "todos"   ) ;
+		const legacyTodoPath    = join(directory, "Todo.md" ) ;
 		for (const localDirectory of LOCAL_DIRECTORIES) {
 			await ensureDirectory(join(directory, localDirectory));
 		}
-		await ensureDirectory(vaultDirectory);
 
 		const manifestPath = join(directory, MANIFEST_FILE);
 		let manifest: ProjectManifest;
@@ -138,12 +147,17 @@ export class FileProjectWorkspace {
 				throw new Error(`Project manifest has an unsupported schema: ${manifestPath}`);
 			}
 			manifest = parsed;
+			if (manifest.id === undefined) {
+				manifest = { ...manifest, id: randomUUID() };
+				await atomicWrite(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 0o600);
+			}
 			} catch (error) {
 				if (!(error instanceof SyntaxError)) throw error;
 				throw new Error(`Project manifest is not valid JSON: ${manifestPath}`, { cause: error });
 			}
 		} else {
 			manifest = {
+				id            : randomUUID(),
 				schemaVersion : 1,
 				name          : basename(root),
 				createdAt     : new Date().toISOString(),
@@ -163,14 +177,14 @@ export class FileProjectWorkspace {
 			await atomicWrite(gitignorePath, WORKSPACE_GITIGNORE, 0o600);
 		}
 
-		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, todosDirectory, vaultDirectory, canonicalTodoPath, legacyTodoPath, manifestPath };
+		return { name: manifest.name, root, directory, sessionsDirectory, draftsDirectory, runtimeDirectory, todosDirectory, legacyTodoPath, manifestPath };
 	}
 
 	static async acquireSessionLease(workspace: ProjectWorkspace, sessionId: string): Promise<SessionLease> {
 		if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/u.test(sessionId)) throw new Error("Invalid session lease id.");
 		await ensureDirectory(workspace.runtimeDirectory);
-		const path = join(workspace.runtimeDirectory, `${sessionId}.lock`);
-		const token = randomUUID();
+		const path  = join(workspace.runtimeDirectory, `${sessionId}.lock`) ;
+		const token = randomUUID()                                          ;
 		const acquire = async (): Promise<void> => {
 			try {
 				const handle = await open(path, "wx", 0o600);

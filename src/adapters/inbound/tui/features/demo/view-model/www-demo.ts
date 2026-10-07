@@ -28,10 +28,9 @@ export function createWwwDemoState(_base: WorkbenchSnapshot, clock = Date.now): 
 			],
 			observationCoverage: { interactive: true, detached: true },
 		},
-		skillInventory: { count: 6, names: ["woo-entry", "tdd", "figma-design-to-code", "woo-linear-activity", "woo-obsidian-canonical", "woo-commit"], sourceRevision: "demo", digest: "d".repeat(64) },
+		skillInventory: { count: 3, names: ["tdd", "figma-design-to-code", "woo-commit"], sourceRevision: "demo", digest: "d".repeat(64) },
 		mcpServers: [
 			{ name : "figma"  , enabled : true , status : "connected" , tools : ["get_design_context"] },
-			{ name : "linear" , enabled : true , status : "connected" , tools : ["issues", "comments"] },
 			{ name : "github" , enabled : true , status : "connected" , tools : ["pull_requests"]      },
 		],
 		cacheObservations: [
@@ -63,7 +62,7 @@ export function createWwwDemoState(_base: WorkbenchSnapshot, clock = Date.now): 
 			{ id: "demo-queue-2", content: "provider 색상 막대를 최종 확인한다", queuedAt: new Date(now - 10_000).toISOString(), goal: true },
 		], draft: "", reasoningDraft: "", selectedActivityId: null,
 		pendingApproval: { requestId: "demo-approval", callbackId: null, kind: "command", refs: {}, availableDecisions: ["accept", "decline"], params: { command: "publish visual acceptance", reason: "DEMO DATA · approval state example" } },
-		actionResult: null, deliveryUncertain: false, error: null, developmentRecordingError: null,
+		actionResult: null, deliveryUncertain: false, error: null,
 		liveActivity   : { kind: "tool", method: "demo", text: "DEMO DATA · R previous · E next · Esc exit", nativeRefs: { threadId: "demo-thread", turnId: "demo-turn", itemId: "demo-tool" } },
 		workFlow       : projectWorkFlow(activities, new Map(), { expectedThreadKey: "demo-thread", selectedTurnId: "demo-turn", hash: { sha256Hex: value => new Bun.CryptoHasher("sha256").update(value).digest("hex") } }),
 		requestRuntime : [demoRequest()],

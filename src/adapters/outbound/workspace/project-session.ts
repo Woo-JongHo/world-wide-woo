@@ -1,26 +1,24 @@
-import { join } from "node:path";
+import      { join                             } from "node:path"                                               ;
 
-import { SessionMonitor }  from "@/core/application/session/session-monitor";
-import { SessionRuntime }  from "@/core/application/session/session-runtime";
-import { PlanningService } from "@/core/application/work/planning-service";
-import { TodoLedger }      from "@/core/application/work/todo-ledger";
+import      { SessionMonitor                   } from "@/core/application/session/session-monitor"              ;
+import      { SessionRuntime                   } from "@/core/application/session/session-runtime"              ;
+import      { TodoLedger                       } from "@/core/application/work/todo-ledger"                     ;
 
-import { createProjectAgentTools }      from "@/adapters/outbound/execution/agent-tools";
-import { LocalTerminalCommandExecutor } from "@/adapters/outbound/execution/terminal-command-executor";
+import      { createProjectAgentTools          } from "@/adapters/outbound/execution/agent-tools"               ;
+import      { LocalTerminalCommandExecutor     } from "@/adapters/outbound/execution/terminal-command-executor" ;
 
-import { FilePlanningStore }                from "@/adapters/outbound/persistence/planning-store";
-import { SessionEventStore }                from "@/adapters/outbound/persistence/session-store";
-import { FileTodoStore, migrateLegacyTodo } from "@/adapters/outbound/persistence/todo-store";
+import      { SessionEventStore                } from "@/adapters/outbound/persistence/session-store"           ;
+import      { FileTodoStore, migrateLegacyTodo } from "@/adapters/outbound/persistence/todo-store"              ;
 
-import { FileProjectWorkspace }  from "@/adapters/outbound/workspace/project-workspace";
-import type { ProjectWorkspace } from "@/adapters/outbound/workspace/project-workspace";
-import { loadWorkbenchConfig }   from "@/adapters/outbound/workspace/workbench-config.js";
+import      { FileProjectWorkspace             } from "@/adapters/outbound/workspace/project-workspace"         ;
+import type { ProjectWorkspace                 } from "@/adapters/outbound/workspace/project-workspace"         ;
+import      { loadWorkbenchConfig              } from "@/adapters/outbound/workspace/workbench-config.js"       ;
 
-import type { WwwSettings } from "@/core/domain/execution/model-settings";
+import type { WwwSettings                      } from "@/core/domain/execution/model-settings"                  ;
 
-import type { TodoController }       from "@/core/ports/execution/todo-controller-port";
-import type { ModelClient }          from "@/core/ports/integration/model-client-port";
-import type { RecentSessionSummary } from "@/core/ports/persistence/session-repository";
+import type { TodoController                   } from "@/core/ports/execution/todo-controller-port"             ;
+import type { ModelClient                      } from "@/core/ports/integration/model-client-port"              ;
+import type { RecentSessionSummary             } from "@/core/ports/persistence/session-repository"             ;
 
 /** Legacy Router가 TUI에 넘기는 project session 자원과 종료 책임이다. */
 export interface ProjectSessionBundle {
@@ -28,7 +26,6 @@ export interface ProjectSessionBundle {
 	runtime   : SessionRuntime   ;
 	todos     : TodoController   ;
 	monitor   : SessionMonitor   ;
-	planning  : PlanningService  ;
 	/** TUI가 종료한 뒤 session writer lease를 반납한다. 반복 호출은 최초 호출만 효과가 있다. */
 	releaseSessionLease : () => Promise< void >;
 }
@@ -60,9 +57,6 @@ export async function createProjectSession(
 			sessions,
 		);
 		await todos.initialize();
-
-		const planning         = new PlanningService(new FilePlanningStore(workspace.directory)) ;
-		const planningSnapshot = await planning.initialize()                                     ;
 		const tools            = createProjectAgentTools(workspace.root, { todos })              ;
 		const runtime          = new SessionRuntime(
 			settings,
@@ -72,7 +66,6 @@ export async function createProjectSession(
 			sessionId,
 			tools,
 			todos,
-			planningSnapshot,
 			new LocalTerminalCommandExecutor(),
 			config.retry,
 			config.orchestration.maxAgentRounds,
@@ -85,7 +78,6 @@ export async function createProjectSession(
 			runtime,
 			todos,
 			monitor,
-			planning,
 			releaseSessionLease: () => lease.release(),
 		};
 	} catch (error) {

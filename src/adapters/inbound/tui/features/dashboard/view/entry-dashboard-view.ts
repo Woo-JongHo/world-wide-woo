@@ -5,13 +5,7 @@ import      {
                                        } from "@earendil-works/pi-tui"                                               ;
 import type { Component                } from "@earendil-works/pi-tui"                                               ;
 import type { ProjectActivity          } from "@/core/domain/execution/project-activity"                             ;
-import type {
-              LinearDashboardComment ,
-              LinearDashboardIssue   ,
-              LinearProjectDashboard ,
-                                       } from "@/core/domain/work/linear-dashboard"                                  ;
 import type { WorkbenchSnapshot        } from "@/core/domain/work/workbench"                                         ;
-import      { PRODUCT_VERSION          } from "@/product-version"                                                    ;
 import      {
               monitoringCard         ,
               monitoringColumns      ,
@@ -33,7 +27,6 @@ import      {
               workbenchEffortLabel   ,
               workbenchModelLabel    ,
                                        } from "@/adapters/inbound/tui/foundation/labels"                             ;
-import      { colors                   } from "@/adapters/inbound/tui/foundation/theme/theme"                        ;
 import      {
               syntheticDashboardRail ,
               syntheticDashboardRows ,
@@ -59,7 +52,6 @@ export class WwwDashboardView implements Component {
 		const todoCompleted  = todo?.items.filter(item => item.status === "completed").length ?? 0                              ;
 		const todoBlocked    = todo?.items.filter(item => item.status === "blocked").length ?? 0                                ;
 		const live           = snapshot.liveActivity ? snapshotText(snapshot.liveActivity.text, "관측된 현재 작업 없음") : null ;
-		const project        = snapshot.linearDashboard                                                                         ;
 		const context        = snapshot.contextUsage                                                                            ;
 		const sessionTokens  = snapshot.sessionUsage?.observedTotalTokens                                                       ;
 		const contextPercent = context ? Math.round(Math.max(0, Math.min(100, context.percent))) : null                         ;
@@ -142,7 +134,6 @@ export class WwwDashboardView implements Component {
 			...(requestRows.length ? requestRows : [a.muted("기록된 질문이 없습니다.")]),
 			...layerPerformanceRows(snapshot, width),
 			...monitoringColumns([tokenPanel, activityPanel], [tokenPanelWidth, activityPanelWidth]),
-			pair("LINEAR", project ? `${snapshotText(project.projectName, "연결된 프로젝트")} · ${project.state}` : "미연결", width),
 		].map(row => fit(row, width));
 	}
 }
@@ -182,143 +173,10 @@ export class WwwDashboardRail implements Component {
 	}
 }
 
-/** First-screen project pulse. It is intentionally read-only and snapshot-backed. */
-export class EntryDashboardView implements Component {
-	public constructor(
-		private readonly getDashboard: () => LinearProjectDashboard | undefined,
-		private readonly now: () => Date = () => new Date(),
-	) {}
-
-	public invalidate(): void {}
-
-	public render(width: number): string[] {
-		const contentWidth    = Math.max(1, width)                               ;
-		const dashboard       = this.getDashboard()                              ;
-		const projectName     = dashboard?.projectName ?? "Linear 프로젝트"      ;
-		const rows : string[] = [colors.secondary(`DASHBOARD · ${projectName}`)] ;
-		if (!dashboard || dashboard.state === "loading") {
-			rows.push(section("RELEASE"), colors.accent(`v${PRODUCT_VERSION}`));
-			rows.push(colors.muted("  릴리스 노트를 불러오는 중입니다."));
-			rows.push(section("PROJECT"), colors.accent("연결 중"));
-			rows.push(...wrapTextWithAnsi("열린 이슈·최신 Update·Comment·마일스톤을 가져오는 중입니다.", contentWidth));
-			rows.push(section("NOW"), colors.muted("  프로젝트 연결 대기"));
-			rows.push(section("ACTIVITY"), colors.muted("  최근 활동 연결 대기"));
-			return rows;
-		}
-		if (dashboard.state === "unavailable") {
-			rows.push(section("RELEASE"), colors.accent(`v${PRODUCT_VERSION}`));
-			rows.push(colors.muted(`  v${PRODUCT_VERSION} 릴리스 노트를 확인할 수 없습니다.`));
-			rows.push(section("PROJECT"), colors.warning("! Linear Dashboard unavailable"));
-			if (dashboard.error) rows.push(...wrapTextWithAnsi(`  ${dashboard.error}`, contentWidth));
-			rows.push(...wrapTextWithAnsi(colors.muted("  조치 · .www/workbench.yaml의 연결과 Linear MCP 인증을 확인하세요."), contentWidth));
-			rows.push(section("NOW"), colors.muted("  현재 작업 미관측"));
-			rows.push(section("ACTIVITY"), colors.muted("  최근 활동 미관측"));
-			return rows;
-		}
-
-		const issues  = dashboard.issues                                      ;
-		const current = issues.find(isInProgress) ?? issues[0]                ;
-		const next    = issues.filter(issue => issue !== current).slice(0, 3) ;
-		if (dashboard.state === "stale") {
-			rows.push(colors.warning("갱신 실패 · 마지막 성공 값"));
-			if (dashboard.error) rows.push(...wrapTextWithAnsi(`  실패 이유 · ${dashboard.error}`, contentWidth));
-		}
-		rows.push(section("RELEASE"), colors.accent(`v${PRODUCT_VERSION}`), ...updateRows(dashboard, contentWidth));
-
-		rows.push(section("PROJECT"));
-		rows.push(colors.muted(`  ${projectName} · issues ${issues.length} · milestones ${dashboard.milestones.length}`));
-		if (next.length > 0) {
-			for (const issue of next) rows.push(...issueRows(issue, "○", contentWidth, this.now()));
-		} else rows.push(colors.muted("  다음 작업이 없습니다."));
-
-		rows.push(section("NOW"));
-		if (current) rows.push(...issueRows(current, "▶", contentWidth, this.now()));
-		else rows.push(colors.muted("  현재 진행 중인 이슈가 없습니다."));
-
-		rows.push(section("ACTIVITY"), ...commentRows(dashboard, contentWidth, this.now()));
-		const recent = [...issues]
-			.filter((issue): issue is LinearDashboardIssue & { updatedAt: string } => Boolean(issue.updatedAt))
-			.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
-			.slice(0, 4);
-		if (recent.length > 0) {
-			for (const issue of recent) rows.push(...wrapTextWithAnsi(`${clock(issue.updatedAt)}  ${issue.id}  ${issue.title}`, contentWidth));
-		} else rows.push(colors.muted("  최근 갱신 이슈가 없습니다."));
-
-		const blocked = issues.filter(issue => /blocked|차단/iu.test(issue.status)).length      ;
-		const stale   = dashboard.state === "stale" ? 1 : 0                                     ;
-		const marker  = blocked > 0 || stale > 0 ? colors.warning("!") : colors.success("✓")    ;
-		const summary = colors.muted(`blocked ${blocked > 0 ? blocked : "—"} · stale ${stale}`) ;
-		rows.push(`${marker} ${summary}`);
-		rows.push(colors.muted(`synced ${clock(dashboard.fetchedAt)}`));
-		return rows.flatMap(row => wrapTextWithAnsi(fit(row, contentWidth), contentWidth));
-	}
-}
-
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
 	const clipped = truncateToWidth(text, width);
 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
-}
-
-function relativeAge(value: string | null | undefined, now: Date): string {
-	if (!value) return "—";
-	const timestamp = Date.parse(value);
-	if (!Number.isFinite(timestamp)) return "—";
-	const minutes = Math.max(0, Math.floor((now.getTime() - timestamp) / 60_000));
-	if (minutes < 60) return `${minutes}m ago`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
-	return `${Math.floor(hours / 24)}d ago`;
-}
-
-function clock(value: string | null | undefined): string {
-	if (!value) return "—";
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return "—";
-	return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
-function isInProgress(issue: LinearDashboardIssue): boolean {
-	return issue.statusType === "started"
-		|| /(?:progress|started|running|doing|작업|진행)/iu.test(issue.status);
-}
-
-function section(title: string): string {
-	return colors.warm(title);
-}
-
-function issueRows(issue: LinearDashboardIssue, marker: string, width: number, now: Date): string[] {
-	const rows = [colors.accent(`${marker} ${issue.id}`)];
-	rows.push(...wrapTextWithAnsi(`  ${issue.title}`, width));
-	rows.push(colors.muted(`  ${issue.status} · ${relativeAge(issue.updatedAt, now)}`));
-	return rows;
-}
-
-function updateRows(dashboard: LinearProjectDashboard, width: number): string[] {
-	const update = dashboard.update;
-	if (!update || update.version !== PRODUCT_VERSION) return [colors.muted(`  게시된 v${PRODUCT_VERSION} 릴리스 노트가 없습니다.`)];
-	const body           = update.body.split(/\r?\n/u).map(line => line.trim()).filter(Boolean).slice(0, 8) ;
-	const rows: string[] = []                                                                               ;
-	for (const line of body) {
-		const cleaned = line.replace(/^#{1,3}\s*/u, "");
-		rows.push(...wrapTextWithAnsi(`  ${cleaned}`, width));
-	}
-	if (update.createdAt) rows.push(colors.muted(`  ${clock(update.createdAt)}`));
-	return rows.length > 0 ? rows : [colors.muted("  Project Update가 없습니다.")];
-}
-
-function commentSummary(comment: LinearDashboardComment): string {
-	const line = comment.body.split(/\r?\n/u).map(value => value.trim()).filter(value => value && !/^#{1,6}\s*/u.test(value)).map(value => value.replace(/^[-*]\s*/u, "")).find(Boolean);
-	return line || "내용 없는 Comment";
-}
-
-function commentRows(dashboard: LinearProjectDashboard, width: number, now: Date): string[] {
-	const comments = dashboard.comments.slice(0, 3);
-	if (comments.length === 0) return [colors.muted("  최근 Comment가 없습니다.")];
-	return comments.flatMap(comment => [
-		colors.muted(`  ${comment.author ?? "Linear"} · ${relativeAge(comment.createdAt, now)}`),
-		...wrapTextWithAnsi(`  ${commentSummary(comment)}`, width),
-	]);
 }
 
 function snapshotText(value: string | null | undefined, fallback: string): string {

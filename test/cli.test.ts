@@ -1,8 +1,12 @@
-import { describe, expect, test }                          from "bun:test";
-import type { RunAppOptions }                              from "../src/app";
-import { runCli, writeWwwBootstrap, writeRouterBootstrap } from "../src/cli";
-import type { CliDependencies }                            from "../src/cli";
-import type { NativeThreadSummary }                        from "../src/core/domain/execution/native-session";
+import      { describe, expect, test } from "bun:test"                                    ;
+import type { RunAppOptions          } from "../src/app"                                  ;
+import      {
+              runCli               ,
+              writeWwwBootstrap    ,
+              writeRouterBootstrap ,
+                                     } from "../src/cli"                                  ;
+import type { CliDependencies        } from "../src/cli"                                  ;
+import type { NativeThreadSummary    } from "../src/core/domain/execution/native-session" ;
 
 const threads: readonly NativeThreadSummary[] = [{
 	id: "thread-2",
@@ -33,7 +37,6 @@ function fakeDependencies() {
 		runWww             : async (options = {}) => { calls.www.push(options); },
 		runRouter          : async (options = {}) => { calls.router.push(options); },
 		runAuth            : async () => undefined,
-		runDevelopment     : async () => "",
 		runWorkflow        : async () => "",
 		listSessions       : async () => [],
 		listNativeThreads  : async () => { calls.listed += 1; return threads; },
@@ -59,8 +62,8 @@ describe("WWW CLI session entry", () => {
 		expect(calls.www).toEqual([{ runtimeConfig: "runtime.json" }]);
 	});
 	test("paints and clears a www loading bar before production modules load", async () => {
-		const writes: string[] = [];
-		const stop = writeWwwBootstrap(value => writes.push(value), true);
+		const writes: string[] = []                                                   ;
+		const stop             = writeWwwBootstrap(value => writes.push(value), true) ;
 		try {
 		expect(writes).toEqual(["\r\x1b[2Kwww v0.0.23 [███░░░░░░░░░░░░]"]);
 			await new Promise(resolve => setTimeout(resolve, 180));

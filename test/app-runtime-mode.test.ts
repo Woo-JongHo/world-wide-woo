@@ -1,13 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import      { describe, expect, test            } from "bun:test"                                                     ;
 
-import { runApp, runWww }   from "../src/app";
-import { ProjectWorkbench } from "../src/core/application/orchestration/project-workbench";
+import      { runApp, runWww                    } from "../src/app"                                                   ;
+import      { ProjectWorkbench                  } from "../src/core/application/orchestration/project-workbench"      ;
 
-import type { RunAppDependencies, RunAppOptions } from "../src/app";
+import type { RunAppDependencies, RunAppOptions } from "../src/app"                                                   ;
 import type {
-	ProjectWorkbenchSession,
-	ProjectWorkbenchSessionOptions,
-} from "../src/adapters/outbound/workspace/project-workbench-session";
+              ProjectWorkbenchSession         ,
+              ProjectWorkbenchSessionOptions  ,
+                                                } from "../src/adapters/outbound/workspace/project-workbench-session" ;
 
 const requestCapabilityFactory: NonNullable<ProjectWorkbenchSessionOptions["requestCapabilityFactory"]> = () => [];
 
@@ -26,8 +26,6 @@ function createClosableSession(close: () => Promise<void>): ProjectWorkbenchSess
 			draftsDirectory   : "/workspace/test-project/.www/drafts",
 			runtimeDirectory  : "/workspace/test-project/.www/runtime",
 			todosDirectory    : "/workspace/test-project/.www/todos",
-			vaultDirectory    : "/workspace/test-project/.www/vault",
-			canonicalTodoPath : "/workspace/test-project/.www/vault/Todo.md",
 			legacyTodoPath    : "/workspace/test-project/.www/Todo.md",
 			manifestPath      : "/workspace/test-project/.www/project.json",
 		},
@@ -52,8 +50,8 @@ async function observeComposition(
 	options : RunAppOptions,
 	entry   : (options: RunAppOptions, dependencies: RunAppDependencies) => Promise<void> = runApp,
 ): Promise<CompositionObservation> {
-	const created: ProjectWorkbenchSessionOptions[] = [];
-	const surfaces: RunAppOptions["surface"][] = [];
+	const created  : ProjectWorkbenchSessionOptions[] = [] ;
+	const surfaces : RunAppOptions["surface"][]       = [] ;
 	const dependencies: RunAppDependencies = {
 		loadSettings                 : async () => ({ provider: "openai-codex", model: "gpt-5.6-sol", effort: "ultra" }),
 		loadRequestCapabilityConfig : async () => requestCapabilityFactory,

@@ -1,35 +1,41 @@
-import { describe, expect, test }               from "bun:test";
-import { renderLayoutFrame }                    from "@earendil-works/pi-tui/dist/layout.js";
-import type { LayoutBox }                       from "@earendil-works/pi-tui/dist/layout.js";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import      {
+              describe                       ,
+              expect                         ,
+              test                           ,
+                                               } from "bun:test"                                                                       ;
+import      { renderLayoutFrame                } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import type { LayoutBox                        } from "@earendil-works/pi-tui/dist/layout.js"                                          ;
+import      {
+              stripTerminalSequences         ,
+              visibleWidth                   ,
+                                               } from "@earendil-works/pi-tui"                                                         ;
 import chalk                                    from "chalk";
-import type { WorkbenchSnapshot }               from "../src/core/domain/work/workbench";
-import { createDashboardLayout }                from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout";
-import {
-	StatusLine,
-	WorkspaceTodoView,
-} from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views";
-import { WorkbenchChatView }                    from "../src/adapters/inbound/tui/features/chat/view/workbench-views";
-import { EntryDashboardView }                   from "../src/adapters/inbound/tui/features/dashboard/view/entry-dashboard-view";
-import { TNotesSourceView }                     from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view";
-import { WorkbenchMonitorView }                 from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view";
-import { WorkbenchTracerView }                  from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view";
-import { boundedPublicProjection }              from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection";
-import {
-	approvalCardRows,
-	projectApprovalBackgroundState,
-} from "../src/adapters/inbound/tui/features/approval/view/approval-presentation";
-import { projectWorkFlow }                      from "../src/core/domain/work";
-import type { DplanHash }                       from "../src/core/domain/work";
+import type { WorkbenchSnapshot                } from "../src/core/domain/work/workbench"                                              ;
+import      { createDashboardLayout            } from "../src/adapters/inbound/tui/foundation/layout/dashboard-layout"                 ;
+import      {
+              StatusLine                     ,
+              WorkspaceTodoView              ,
+                                               } from "../src/adapters/inbound/tui/features/dashboard/view/shared-dashboard-views"     ;
+import      { WorkbenchChatView                } from "../src/adapters/inbound/tui/features/chat/view/workbench-views"                 ;
+import      { TNotesSourceView                 } from "../src/adapters/inbound/tui/features/tnote/view/t-notes-source-view"            ;
+import      { WorkbenchMonitorView             } from "../src/adapters/inbound/tui/features/monitoring/view/workbench-monitor-view"    ;
+import      { WorkbenchTracerView              } from "../src/adapters/inbound/tui/features/trace/view/workbench-tracer-view"          ;
+import      { boundedPublicProjection          } from "../src/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
+import      {
+              approvalCardRows               ,
+              projectApprovalBackgroundState ,
+                                               } from "../src/adapters/inbound/tui/features/approval/view/approval-presentation"       ;
+import      { projectWorkFlow                  } from "../src/core/domain/work"                                                        ;
+import type { DplanHash                        } from "../src/core/domain/work"                                                        ;
 
-import {
-	allScrollContent,
-	approvalPresentation,
-	fixtureWorkFlow,
-	hash,
-	renderChatWithDashboard,
-	snapshot,
-} from "./workbench-views.fixtures";
+import      {
+              allScrollContent               ,
+              approvalPresentation           ,
+              fixtureWorkFlow                ,
+              hash                           ,
+              renderChatWithDashboard        ,
+              snapshot                       ,
+                                               } from "./workbench-views.fixtures"                                                     ;
 
 describe("workbench transcript and animation views", () => {
 	test("uses one filled user surface and an open assistant transcript", () => {
@@ -359,8 +365,8 @@ describe("workbench transcript and animation views", () => {
 		};
 		try {
 			view.syncActivity({ message: "분석", frames: ["⠋", "⠙"], intervalMs: 80 }, () => undefined);
-			const first = view.render(80).join("\n");
-			const initialProjectionCalls = messageProjectionCalls;
+			const first                  = view.render(80).join("\n") ;
+			const initialProjectionCalls = messageProjectionCalls     ;
 
 			callbacks[0]?.();
 			const second = view.render(80).join("\n");
@@ -377,8 +383,8 @@ describe("workbench transcript and animation views", () => {
 	});
 
 	test("stops activity motion when the selected execution run is terminal", () => {
-		const originalSetInterval = globalThis.setInterval;
-		let scheduled = 0;
+		const originalSetInterval = globalThis.setInterval ;
+		let scheduled             = 0                      ;
 		globalThis.setInterval = (() => { scheduled += 1; return { unref: () => undefined } as unknown as ReturnType<typeof setInterval>; }) as unknown as typeof setInterval;
 		const view = new WorkbenchChatView({
 			...snapshot,

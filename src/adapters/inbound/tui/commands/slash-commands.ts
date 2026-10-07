@@ -1,16 +1,16 @@
-import type { SlashCommand }                                      from "@earendil-works/pi-tui";
-import {
-	EFFORTS,
-	nativeModelNames,
-	nativeModelEfforts,
-	modelEfforts,
-	MODELS,
-	PROVIDERS,
-} from "@/core/domain/execution/model-settings";
-import type { NativeModelCatalog, Effort, Provider, WwwSettings } from "@/core/domain/execution/model-settings";
-import { nextTuiTheme, TUI_THEME_OPTIONS }                        from "@/adapters/inbound/tui/foundation/theme/theme";
-import type { TuiThemeName }                                      from "@/adapters/inbound/tui/foundation/theme/theme";
-import { workbenchEffortLabel }                                   from "@/adapters/inbound/tui/foundation/labels";
+import type { SlashCommand                                      } from "@earendil-works/pi-tui"                        ;
+import      {
+              EFFORTS                                         ,
+              nativeModelNames                                ,
+              nativeModelEfforts                              ,
+              modelEfforts                                    ,
+              MODELS                                          ,
+              PROVIDERS                                       ,
+                                                                } from "@/core/domain/execution/model-settings"        ;
+import type { NativeModelCatalog, Effort, Provider, WwwSettings } from "@/core/domain/execution/model-settings"        ;
+import      { nextTuiTheme, TUI_THEME_OPTIONS                   } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+import type { TuiThemeName                                      } from "@/adapters/inbound/tui/foundation/theme/theme" ;
+import      { workbenchEffortLabel                              } from "@/adapters/inbound/tui/foundation/labels"      ;
 
 export type ShellCommand =
 	| { type: "model.select" }
@@ -22,9 +22,6 @@ export type ShellCommand =
 	| { type: "usage.refresh" }
 	| { type: "status" }
 	| { type: "monitoring" }
-	| { type: "planning.status" }
-	| { type: "planning.epic.create"; title: string; goal: string }
-	| { type: "planning.story.create"; epicId: string; title: string; acceptance: string; supersedes: string | null }
 	| { type: "repository.commits" }
 	| { type: "repository.issues" }
 	| { type: "help" }
@@ -37,7 +34,6 @@ export function shellCommandConcurrency(command: ShellCommand): ShellCommandConc
 	switch (command.type) {
 		case "status"         :
 		case "monitoring"     :
-		case "planning.status":
 		case "help":
 			return "local-read";
 		case "usage.refresh":
@@ -50,8 +46,6 @@ export function shellCommandConcurrency(command: ShellCommand): ShellCommandConc
 		case "auth.login"          :
 		case "auth.logout"         :
 		case "effort.set"          :
-		case "planning.epic.create":
-		case "planning.story.create":
 			return "mutation";
 		case "exit":
 			return "control";
@@ -95,17 +89,14 @@ export const SLASH_COMMANDS: SlashCommand[] = [
 		argumentHint: "<low|medium|high|ultra>",
 		getArgumentCompletions: () => EFFORTS.map((effort) => ({ value: effort, label: effort })),
 	},
-	{ name : "usage"     , description : "Codex·Claude 사용량 즉시 갱신"                                                              },
-	{ name : "status"    , description : "현재 Router·인증·세션 상태"                                                                 },
-	{ name : "monitor"   , description : "실시간 Session·Turn·Tool·Todo 관측"                                                         },
-	{ name : "dashboard" , description : "Monitoring Dashboard 열기"                                                                  },
-	{ name : "planning"  , description : "Project Planning catalog 상태"                                                              },
-	{ name : "epic"      , description : "새 Epic 초안 저장"  , argumentHint : "<title> :: <goal>"                                    },
-	{ name : "story"     , description : "새 Story 초안 저장" , argumentHint : "<EP-ID> <title> [--supersedes ST-ID] :: <acceptance>" },
-	{ name : "commits"   , description : "Git 작업 트리와 최근 Commit"                                                                },
-	{ name : "issues"    , description : "현재 저장소의 열린 GitHub Issue"                                                            },
-	{ name : "help"      , description : "WWW Shell 명령 안내"                                                                        },
-	{ name : "exit"      , description : "세션을 안전하게 종료"                                                                       },
+	{ name : "usage"     , description : "Codex·Claude 사용량 즉시 갱신"      },
+	{ name : "status"    , description : "현재 Router·인증·세션 상태"         },
+	{ name : "monitor"   , description : "실시간 Session·Turn·Tool·Todo 관측" },
+	{ name : "dashboard" , description : "Monitoring Dashboard 열기"          },
+	{ name : "commits"   , description : "Git 작업 트리와 최근 Commit"        },
+	{ name : "issues"    , description : "현재 저장소의 열린 GitHub Issue"    },
+	{ name : "help"      , description : "WWW Shell 명령 안내"                },
+	{ name : "exit"      , description : "세션을 안전하게 종료"               },
 ];
 
 export type WorkbenchShellCommand =
@@ -125,15 +116,12 @@ export type WorkbenchShellCommand =
 	| { type: "session.mode"; mode: "plan" | "manual" }
 	| { type: "goal.view" }
 	| { type: "goal.set"; text: string }
-	| { type: "woo-entry.refresh" }
 	| { type: "activity.select"; activityId: string | "latest" | null }
 	| { type: "trace.select"; activityId: string }
 	| { type: "runtime.reconcile"; requestId: string; operationId: string }
 	| { type: "agent.select"; agentRef: string | null }
 	| { type: "tnote.capture" }
 	| { type: "tnote.capture-range"; startSequence: number; endSequence: number }
-	| { type: "promotion.accept"; noteId: string }
-	| { type: "promotion.confirm"; token: string }
 	| { type: "review.preview"; provider: "anthropic" | "google"; noteId: string; request: string }
 	| { type: "review.send"; digest: string }
 	| { type: "approval.accept" }
@@ -168,14 +156,13 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 	{ name : "chat"       , description : "Chat pane 안내"                                                                         },
 	{ name : "dashboard"  , description : "전체 Session·Project 관측 Dashboard"                                                    },
 	{ name : "monitor"    , description : "현재 Runtime·Request·Tool Live Monitor"                                                 },
-	{ name : "map"        , description : "전체 개발 구조와 진척도 Map 열기"                                                       },
 	{ name : "stats"      , description : "Session review와 request investigation 열기" , argumentHint : "[diagnostics|latest|#n]" },
 	{ name : "test"       , description : "현재 세션의 질문별 검증 목적·검사·근거"                                                 },
 	{ name : "three-body" , description : "Orbiting Pair / Guardian 삼체 물리 실험실 열기"                                         },
 	{ name : "output"     , description : "완료된 작업의 최종 Operation Report 열기"                                               },
 	{ name : "tnotes"     , description : "저장된 질문별 완료 Note 읽기"                                                           },
 	{ name : "todo"       , description : "레거시 Todo.md 읽기 전용 migration view"                                                },
-	{ name : "plan"       , description : "Native Plan 모드로 전환"                                                             },
+	{ name : "plan"       , description : "Native Plan 모드로 전환"                                                                },
 	{
 		name: "permission",
 		description: "Native 권한 범위 전환",
@@ -195,13 +182,11 @@ export const WORKBENCH_SLASH_COMMANDS: SlashCommand[] = [
 		],
 	},
 	{ name : "goal"            , description : "장기 작업 Goal 설정·조회"                                    , argumentHint : "[목표 문장]"                                      },
-	{ name : "woo-entry"       , description : "WES 현재 상태와 다음 작업 다시 읽기"                                                                                             },
 	{ name : "source"          , description : "Progress 항목의 원본 Source 선택"                            , argumentHint : "<activity-id|latest|clear>"                       },
 	{ name : "trace"           , description : "선택한 Progress 항목에 결속된 정확한 Trace 선택"             , argumentHint : "<activity-id>"                                    },
 	{ name : "reconcile"       , description : "종료된 Runtime 작업의 현재 결과만 재조회 · 동작 재실행 없음" , argumentHint : "<request-id> <operation-id>"                      },
 	{ name : "agents"          , description : "위임 트리 또는 선택한 에이전트의 공개 수행 관찰"             , argumentHint : "[agent-ref|clear]"                                },
 	{ name : "tnote"           , description : "마지막 질문 또는 선택 범위를 종료 보고서로 요약"             , argumentHint : "[range <start-sequence> <end-sequence>]"          },
-	{ name : "promote"         , description : "Note 정본 반영: diff 확인 후 사람 승인"                      , argumentHint : "<tnote|confirm> <note-id|token>"                  },
 	{ name : "review"          , description : "공개 분류 Note의 외부 검토 미리보기·송신"                    , argumentHint : "<preview|send> …"                                 },
 	{ name : "approve"         , description : "대기 중인 native 요청 승인"                                                                                                      },
 	{ name : "approve-session" , description : "현재 세션 동안 native 요청 승인"                                                                                                 },
@@ -268,11 +253,6 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 		const goal = trimmed.slice("/goal".length).trim();
 		return goal ? { type: "goal.set", text: goal } : { type: "goal.view" };
 	}
-	if (name === "woo-entry") {
-		return args.length === 0
-			? { type: "woo-entry.refresh" }
-			: { type: "error", message: "사용법: /woo-entry" };
-	}
 	if (name === "source") {
 		const activityId = args[0];
 		if (!activityId) return { type: "error", message: "사용법: /source <activity-id|latest|clear>" };
@@ -293,8 +273,8 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 	if (name === "tnote") {
 		if (args.length === 0) return { type: "tnote.capture" };
 		if (args[0] !== "range" || args.length !== 3) return { type: "error", message: "사용법: /tnote [range <start-sequence> <end-sequence>]" };
-		const startSequence = parseSequence(args[1]);
-		const endSequence = parseSequence(args[2]);
+		const startSequence = parseSequence(args[1]) ;
+		const endSequence   = parseSequence(args[2]) ;
 		return startSequence !== null && endSequence !== null && startSequence <= endSequence
 			? { type: "tnote.capture-range", startSequence, endSequence }
 			: { type: "error", message: "Note 범위는 1 이상의 시작·끝 sequence여야 합니다." };
@@ -303,11 +283,6 @@ export function parseWorkbenchShellCommand(text: string, catalog?: NativeModelCa
 		return args.length === 0
 			? { type: "pane.show", pane: "todo" }
 			: { type: "error", message: "레거시 Todo.md는 읽기 전용 migration view입니다." };
-	}
-	if (name === "promote") {
-		if (args[0] === "tnote" && args.length === 2 && args[1]) return { type: "promotion.accept", noteId: args[1] };
-		if (args[0] === "confirm" && args.length === 2 && args[1]) return { type: "promotion.confirm", token: args[1] };
-		return { type: "error", message: "사용법: /promote tnote <note-id> | /promote confirm <token>" };
 	}
 	if (name === "review") return parseReviewCommand(trimmed);
 	if (name === "approve") return { type: "approval.accept" };
@@ -397,8 +372,8 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 		if (!args[0]) return { type: "model.select" };
 		const separator = args[0].indexOf("/");
 		if (separator <= 0) return { type: "error", message: "모델은 provider/model 형식으로 입력하세요." };
-		const providerId = provider(args[0].slice(0, separator));
-		const model = args[0].slice(separator + 1);
+		const providerId = provider(args[0].slice(0, separator)) ;
+		const model      = args[0].slice(separator + 1)          ;
 		if (!providerId || !(MODELS[providerId] as readonly string[]).includes(model)) {
 			return { type: "error", message: `지원하지 않는 모델입니다: ${args[0]}` };
 		}
@@ -430,38 +405,6 @@ export function parseShellCommand(text: string, current: WwwSettings): ShellComm
 	if (name === "usage") return { type: "usage.refresh" };
 	if (name === "status") return { type: "status" };
 	if (name === "monitor" || name === "dashboard") return { type: "monitoring" };
-	if (name === "planning") return { type: "planning.status" };
-	if (name === "epic") {
-		const body      = trimmed.slice("/epic".length).trim()                  ;
-		const separator = body.indexOf("::")                                    ;
-		const title     = separator < 0 ? "" : body.slice(0, separator).trim()  ;
-		const goal      = separator < 0 ? "" : body.slice(separator + 2).trim() ;
-		return title && goal
-			? { type: "planning.epic.create", title, goal }
-			: { type: "error", message: "사용법: /epic <title> :: <goal>" };
-	}
-	if (name === "story") {
-		const body                     = trimmed.slice("/story".length).trim()                 ;
-		const separator                = body.indexOf("::")                                    ;
-		const header                   = separator < 0 ? "" : body.slice(0, separator).trim()  ;
-		const acceptance               = separator < 0 ? "" : body.slice(separator + 2).trim() ;
-		const parts                    = header.split(/\s+/u).filter(Boolean)                  ;
-		const epicId                   = parts.shift() ?? ""                                   ;
-		const supersedesAt             = parts.indexOf("--supersedes")                         ;
-		let supersedes : string | null = null                                                  ;
-		if (supersedesAt >= 0) {
-			supersedes = parts[supersedesAt + 1] ?? null;
-			parts.splice(supersedesAt, 2);
-		}
-		const title = parts.join(" ");
-		if (!/^EP-\d{3}$/u.test(epicId)
-			|| !title
-			|| !acceptance
-			|| (supersedesAt >= 0 && !/^ST-\d{3}-\d{2}$/u.test(supersedes ?? ""))) {
-			return { type: "error", message: "사용법: /story <EP-ID> <title> [--supersedes ST-ID] :: <acceptance>" };
-		}
-		return { type: "planning.story.create", epicId, title, acceptance, supersedes };
-	}
 	if (name === "commits" || name === "commit") return { type: "repository.commits" };
 	if (name === "issues" || name === "issue") return { type: "repository.issues" };
 	if (name === "help") return { type: "help" };

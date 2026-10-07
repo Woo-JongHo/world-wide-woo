@@ -1,26 +1,47 @@
-import { Key, matchesKey, TuiAltScreen, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import type { Component, OverlayHandle, Terminal }         from "@earendil-works/pi-tui";
+import      {
+              Key                     ,
+              matchesKey              ,
+              TuiAltScreen            ,
+              wrapTextWithAnsi        ,
+                                        } from "@earendil-works/pi-tui"                                                    ;
+import type {
+              Component               ,
+              OverlayHandle           ,
+              Terminal                ,
+                                        } from "@earendil-works/pi-tui"                                                    ;
 
-import type { ProjectWorkbench }                           from "@/core/application/orchestration/project-workbench";
-import { projectNoteFeature }                              from "@/core/application/orchestration/workbench-feature-reads";
-import type { Provider, WwwSettings }                      from "@/core/domain/execution/model-settings";
-import type { WorkbenchCommandReceipt, WorkbenchSnapshot } from "@/core/domain/work/workbench";
-import type { AuthController }                             from "@/core/ports/integration/auth-controller-port";
-import type { UsageMonitor, UsageSnapshot }                from "@/core/ports/observability/usage-monitor-port";
-import { LoginOverlay }                                    from "@/adapters/inbound/tui/features/authentication/view/auth-overlay";
-import { ApprovalOverlay }                                 from "@/adapters/inbound/tui/features/approval/view/approval-overlay";
-import { ModelPickerOverlay }                              from "@/adapters/inbound/tui/features/model-selection/view/model-picker-overlay";
-import { TNoteBrowserController }                          from "@/adapters/inbound/tui/features/tnote/controller/tnote-browser-controller";
-import { ComponentSlot }                                   from "@/adapters/inbound/tui/shell/workbench-navigation.controller";
-import { WwwSheet }                                        from "@/adapters/inbound/tui/shell/www-surface";
-import type { WwwPage, WwwWorkspace }                      from "@/adapters/inbound/tui/shell/www-surface";
-import {
-	workbenchModelSettings,
-	workbenchReceiptNotice,
-} from "@/adapters/inbound/tui/shell/workbench-input.controller";
-import { wwwColors }                                       from "@/adapters/inbound/tui/foundation/theme/www-theme";
+import type { ProjectWorkbench          } from "@/core/application/orchestration/project-workbench"                        ;
+import      { projectNoteFeature        } from "@/core/application/orchestration/workbench-feature-reads"                  ;
+import type {
+              Provider                ,
+              WwwSettings             ,
+                                        } from "@/core/domain/execution/model-settings"                                    ;
+import type {
+              WorkbenchCommandReceipt ,
+              WorkbenchSnapshot       ,
+                                        } from "@/core/domain/work/workbench"                                              ;
+import type { AuthController            } from "@/core/ports/integration/auth-controller-port"                             ;
+import type {
+              UsageMonitor            ,
+              UsageSnapshot           ,
+                                        } from "@/core/ports/observability/usage-monitor-port"                             ;
+import      { LoginOverlay              } from "@/adapters/inbound/tui/features/authentication/view/auth-overlay"          ;
+import      { ApprovalOverlay           } from "@/adapters/inbound/tui/features/approval/view/approval-overlay"            ;
+import      { ModelPickerOverlay        } from "@/adapters/inbound/tui/features/model-selection/view/model-picker-overlay" ;
+import      { TNoteBrowserController    } from "@/adapters/inbound/tui/features/tnote/controller/tnote-browser-controller" ;
+import      { ComponentSlot             } from "@/adapters/inbound/tui/shell/workbench-navigation.controller"              ;
+import      { WwwSheet                  } from "@/adapters/inbound/tui/shell/www-surface"                                  ;
+import type {
+              WwwPage                 ,
+              WwwWorkspace            ,
+                                        } from "@/adapters/inbound/tui/shell/www-surface"                                  ;
+import      {
+              workbenchModelSettings  ,
+              workbenchReceiptNotice  ,
+                                        } from "@/adapters/inbound/tui/shell/workbench-input.controller"                   ;
+import      { wwwColors                 } from "@/adapters/inbound/tui/foundation/theme/www-theme"                         ;
 
-type OverlayKind = "model" | "approval" | "development" | "commands" | "views" | "auth" | "notes";
+type OverlayKind = "model" | "approval" | "commands" | "views" | "auth" | "notes";
 
 interface ShellNotice {
 	setNotice(notice: string): void;
@@ -235,32 +256,6 @@ export class WorkbenchOverlayController {
 			else if (this.overlayKind === "approval") this.dismiss();
 		}
 		return pending ? lastAutoApprovalId : null;
-	}
-
-	showDevelopmentNotice(safeNotice: string): void {
-		this.dependencies.status.setNotice(safeNotice.split("\n")[0] ?? "개발 연결");
-		if (safeNotice.includes("\n")) {
-			this.dismiss();
-			let offset = 0;
-			let lineCount = 0;
-			const panel: Component = {
-				invalidate() {},
-				render: (width) => {
-					const lines = safeNotice.split("\n").flatMap(line => wrapTextWithAnsi(line, Math.max(1, width)));
-					lineCount = lines.length;
-					return ["개발 연결 · ↑↓ 이동 · Esc 닫기", "", ...lines.slice(offset, offset + 18)];
-				},
-				handleInput: (data) => {
-					if (matchesKey(data, Key.escape)) this.dismiss();
-					else if (matchesKey(data, Key.down)) offset = Math.min(Math.max(0, lineCount - 18), offset + 1);
-					else if (matchesKey(data, Key.up)) offset = Math.max(0, offset - 1);
-					this.dependencies.tui.requestRender();
-				},
-			};
-			this.overlay = this.dependencies.tui.showOverlay(this.dependencies.sheet(panel), { width: "90%", minWidth: 40, maxHeight: "85%", anchor: "center" });
-			this.overlayKind = "development";
-		}
-		this.dependencies.tui.requestRender();
 	}
 
 	dispatchModelSelection(settings: WwwSettings): Promise<WorkbenchCommandReceipt> {

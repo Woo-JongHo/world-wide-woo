@@ -123,7 +123,7 @@ export class ApprovalOverlay implements Component {
 }
 
 function mutationKindLabel(kind: WorkbenchExternalMutationKind): string {
-	return ({ commit: "커밋", push: "Push", issue: "GitHub Issue", "linear-issue": "Linear Issue", "linear-project-comment": "Linear Project Comment", "linear-project-update": "Linear Project Update", "obsidian-canonical": "Obsidian 정본", "github-pr": "GitHub PR" })[kind];
+	return ({ commit: "커밋", push: "Push", issue: "GitHub Issue", "github-pr": "GitHub PR" })[kind];
 }
 
 function decisionLabel(decision: WorkbenchApprovalDecision): string {

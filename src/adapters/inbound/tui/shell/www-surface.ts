@@ -107,7 +107,6 @@ export const WWW_COMMANDS = [...WORKBENCH_SLASH_COMMANDS.filter(command => !["tn
 	{ name: "usage", description: "Provider quota·세션 token 상세" },
 	{ name: "approval", description: "보류한 승인 요청 다시 읽기 · 결정하지 않음" },
 	{ name: "demo", description: "MVP 합성 데이터로 전체 화면 순회 · R/E 이동 · Esc 종료" },
-	{ name: "work", description: "Issue 연결·기록 상태·Obsidian checkpoint/open" },
 	{ name: "language", argumentHint: "ko|en", description: "한국어·English 출력 언어 선택" },
 ];
 // Per retained generation, not total heap/RSS: old and new maps may coexist

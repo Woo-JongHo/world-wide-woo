@@ -1,8 +1,12 @@
-import { describe, expect, test }                                from "bun:test";
-import { ProjectWorkbench }                                      from "../src/core/application/orchestration/project-workbench";
-import type { WorkbenchTodoSource }                              from "../src/core/application/orchestration/project-workbench";
-import type { LinearProjectDashboard }                           from "../src/core/domain/work/linear-dashboard";
-import { FakeNativeHarness, MemoryJournal, ready, todoDocument } from "./project-workbench.fixtures";
+import      { describe, expect, test } from "bun:test"                                                ;
+import      { ProjectWorkbench       } from "../src/core/application/orchestration/project-workbench" ;
+import type { WorkbenchTodoSource    } from "../src/core/application/orchestration/project-workbench" ;
+import      {
+              FakeNativeHarness    ,
+              MemoryJournal        ,
+              ready                ,
+              todoDocument         ,
+                                     } from "./project-workbench.fixtures"                            ;
 
 describe("ProjectWorkbench · async scope", () => {
 	test("ignores a model catalog refresh that completes after close", async () => {
@@ -34,35 +38,6 @@ describe("ProjectWorkbench · async scope", () => {
 		expect(workbench.snapshot                                               ).toBe   (closedSnapshot ) ;
 		expect(workbench.snapshot.phase                                         ).toBe   ("closed"       ) ;
 		expect(workbench.snapshot.modelCatalog?.models.map(model => model.model)).toEqual(["gpt-5.6-sol"]) ;
-	});
-
-	test("ignores a Linear Dashboard refresh that completes after close", async () => {
-		let resolveDashboard: ((dashboard: LinearProjectDashboard) => void) | undefined;
-		const pendingDashboard = new Promise<LinearProjectDashboard>((resolve) => { resolveDashboard = resolve; });
-		const workbench = new ProjectWorkbench(new FakeNativeHarness(), new MemoryJournal(), {
-			projectId       : "sample-project",
-			cwd             : "/workspace/sample",
-			linearDashboard : { refresh: async () => pendingDashboard },
-		});
-		await ready(workbench);
-		await workbench.close();
-		const closedSnapshot = workbench.snapshot;
-
-		resolveDashboard?.({
-			state       : "ready",
-			projectName : "Late Dashboard",
-			fetchedAt   : "2026-09-25T00:00:00.000Z",
-			issues      : [],
-			update      : null,
-			comments    : [],
-			milestones  : [],
-			error       : null,
-		});
-		await Bun.sleep(0);
-
-		expect(workbench.snapshot                       ).toBe(closedSnapshot) ;
-		expect(workbench.snapshot.phase                 ).toBe("closed"      ) ;
-		expect(workbench.snapshot.linearDashboard?.state).toBe("loading"     ) ;
 	});
 
 	test("keeps the latest turn Todo sync pending when an older turn finishes late", async () => {

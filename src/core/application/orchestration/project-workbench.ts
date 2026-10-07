@@ -33,7 +33,6 @@ import      {
               resolveActivitySelection      ,
               resolveTraceSelection         ,
                                               } from "@/core/domain/work/trace-selection.js"                              ;
-import      { EMPTY_LINEAR_PROJECT_DASHBOARD  } from "@/core/domain/work/linear-dashboard.js"                             ;
 import      { projectPerformance              } from "@/core/domain/work/performance.js"                                  ;
 import      { projectNativeEvidence           } from "@/core/application/orchestration/native-event-projection.js"        ;
 import      { LayerPerformanceRecorder        } from "@/core/domain/observability/layer-performance.js"                   ;
@@ -56,11 +55,9 @@ import      { WorkbenchNoteNarration          } from "@/core/application/orchest
 import      { WorkbenchThreadLifecycle        } from "@/core/application/orchestration/workbench-thread-lifecycle.js"     ;
 
 import type { ExecutorPort                    } from "@/core/ports/execution/executor-port.js"                            ;
-import type { CanonicalPromotionService       } from "@/core/application/work/canonical-promotion.js"                     ;
 import type { ReviewService                   } from "@/core/application/review/review-service.js"                        ;
 import type { ActivityNarrator                } from "@/core/application/orchestration/activity-narrator.js"              ;
 import type { SessionModelUsageSource         } from "@/core/application/session/session-model-usage.js"                  ;
-import type { WooEntry                        } from "@/core/application/orchestration/woo-entry.js"                      ;
 import type { SkillRegistrySnapshot           } from "@/core/skills/skill-registry.js"                                    ;
 import type {
               RequestActionApproval         ,
@@ -70,7 +67,6 @@ import type { RuntimeToolCall                 } from "@/core/ports/execution/run
 import type { RequestRuntimeMode              } from "@/core/application/orchestration/request-runtime-mode.js"           ;
 import type { RequestRuntimeRecord            } from "@/core/domain/execution/request-runtime"                            ;
 import type { RequestProjectionPort           } from "@/core/ports/execution/request-projection-port"                     ;
-import type { LinearProjectDashboardReader    } from "@/core/ports/integration/linear-project-dashboard-port"             ;
 import type {
               BackgroundWorkState           ,
               NativeApprovalPolicy          ,
@@ -116,7 +112,6 @@ import type {
               WorkbenchSnapshot             ,
                                               } from "@/core/domain/work/workbench.js"                                    ;
 import type { ActivitySelectionResult         } from "@/core/domain/work/trace-selection.js"                              ;
-import type { LinearProjectDashboard          } from "@/core/domain/work/linear-dashboard.js"                             ;
 import type { CacheLayerObservation           } from "@/core/domain/observability/cache-telemetry.js"                     ;
 import type {
               PerformanceBoundary           ,
@@ -204,7 +199,6 @@ export interface ProjectWorkbenchOptions {
 		inspect(runId: string): Promise<{ readonly summary: string }>;
 	};
 	/** Receives newly persisted public observations; it never owns Native execution state. */
-	developmentObserver?: { capture(activity: ProjectActivity): void | Promise<void> };
 	projectId: string;
 	/** Local, per-process journal namespace. Defaults to the project identity. */
 	activityJournalProjectId? : string                              ;
@@ -219,26 +213,22 @@ export interface ProjectWorkbenchOptions {
 	acquireThreadLease? : (threadId: string) => Promise<void>                                          ;
 	todos?              : WorkbenchTodoSource                                                          ;
 	tnotes?             : WorkbenchTNoteSource                                                         ;
-	promotions?         : CanonicalPromotionService                                                    ;
 	reviews?            : ReviewService                                                                ;
 	narrator?           : ActivityNarrator                                                             ;
 	outputLanguage?     : import("@/core/domain/execution/output-language.js").OutputLanguageSelection ;
-	wooEntry?           : WooEntry                                                                     ;
 	/** Revision-bound local Skill inventory supplied to every Native turn. */
-	skillRegistry?         : SkillRegistrySnapshot                                                              ;
-	auxiliaryUsage?        : SessionModelUsageSource                                                            ;
-	persistModelSelection? : (selection: WorkbenchModelSelection, catalog: NativeModelCatalog) => Promise<void> ;
-	/** Read-only connected Linear project source, called only through the owned Native thread. */
-	linearDashboard?            : LinearProjectDashboardReader                                                  ;
-	contextCharacterLimit?      : number                                                                        ;
-	delegationDetailActivities? : number                                                                        ;
-	evaluationRequired?         : boolean                                                                       ;
-	configurationSource?        : "project-yaml" | "defaults"                                                   ;
-	tnoteVisibleLimit?          : number                                                                        ;
-	tnoteSummaryMaxChars?       : number                                                                        ;
-	tnoteSummaryMaxLines?       : number                                                                        ;
-	hud?                        : { readonly showUsage: boolean; readonly showContext: boolean }                ;
-	slash?                      : { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean } ;
+	skillRegistry?              : SkillRegistrySnapshot                                                              ;
+	auxiliaryUsage?             : SessionModelUsageSource                                                            ;
+	persistModelSelection?      : (selection: WorkbenchModelSelection, catalog: NativeModelCatalog) => Promise<void> ;
+	contextCharacterLimit?      : number                                                                             ;
+	delegationDetailActivities? : number                                                                             ;
+	evaluationRequired?         : boolean                                                                            ;
+	configurationSource?        : "project-yaml" | "defaults"                                                        ;
+	tnoteVisibleLimit?          : number                                                                             ;
+	tnoteSummaryMaxChars?       : number                                                                             ;
+	tnoteSummaryMaxLines?       : number                                                                             ;
+	hud?                        : { readonly showUsage: boolean; readonly showContext: boolean }                     ;
+	slash?                      : { readonly mcp: boolean; readonly clear: boolean; readonly compact: boolean }      ;
 }
 
 /** @Unit Code-002 */
@@ -286,11 +276,9 @@ export class ProjectWorkbench {
 	private pendingPlanGoalActivityId          : string | null                                           = null                             ;
 	private todo                               : TodoDocument | null                                                                        ;
 	private error                              : string | null                                           = null                             ;
-	private developmentRecordingError          : string | null                                           = null                             ;
 	private readonly nativeStream                                                                        = new NativeStreamProjection()     ;
 	private actionResult                       : WorkbenchActionResult | null                            = null                             ;
 	private mcpServers                         : readonly WorkbenchMcpServer[]                           = Object.freeze([])                ;
-	private linearDashboard                    : LinearProjectDashboard                                  = EMPTY_LINEAR_PROJECT_DASHBOARD   ;
 	private readonly nativeTurn                                                                          = new NativeTurnCoordinator()      ;
 	private readonly durableProjection                                                                   = new WorkbenchDurableProjection() ;
 	private visibleThreadId                    : string | null                                           = null                             ;
@@ -351,24 +339,20 @@ export class ProjectWorkbench {
 			record: async (entry) => { await this.appendActivity(entry.kind, entry.phase, entry.nativeRefs, entry.payload, true, entry.sourceDigest); },
 			respondToApproval: (resolution) => this.native.respondToApproval(resolution),
 		});
-		this.selectedModel   = options.model            ;
-		this.selectedEffort  = options.effort           ;
-		this.effectiveModel  = options.model ?? "codex" ;
-		this.effectiveEffort = options.effort ?? null   ;
-		this.linearDashboard = options.linearDashboard
-			? { ...EMPTY_LINEAR_PROJECT_DASHBOARD, state: "loading", error: null }
-			: EMPTY_LINEAR_PROJECT_DASHBOARD;
-		this.usageTracker   = new SessionUsageTracker(Boolean(options.resumeThreadId))                                          ;
-		this.nativeEvents   = this.createNativeEventLifecycle()                                                                 ;
-		this.permissionMode = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual" ;
-		this.approvalPolicy = options.approvalPolicy ?? "on-request"                                                            ;
-		this.sandbox        = options.sandbox ?? "workspace-write"                                                              ;
-		this.todo           = immutable(options.todos?.snapshot ?? null)                                                        ;
+		this.selectedModel   = options.model                                                                                     ;
+		this.selectedEffort  = options.effort                                                                                    ;
+		this.effectiveModel  = options.model ?? "codex"                                                                          ;
+		this.effectiveEffort = options.effort ?? null                                                                            ;
+		this.usageTracker    = new SessionUsageTracker(Boolean(options.resumeThreadId))                                          ;
+		this.nativeEvents    = this.createNativeEventLifecycle()                                                                 ;
+		this.permissionMode  = options.approvalPolicy === "never" && options.sandbox === "danger-full-access" ? "all" : "manual" ;
+		this.approvalPolicy  = options.approvalPolicy ?? "on-request"                                                            ;
+		this.sandbox         = options.sandbox ?? "workspace-write"                                                              ;
+		this.todo            = immutable(options.todos?.snapshot ?? null)                                                        ;
 		this.activityJournal = new WorkbenchJournalCoordinator({
 			projectId: options.projectId,
 			...(options.activityJournalProjectId === undefined ? {} : { activityJournalProjectId: options.activityJournalProjectId }),
 			...(options.provider === undefined ? {} : { provider: options.provider }),
-			...(options.developmentObserver === undefined ? {} : { developmentObserver: options.developmentObserver }),
 			journal,
 			activities           : this.activities,
 			visibleActivities    : this.visibleActivities,
@@ -381,7 +365,6 @@ export class ProjectWorkbench {
 				if (this.isActivityVisible(activity)) this.workflow.scheduleNativeTodoSync(activity);
 			},
 			onDurable                    : activity => this.nativeEvents.observeDurableActivity(activity),
-			setDevelopmentRecordingError : message => { this.developmentRecordingError = message; },
 			publish                      : () => this.publish(),
 		});
 		this.workflow = new WorkbenchWorkflowCoordinator({
@@ -440,9 +423,7 @@ export class ProjectWorkbench {
 		this.commandHandlers = new WorkbenchCommandHandlers({
 			projectId: options.projectId,
 			mcp: () => this.mcpManagement(),
-			...(options.wooEntry === undefined ? {} : { wooEntry: options.wooEntry }),
 			...(options.todos === undefined ? {} : { todos: options.todos }),
-			...(options.promotions === undefined ? {} : { promotions: options.promotions }),
 			...(options.reviews === undefined ? {} : { reviews: options.reviews }),
 			note               : noteId => this.noteNarration.note(noteId),
 			activities         : () => this.activities,
@@ -780,7 +761,6 @@ export class ProjectWorkbench {
 		const [activities] = await Promise.all([
 			this.journal.readAll(this.activityJournal.projectId),
 			this.refreshModels(),
-			this.options.wooEntry?.refresh() ?? Promise.resolve(null),
 		]);
 		for (const activity of activities) {
 			const durableActivity = immutable(activity);
@@ -858,39 +838,10 @@ export class ProjectWorkbench {
 				}, false);
 			}
 		}
-		// Dashboard reads are provider-attributed MCP calls, so establish one idle
-		// Native thread before rendering the entry screen rather than inventing a
-		// thread id or delaying the first Linear summary until Chat is sent.
-		if (this.options.linearDashboard && !this.threadId) {
-			const thread = await this.threadLifecycle.startForDashboard();
-			if (!thread) return;
-			this.threadId = thread.id;
-			this.applyThreadSettings(thread);
-		}
-		if (this.options.linearDashboard && this.threadId) this.refreshLinearDashboard(this.threadId);
 		if (this.closed) return;
 		this.sessionGoal = projectSessionGoal(this.visibleActivities);
 		this.noteNarration.reconcileAutomatic();
 		this.publish("ready");
-	}
-
-	private refreshLinearDashboard(threadId: string): void {
-		const dashboard = this.options.linearDashboard;
-		if (!dashboard) return;
-		const startedAt = performance.now();
-		void dashboard.refresh(threadId).then((snapshot) => {
-			if (this.closed || this.threadId !== threadId) return;
-			this.cacheProjection.miss("dashboard", performance.now() - startedAt, this.linearDashboard.fetchedAt !== null);
-			this.linearDashboard = snapshot;
-			this.publish();
-		}).catch((error) => {
-			if (this.closed || this.threadId !== threadId) return;
-			this.cacheProjection.miss("dashboard", performance.now() - startedAt, false);
-			this.linearDashboard = this.linearDashboard.fetchedAt
-				? { ...this.linearDashboard, state: "stale", error: errorMessage(error) }
-				: { ...EMPTY_LINEAR_PROJECT_DASHBOARD, projectName: this.linearDashboard.projectName, error: errorMessage(error) };
-			this.publish();
-		});
 	}
 
 	private async sendChat(commandId: string, rawText: string, goal = false, delivery: "queue" | "steer" = "steer"): Promise<WorkbenchCommandReceipt> {
@@ -1078,7 +1029,6 @@ export class ProjectWorkbench {
 						this.collaborationMode === "plan",
 					) } }
 					: turnInput,
-				this.options.wooEntry?.snapshot,
 				this.options.skillRegistry,
 			));
 		} catch (error) {
@@ -1544,19 +1494,14 @@ export class ProjectWorkbench {
 			activity.kind === "message" && activity.phase === "completed"
 			&& activity.nativeRefs.turnId === request.turnId
 			&& /SESSION_GOAL:/u.test(activityText(activity.payload))) : false;
-		const sessionGoal     = this.sessionGoal ?? (request && goalSource && !goalSpoofed ? { text: request.objective, sourceActivityId: goalSource.activityId, updatedAt: goalSource.at } : null) ;
-		const todo            = this.workflow.projectedTodo(executionRun, workFlow)                                                                                                                 ;
-		const modelCatalog    = this.modelCatalog                                                                                                                                                   ;
-		const linearDashboard = this.options.linearDashboard ? this.linearDashboard : undefined                                                                                                     ;
-		if (linearDashboard) this.cacheProjection.hit("dashboard");
+		const sessionGoal  = this.sessionGoal ?? (request && goalSource && !goalSpoofed ? { text: request.objective, sourceActivityId: goalSource.activityId, updatedAt: goalSource.at } : null) ;
+		const todo         = this.workflow.projectedTodo(executionRun, workFlow)                                                                                                                 ;
+		const modelCatalog = this.modelCatalog                                                                                                                                                   ;
 		const cacheObservations = this.cacheProjection.observations({
-			requestCached      : this.workflow.requestCached,
-			modelEntries       : this.modelCatalog.models.length,
-			modelStale         : Boolean(this.modelCatalog.error),
-			dashboardConnected : Boolean(this.options.linearDashboard),
-			dashboardReady     : this.linearDashboard.state === "ready",
-			dashboardFetched   : this.linearDashboard.fetchedAt !== null,
-			journal            : this.journal.cacheObservation?.() ?? null,
+			requestCached : this.workflow.requestCached,
+			modelEntries  : this.modelCatalog.models.length,
+			modelStale    : Boolean(this.modelCatalog.error),
+			journal       : this.journal.cacheObservation?.() ?? null,
 		});
 		return deepFreeze({
 			...this.noteNarration.planSnapshot(),
@@ -1587,8 +1532,6 @@ export class ProjectWorkbench {
 				sourceRevision : this.options.skillRegistry.sourceRevision,
 				digest         : this.options.skillRegistry.digest,
 			} } : {}),
-			...(linearDashboard === undefined ? {} : { linearDashboard }),
-			wooEntry: this.options.wooEntry?.snapshot ?? null,
 			threadId: this.threadId,
 			activeTurnId: this.activeTurnId && executionRun && !["completed", "failed", "interrupted"].includes(executionRun.phase)
 				? executionRun.turnId
@@ -1627,11 +1570,10 @@ export class ProjectWorkbench {
 			tnotes: this.durableProjection.notes(this.noteNarration.notes, this.visibleActivities),
 			tnoteRead: this.noteNarration.readState,
 			todo,
-			todoSync                  : this.workflow.todoSync,
-			actionResult              : this.actionResult,
-			deliveryUncertain         : this.nativeTurn.deliveryBlocked,
-			error                     : this.error,
-			developmentRecordingError : this.developmentRecordingError,
+			todoSync          : this.workflow.todoSync,
+			actionResult      : this.actionResult,
+			deliveryUncertain : this.nativeTurn.deliveryBlocked,
+			error             : this.error,
 		});
 	}
 

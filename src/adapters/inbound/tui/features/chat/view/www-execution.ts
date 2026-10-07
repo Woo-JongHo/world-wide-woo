@@ -10,6 +10,7 @@ import type {
 import type { ChatFeatureProjection                } from "@/core/application/orchestration/workbench-feature-reads"                  ;
 import type { ProjectActivity                      } from "@/core/domain/execution/project-activity"                                  ;
 import type { OutputLanguage                       } from "@/core/domain/execution/output-language"                                   ;
+import      { immediateShellSummary                } from "@/core/domain/execution/shell-description"                                 ;
 import      {
               parseRequestCheckpointReport       ,
               parseRequestStageReport            ,
@@ -24,6 +25,10 @@ import      {
                                                    } from "@/core/domain/review/redaction"                                            ;
 import      { boundedPublicProjection              } from "@/adapters/inbound/tui/features/chat/view-model/bounded-public-projection" ;
 import      { conversationRecapRows                } from "@/adapters/inbound/tui/features/chat/view/conversation-recap-view"         ;
+import      {
+              highlightStructured                ,
+              renderExecutionLine                ,
+                                                   } from "@/adapters/inbound/tui/features/chat/view/work-step-output-renderer"       ;
 import      {
               a                                  ,
               wwwMarkdownTheme                   ,
@@ -174,20 +179,18 @@ export function wwwTNoteMarkdown(item: WorkbenchTNote): string {
 	return `## ${title}\n\n${safe(item.summary, 8000)}`;
 }
 
-type DurableTranscriptRevision = Pick<ChatFeatureProjection, "projectId" | "threadId" | "journalSequence" | "activities" | "chat" | "tnotes" | "draft" | "draftAnchorSequence">;
+type DurableTranscriptRevision = Pick<ChatFeatureProjection, "projectId" | "threadId" | "journalSequence" | "activities" | "chat" | "tnotes" | "draft" | "draftAnchorSequence" | "toolActions">;
 
 interface VolatileTranscriptRevision {
-	readonly durableEmpty              : boolean                                            ;
-	readonly draftLabel                : string | null                                      ;
-	readonly snapshot                  : ChatFeatureProjection | null                       ;
-	readonly draft                     : ChatFeatureProjection["draft"]                     ;
-	readonly reasoningSummaryDraft     : ChatFeatureProjection["reasoningSummaryDraft"]     ;
-	readonly actionResult              : ChatFeatureProjection["actionResult"]              ;
-	readonly error                     : ChatFeatureProjection["error"]                     ;
-	readonly developmentRecordingError : ChatFeatureProjection["developmentRecordingError"] ;
-	readonly linearDashboard           : ChatFeatureProjection["linearDashboard"]           ;
-	readonly requestRuntime            : ChatFeatureProjection["requestRuntime"]            ;
-	readonly activeTurnId              : ChatFeatureProjection["activeTurnId"]              ;
+	readonly durableEmpty          : boolean                                        ;
+	readonly draftLabel            : string | null                                  ;
+	readonly snapshot              : ChatFeatureProjection | null                   ;
+	readonly draft                 : ChatFeatureProjection["draft"]                 ;
+	readonly reasoningSummaryDraft : ChatFeatureProjection["reasoningSummaryDraft"] ;
+	readonly actionResult          : ChatFeatureProjection["actionResult"]          ;
+	readonly error                 : ChatFeatureProjection["error"]                 ;
+	readonly requestRuntime        : ChatFeatureProjection["requestRuntime"]        ;
+	readonly activeTurnId          : ChatFeatureProjection["activeTurnId"]          ;
 }
 
 type ChatMessage = WorkbenchChatMessage;
@@ -262,14 +265,15 @@ export class WwwTranscriptView implements Component {
 		return rows;
 	}
 	private durableBlocks(s: ChatFeatureProjection): TranscriptBlock[] {
-		const blocks      : TranscriptBlock[] = []                            ;
-		const labels                          = wwwConversationLabels(s.chat) ;
-		const timeline                        = durableTimelineIndex(s)       ;
-		const rendered                        = new Set<string>()             ;
-		let toolGroup     : ProjectActivity[] = []                            ;
-		let toolPurpose   : string | null     = null                          ;
-		let purposeTurnId : string | undefined                                ;
-		let draftInserted                     = false                         ;
+		const blocks      : TranscriptBlock[] = []                                                                ;
+		const labels                          = wwwConversationLabels(s.chat)                                     ;
+		const timeline                        = durableTimelineIndex(s)                                           ;
+		const interpretations                 = new Map((s.toolActions ?? []).map(action => [action.id, action])) ;
+		const rendered                        = new Set<string>()                                                 ;
+		let toolGroup     : ProjectActivity[] = []                                                                ;
+		let toolPurpose   : string | null     = null                                                              ;
+		let purposeTurnId : string | undefined                                                                    ;
+		let draftInserted                     = false                                                             ;
 		const appendDraft = () => {
 			if (draftInserted || !s.draft) return;
 			flushTools();
@@ -279,10 +283,10 @@ export class WwwTranscriptView implements Component {
 		const flushTools = () => {
 			if (toolGroup.length === 0) return;
 			if (toolGroup.length < 2 && !toolPurpose) {
-				this.appendToolGroupBlock(blocks, toolGroup, null);
+				this.appendToolGroupBlock(blocks, toolGroup, null, interpretations);
 			}
 			else {
-				this.appendToolGroupBlock(blocks, toolGroup, toolPurpose);
+				this.appendToolGroupBlock(blocks, toolGroup, toolPurpose, interpretations);
 			}
 			if (this.expanded) for (const tool of toolGroup) this.appendActivityBlock(blocks, tool);
 			toolGroup = [];
@@ -398,7 +402,7 @@ export class WwwTranscriptView implements Component {
 			render       : width => wwwToolRows(activity, width, expanded, this.language()).map(row => fit(row, width)),
 		});
 	}
-	private appendToolGroupBlock(blocks: TranscriptBlock[], activities: readonly ProjectActivity[], purpose: string | null): void {
+	private appendToolGroupBlock(blocks: TranscriptBlock[], activities: readonly ProjectActivity[], purpose: string | null, interpretations: ReadonlyMap<string, NonNullable<ChatFeatureProjection["toolActions"]>[number]>): void {
 		const group = [...activities];
 		const failed = group.filter(activity => {
 			const item = asRecord(asRecord(activity.payload.params)?.item) ?? {};
@@ -413,7 +417,28 @@ export class WwwTranscriptView implements Component {
 			render       : width => [...prose(a.tool(title), width), (failed.length ? a.failure : a.muted)(state)].map(row => fit(row, width)),
 		});
 		for (const activity of group) {
-			const isFailed = failed.includes(activity);
+			const interpretation = interpretations.get(`${activity.nativeRefs.turnId}:${activity.nativeRefs.itemId ?? activity.id}`)          ;
+			const isFailed       = failed.includes(activity)                                                                                  ;
+			const item           = asRecord(asRecord(activity.payload.params)?.item) ?? {}                                                    ;
+			const commandSummary = !purpose && typeof item.command === "string" ? immediateShellSummary(item.command, this.language()) : null ;
+			if (interpretation || commandSummary) blocks.push({
+				key          : `tool-description:${activity.id}`,
+				markdownKeys : [],
+				reuse        : { kind: "message", immutable: isDeeplyImmutablePlainData(activity) && isDeeplyImmutablePlainData(interpretation), inputs: [interpretation, commandSummary] },
+				render       : width => {
+					const model   = interpretation?.narrationSource !== "command" && Boolean(interpretation?.summary)                                                   ;
+					const summary = interpretation?.summary || commandSummary                                                                                           ;
+					const label   = model ? this.language() === "en" ? "AI interpretation" : "AI 해석" : this.language() === "en" ? "Command description" : "명령 설명" ;
+					const rows    = summary ? prose(a.tool(`${label} · ${safe(summary)}`), width) : []                                                                  ;
+					if (model && interpretation?.why) rows.push(...prose(`${this.language() === "en" ? "Selection reason (model interpretation)" : "선택 이유(모델 해석)"} · ${safe(interpretation.why)}`, width));
+					if (!model) rows.push(...prose(a.muted(interpretation?.narrationStatus === "unavailable"
+						? this.language() === "en" ? "AI interpretation unavailable" : "AI 해석을 받지 못했습니다"
+						: interpretation?.narrationStatus === "pending"
+							? this.language() === "en" ? "Awaiting AI interpretation" : "AI 해석 대기"
+							: this.language() === "en" ? "AI interpretation unobserved" : "AI 해석 미관측"), width));
+					return rows.map(row => fit(row, width));
+				},
+			});
 			blocks.push({
 				key          : `tool-group-action:${activity.id}`,
 				markdownKeys : [],
@@ -437,7 +462,6 @@ export class WwwTranscriptView implements Component {
 			} });
 		}
 		if (s.error) blocks.push({ key: "volatile:error", markdownKeys: [], reuse: { kind: "never" }, render: width => ["", ...prose(a.failure(`! ${safe(s.error)}`), width)].map(row => fit(row, width)) });
-		if (s.developmentRecordingError) blocks.push({ key: "volatile:recording-error", markdownKeys: [], reuse: { kind: "never" }, render: width => ["", ...prose(a.attention(`기록 오류: ${safe(s.developmentRecordingError)}`), width)].map(row => fit(row, width)) });
 		if (this.expanded) blocks.push({ key: "volatile:recap", markdownKeys: [], reuse: { kind: "never" }, render: width => ["", ...conversationRecapRows(s, width)].map(row => fit(row, width)) });
 		return blocks;
 	}
@@ -447,9 +471,6 @@ export class WwwTranscriptView implements Component {
 			const rows = this.language() === "en"
 				? ["", a.strong("Delegate execution and step in when needed."), "", a.muted("Requests, tool actions, and results appear here in order."), "", a.active("/goal") + a.muted("  Set a goal"), a.active("/model") + a.muted(" Choose model and reasoning"), a.active("Ctrl+P") + a.muted(" Find commands")]
 				: ["", a.strong("실행을 맡기고, 필요한 순간 개입하세요."), "", a.muted("요청 · 도구 실행 · 결과가 이곳에 시간순으로 기록됩니다."), "", a.active("/goal") + a.muted("  작업 목표 설정"), a.active("/model") + a.muted(" 모델과 추론 강도 선택"), a.active("Ctrl+P") + a.muted(" 명령 찾기")];
-			const d = s.linearDashboard;
-			if (d?.state === "ready" || d?.state === "stale") rows.push("", a.muted(`${oneLine(d.projectName)} / Linear ${d.state === "stale" ? "마지막 성공 값" : "연결됨"}`), a.muted("/context  프로젝트 갱신 · 이슈 · 마일스톤"));
-			else if (d) rows.push("", a.muted(d.state === "loading" ? "Linear 정보를 불러오는 중" : "Linear 정보를 불러오지 못했습니다"));
 			return rows.map(row => fit(row, width));
 		} };
 	}
@@ -522,17 +543,18 @@ export function wwwToolRows(activity: ProjectActivity, width: number, expanded: 
 		const inside     = width - 4                                                                                                                                                                                                  ;
 		const state      = failed ? language === "en" ? "failed" : "실패" : running ? language === "en" ? "running" : "실행 중" : activity.phase                                                                                      ;
 		const body       = (row: string) => `${ink("│")} ${fit(row, inside)} ${ink("│")}`                                                                                                                                             ;
-		const command    = prose(`${failed ? "!" : "$"} ${safe(item.command)}`, inside)                                                                                                                                               ;
-		const outputRows = prose(output || result || (running ? language === "en" ? "Waiting for output" : "출력 대기 중" : language === "en" ? "No output" : "출력 없음"), inside)                                                   ;
+		const command    = prose(`${failed ? "!" : "$"} ${highlightStructured(safe(item.command), "bash").join("\n")}`, inside)                                                                                                       ;
+		const outputText = output || result || (running ? language === "en" ? "Waiting for output" : "출력 대기 중" : language === "en" ? "No output" : "출력 없음")                                                                  ;
+		const outputRows = outputText.split("\n").flatMap(line => prose(renderExecutionLine(line, "output"), inside))                                                                                                                 ;
 		const shown      = expanded ? outputRows : outputRows.slice(-CHAT_TERMINAL_OUTPUT_CHUNK_LINES)                                                                                                                                ;
 		const meta       = [typeof item.exitCode === "number" ? `exit ${item.exitCode}` : state, typeof item.durationMs === "number" && Number.isFinite(item.durationMs) ? duration(item.durationMs) : ""].filter(Boolean).join("  ") ;
 		const label      = ` ${TRANSCRIPT_ICON.terminal} Git Bash  ${state} `                                                                                                                                                         ;
 		const header     = ink(`┌───${label}${"─".repeat(Math.max(0, width - visibleWidth(label) - 5))}┐`)                                                                                                                            ;
 		const divider    = ink(`├─── Output ${"─".repeat(Math.max(0, width - visibleWidth("├─── Output ┤")))}┤`)                                                                                                                      ;
 		return ["", header,
-			...command.map(row => body(a.text(row))), divider,
+			...command.map(row => body(row)), divider,
 			...(shown.length < outputRows.length ? [body(a.muted(language === "en" ? `… ${outputRows.length - shown.length} earlier lines · latest ${CHAT_TERMINAL_OUTPUT_CHUNK_LINES} lines · Ctrl+E all` : `… 앞 ${outputRows.length - shown.length}줄 · 최신 ${CHAT_TERMINAL_OUTPUT_CHUNK_LINES}줄 · Ctrl+E 전체`))] : []),
-			...shown.map(row => body((failed ? a.failure : a.muted)(row))),
+			...shown.map(row => body(row)),
 			body(a.muted(meta)), ink(`└${"─".repeat(width - 2)}┘`), ""];
 	}
 	const activityIcon = typeof item.command === "string" ? `${a.tool(TRANSCRIPT_ICON.terminal)} ` : ""                                                                                                                             ;
@@ -560,13 +582,13 @@ function wwwToolInputRows(activity: ProjectActivity, width: number, language: Ou
 	const label  = ` ${TRANSCRIPT_ICON.terminal} Git Bash `                       ;
 	const body   = (row: string) => `${ink("│")} ${fit(row, inside)} ${ink("│")}` ;
 	const rows = ["", ink(`┌───${label}${"─".repeat(Math.max(0, width - visibleWidth(label) - 5))}┐`),
-		...prose(`$ ${command}`, inside).map(row => body(a.text(row))),
+		...prose(`$ ${highlightStructured(command, "bash").join("\n")}`, inside).map(row => body(row)),
 		...(observedPath ? [body(a.muted(`${language === "en" ? "Path" : "경로"} · ${safe(observedPath)}`))] : [])];
 	const output = safe(item.aggregatedOutput || item.output || payload.output || "", 8000);
 	if (output) {
-		const outputRows = prose(output, inside);
+		const outputRows = output.split("\n").flatMap(line => prose(renderExecutionLine(line, "output"), inside));
 		rows.push(ink(`├─── Output ${"─".repeat(Math.max(0, width - visibleWidth("├─── Output ┤")))}┤`),
-			...outputRows.slice(-CHAT_TERMINAL_OUTPUT_CHUNK_LINES).map(row => body(a.text(row))));
+			...outputRows.slice(-CHAT_TERMINAL_OUTPUT_CHUNK_LINES).map(row => body(row)));
 	}
 	rows.push(ink(`└${"─".repeat(width - 2)}┘`), "");
 	return rows;
@@ -690,6 +712,7 @@ function durableTranscriptRevision(snapshot: ChatFeatureProjection): DurableTran
 		draft               : snapshot.draft,
 		draftAnchorSequence : snapshot.draftAnchorSequence ?? null,
 		activities          : snapshot.activities,
+		...(snapshot.toolActions === undefined ? {} : { toolActions: snapshot.toolActions }),
 		chat                : snapshot.chat,
 		tnotes              : snapshot.tnotes,
 	};
@@ -698,12 +721,14 @@ function durableTranscriptRevision(snapshot: ChatFeatureProjection): DurableTran
 function trustedDurableRevision(revision: DurableTranscriptRevision): boolean {
 	return isDeeplyImmutablePlainData(revision.activities)
 		&& isDeeplyImmutablePlainData(revision.chat)
-		&& isDeeplyImmutablePlainData(revision.tnotes);
+		&& isDeeplyImmutablePlainData(revision.tnotes)
+		&& isDeeplyImmutablePlainData(revision.toolActions);
 }
 
 function sameTrustedDurableReferences(left: DurableTranscriptRevision, right: DurableTranscriptRevision): boolean {
 	return left.projectId === right.projectId && left.threadId === right.threadId
 		&& left.activities === right.activities && left.chat === right.chat && left.tnotes === right.tnotes
+		&& left.toolActions === right.toolActions
 		&& left.draft === right.draft && left.draftAnchorSequence === right.draftAnchorSequence;
 }
 
@@ -715,16 +740,14 @@ function volatileTranscriptRevision(snapshot: ChatFeatureProjection, expanded: b
 	}
 	return {
 		durableEmpty,
-		draftLabel                : snapshot.draft ? `${Math.max(1, request)}:${response + 1}` : null,
-		snapshot                  : expanded ? snapshot : null,
-		draft                     : snapshot.draft,
-		reasoningSummaryDraft     : snapshot.reasoningSummaryDraft,
-		actionResult              : snapshot.actionResult,
-		error                     : snapshot.error,
-		developmentRecordingError : snapshot.developmentRecordingError,
-		linearDashboard           : snapshot.linearDashboard,
-		requestRuntime            : snapshot.requestRuntime,
-		activeTurnId              : snapshot.activeTurnId,
+		draftLabel            : snapshot.draft ? `${Math.max(1, request)}:${response + 1}` : null,
+		snapshot              : expanded ? snapshot : null,
+		draft                 : snapshot.draft,
+		reasoningSummaryDraft : snapshot.reasoningSummaryDraft,
+		actionResult          : snapshot.actionResult,
+		error                 : snapshot.error,
+		requestRuntime        : snapshot.requestRuntime,
+		activeTurnId          : snapshot.activeTurnId,
 	};
 }
 
@@ -736,8 +759,6 @@ function sameVolatileTranscriptRevision(left: VolatileTranscriptRevision, right:
 		&& left.reasoningSummaryDraft === right.reasoningSummaryDraft
 		&& left.actionResult === right.actionResult
 		&& left.error === right.error
-		&& left.developmentRecordingError === right.developmentRecordingError
-		&& left.linearDashboard === right.linearDashboard
 		&& left.requestRuntime === right.requestRuntime
 		&& left.activeTurnId === right.activeTurnId;
 }

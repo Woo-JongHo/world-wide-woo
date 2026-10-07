@@ -1,74 +1,86 @@
 import legacyJournal                                          from "./fixtures/legacy-execution-receipt.json";
-import type { RuntimeToolHandler, RuntimeToolDefinition }     from "../src/core/ports/execution/runtime-tool-port";
-import { REQUEST_STAGES }                                     from "../src/core/domain/execution/request-runtime";
-import type { RequestRuntimeRecord }                          from "../src/core/domain/execution/request-runtime";
-import { projectRequestTodo }                                 from "../src/core/domain/work/request-projections";
-import { describe, expect, test }                             from "bun:test";
-import type { ExecutorPort }                                  from "../src/core/ports/execution/executor-port";
 import type {
-	ActivityNarrationRequest,
-	ActivityNarrator,
-} from "../src/core/application/orchestration/activity-narrator";
-import { ProjectWorkbench }                                   from "../src/core/application/orchestration/project-workbench";
+              RuntimeToolHandler             ,
+              RuntimeToolDefinition          ,
+                                               } from "../src/core/ports/execution/runtime-tool-port"                 ;
+import      { REQUEST_STAGES                   } from "../src/core/domain/execution/request-runtime"                  ;
+import type { RequestRuntimeRecord             } from "../src/core/domain/execution/request-runtime"                  ;
+import      { projectRequestTodo               } from "../src/core/domain/work/request-projections"                   ;
+import      { describe, expect, test           } from "bun:test"                                                      ;
+import type { ExecutorPort                     } from "../src/core/ports/execution/executor-port"                     ;
 import type {
-	WorkbenchActivityJournal,
-	WorkbenchTNoteSource,
-	WorkbenchTodoSource,
-} from "../src/core/application/orchestration/project-workbench";
+              ActivityNarrationRequest       ,
+              ActivityNarrator               ,
+                                               } from "../src/core/application/orchestration/activity-narrator"       ;
+import      { ProjectWorkbench                 } from "../src/core/application/orchestration/project-workbench"       ;
 import type {
-	NativeApprovalResolution,
-	NativeHarnessEvent,
-	NativeThreadRead,
-	NativeThreadList,
-	NativeThreadResume,
-	NativeThreadSnapshot,
-	NativeThreadStart,
-	NativeThreadSummary,
-	NativeTurnInterrupt,
-	NativeTurnSnapshot,
-	NativeTurnStart,
-	NativeTurnSteer,
-	NativeTurnSteerResult,
-} from "../src/core/domain/execution/native-session";
+              WorkbenchActivityJournal       ,
+              WorkbenchTNoteSource           ,
+              WorkbenchTodoSource            ,
+                                               } from "../src/core/application/orchestration/project-workbench"       ;
 import type {
-	ProjectActivity,
-	ProjectActivityAppendResult,
-	ProjectActivityInput,
-} from "../src/core/domain/execution/project-activity";
-import { CanonicalPromotionService, digestCanonicalDocument } from "../src/core/application/work/canonical-promotion";
-import { ReviewService }                                      from "../src/core/application/review/review-service";
-import { SessionModelUsageAccumulator }                       from "../src/core/application/session/session-model-usage";
-import { TodoWriteConflictError }                             from "../src/core/application/work/todo-ledger";
-import { WooEntry }                                           from "../src/core/application/orchestration/woo-entry";
-import type { WooEntryCollection }                            from "../src/core/application/orchestration/woo-entry";
-import type { TodoDocument }                                  from "../src/core/domain/work/todos";
-import type { WorkFlowProjection }                            from "../src/core/domain/work";
-import { ProviderReviewAdapter, sha256ReviewDigest }          from "../src/adapters/outbound/review/review-adapters";
-import { TNoteService }                                       from "../src/core/application/work/t-note-service";
-import type { DetachedTextGenerator }                         from "../src/core/application/orchestration/detached-text-generator";
-import { FileTNoteStore }                                     from "../src/adapters/outbound/persistence/t-note-store";
-import { projectTNoteCompletionIndex, sanitizeTNoteText }     from "../src/core/domain/work/t-notes";
-import { mkdtemp, rm, writeFile, readFile, realpath }         from "node:fs/promises";
-import { createHash }                                         from "node:crypto";
-import { pinnedFileCapabilities }                             from "../src/adapters/outbound/workspace/pinned-file-capabilities";
-import { tmpdir }                                             from "node:os";
-import { join }                                               from "node:path";
+              NativeApprovalResolution       ,
+              NativeHarnessEvent             ,
+              NativeThreadRead               ,
+              NativeThreadList               ,
+              NativeThreadResume             ,
+              NativeThreadSnapshot           ,
+              NativeThreadStart              ,
+              NativeThreadSummary            ,
+              NativeTurnInterrupt            ,
+              NativeTurnSnapshot             ,
+              NativeTurnStart                ,
+              NativeTurnSteer                ,
+              NativeTurnSteerResult          ,
+                                               } from "../src/core/domain/execution/native-session"                   ;
+import type {
+              ProjectActivity                ,
+              ProjectActivityAppendResult    ,
+              ProjectActivityInput           ,
+                                               } from "../src/core/domain/execution/project-activity"                 ;
+import      { ReviewService                    } from "../src/core/application/review/review-service"                 ;
+import      { SessionModelUsageAccumulator     } from "../src/core/application/session/session-model-usage"           ;
+import      { TodoWriteConflictError           } from "../src/core/application/work/todo-ledger"                      ;
+import type { TodoDocument                     } from "../src/core/domain/work/todos"                                 ;
+import type { WorkFlowProjection               } from "../src/core/domain/work"                                       ;
+import      {
+              ProviderReviewAdapter          ,
+              sha256ReviewDigest             ,
+                                               } from "../src/adapters/outbound/review/review-adapters"               ;
+import      { TNoteService                     } from "../src/core/application/work/t-note-service"                   ;
+import type { DetachedTextGenerator            } from "../src/core/application/orchestration/detached-text-generator" ;
+import      { FileTNoteStore                   } from "../src/adapters/outbound/persistence/t-note-store"             ;
+import      {
+              projectTNoteCompletionIndex    ,
+              sanitizeTNoteText              ,
+                                               } from "../src/core/domain/work/t-notes"                               ;
+import      {
+              mkdtemp                        ,
+              rm                             ,
+              writeFile                      ,
+              readFile                       ,
+              realpath                       ,
+                                               } from "node:fs/promises"                                              ;
+import      { createHash                       } from "node:crypto"                                                   ;
+import      { pinnedFileCapabilities           } from "../src/adapters/outbound/workspace/pinned-file-capabilities"   ;
+import      { tmpdir                           } from "node:os"                                                       ;
+import      { join                             } from "node:path"                                                     ;
 
-import {
-	ApprovalPreparationGateJournal,
-	FakeActivityNarrator,
-	FakeNativeHarness,
-	MemoryJournal,
-	MessageCompletionGateJournal,
-	ToolObservationGateJournal,
-	ready,
-	todoDocument,
-} from "./project-workbench.fixtures";
+import      {
+              ApprovalPreparationGateJournal ,
+              FakeActivityNarrator           ,
+              FakeNativeHarness              ,
+              MemoryJournal                  ,
+              MessageCompletionGateJournal   ,
+              ToolObservationGateJournal     ,
+              ready                          ,
+              todoDocument                   ,
+                                               } from "./project-workbench.fixtures"                                  ;
 
 describe("ProjectWorkbench · recovery, approvals, and durable commands", () => {
 	test("keeps deltas ephemeral and durably appends completed native observations before publishing", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -108,8 +120,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("shares frozen durable projections across deltas after a large activity history", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		for (let index = 0; index < 100; index += 1) {
 			await journal.append({
 				projectId    : "sample-project",
@@ -133,8 +145,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		const before = workbench.snapshot;
 		expect(before.activityCount).toBe(101);
 		expect(before.activities).toHaveLength(101);
-		const largeActivity = before.activities.find(activity => String(activity.payload.text).startsWith("large:"));
-		const largeChat = before.chat.find(message => message.content.startsWith("large:"));
+		const largeActivity = before.activities.find(activity => String(activity.payload.text).startsWith("large:")) ;
+		const largeChat     = before.chat.find(message => message.content.startsWith("large:"))                      ;
 		expect(largeActivity).toBeDefined();
 		expect(largeChat).toBeDefined();
 
@@ -174,8 +186,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("bounds live drafts and raw native envelopes while preserving the full safe completed assistant reply", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -205,8 +217,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		expect(workbench.snapshot.reasoningDraft       ).toEndWith          (`79:${"r".repeat(1020)}`   ) ;
 		expect(journal.records                         ).toHaveLength       (0                          ) ;
 
-		const completedMessage = `complete password=message-secret\n${"m".repeat(40_000)}\nhttps://user:tail-secret@example.com/end`;
-		const completedReasoning = `reasoning:${"q".repeat(30_000)}`;
+		const completedMessage   = `complete password=message-secret\n${"m".repeat(40_000)}\nhttps://user:tail-secret@example.com/end` ;
+		const completedReasoning = `reasoning:${"q".repeat(30_000)}`                                                                   ;
 		native.emit({
 			type   : "notification",
 			method : "item/completed",
@@ -221,8 +233,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		});
 		await Bun.sleep(10);
 
-		const storedMessage = ((journal.records[0]?.payload.params as { item?: { text?: string } })?.item?.text) ?? "";
-		const publicMessage = String(journal.records[0]?.payload.text ?? "");
+		const storedMessage = ((journal.records[0]?.payload.params as { item?: { text?: string } })?.item?.text) ?? "" ;
+		const publicMessage = String(journal.records[0]?.payload.text ?? "")                                           ;
 		expect(storedMessage.length                            )    .toBeLessThanOrEqual(32 * 1024                                      ) ;
 		expect(storedMessage                                   )    .toStartWith        ("complete password=[redacted]"                 ) ;
 		expect(storedMessage                                   )    .toContain          ("…[output truncated]"                          ) ;
@@ -243,8 +255,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("separates public reasoning summaries from raw reasoning content", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -291,8 +303,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("resumes without native turns and reconciles the opaque thread against local activity", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId      : "sample-project",
 			cwd            : "/workspace/sample",
@@ -420,8 +432,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("projects command output deltas as ephemeral tool activity rather than assistant text", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -508,8 +520,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("bounds repeated live tool deltas to a recent tail with cumulative omission metadata", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -551,8 +563,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("journals MCP startup status as hidden progress instead of a Chat tool card", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -677,8 +689,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("selects Trace by exact activity across turns that reuse an item id", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const workbench = new ProjectWorkbench(native, journal, {
 			projectId: "sample-project",
 			cwd: "/workspace/sample",
@@ -744,8 +756,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("routes native approval and detached Note commands through their explicit ports", async () => {
-		const native = new FakeNativeHarness();
-		const journal = new MemoryJournal();
+		const native  = new FakeNativeHarness() ;
+		const journal = new MemoryJournal()     ;
 		const source: ProjectActivity = {
 			schemaVersion : 1,
 			id            : "source-1",
@@ -811,8 +823,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("reaches Todo mutations and preserves both CAS conflict documents in the immutable action result", async () => {
-		let snapshot = todoDocument();
-		const calls: string[] = [];
+		let snapshot          = todoDocument() ;
+		const calls: string[] = []             ;
 		const todos = {
 			get snapshot() { return snapshot; },
 			subscribe() { return () => undefined; },
@@ -848,16 +860,7 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 		await workbench.close();
 	});
 
-	test("promotes a full Note only after a one-time token and reviews only after exact digest approval", async () => {
-		let canonicalBody = "";
-		const promotions = new CanonicalPromotionService({
-			read: async () => ({ body: canonicalBody, digest: digestCanonicalDocument(canonicalBody) }),
-			writeAtomic: async (_target, expected, body) => {
-				if (expected !== digestCanonicalDocument(canonicalBody)) return { status: "conflict" as const, document: { body: canonicalBody, digest: digestCanonicalDocument(canonicalBody) } };
-				canonicalBody = body;
-				return { status: "written" as const, document: { body, digest: digestCanonicalDocument(body) } };
-			},
-		});
+	test("reviews a Note only after exact digest approval", async () => {
 		const reviewCalls: unknown[] = []                                                                                                                                                 ;
 		const adapter                = new ProviderReviewAdapter("anthropic", "claude-opus-5", "test", { generate: async request => { reviewCalls.push(request); return "검토 완료"; } }) ;
 		const reviews                = new ReviewService(new Map([["anthropic", adapter]]), sha256ReviewDigest)                                                                           ;
@@ -867,19 +870,10 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 			text: "전체 Note 본문", provenance: { provider: "openai-codex", model: "gpt-5.6-sol", version: "test" },
 		};
 		const workbench = new ProjectWorkbench(new FakeNativeHarness(), new MemoryJournal(), {
-			projectId: "sample-project", cwd: "/workspace/sample", promotions, reviews,
+			projectId: "sample-project", cwd: "/workspace/sample", reviews,
 			tnotes: { readAll: async () => [note], create: async () => note },
 		});
 		await ready(workbench);
-		const accepted = await workbench.dispatch({ type: "promotion.accept", noteId: "note-1", acceptedBy: "jongho" });
-		expect(accepted).toMatchObject({ state: "accepted" });
-		expect(canonicalBody).toBe("");
-		const token = workbench.snapshot.actionResult?.body.match(/확인 토큰: (\S+)/u)?.[1];
-		expect(token).toBeTruthy();
-		expect(await workbench.dispatch({ type: "promotion.confirm", token: token! })).toMatchObject({ state: "accepted" }) ;
-		expect(canonicalBody                                                         ).toContain    ("전체 Note 본문"     ) ;
-		expect(await workbench.dispatch({ type: "promotion.confirm", token: token! })).toMatchObject({ state: "rejected" }) ;
-
 		await workbench.dispatch({ type: "review.preview", provider: "anthropic", noteId: "note-1", request: "위험 검토", confirmedPublic: true });
 		const digest = workbench.snapshot.actionResult?.digest;
 		expect(digest).toMatch(/^[a-f0-9]{64}$/u);
@@ -988,8 +982,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("native command failure preserves the public plan and records recovery without accepting work", async () => {
-		const native = new FakeNativeHarness();
-		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample", cwd: "/sample" });
+		const native    = new FakeNativeHarness()                                                                    ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample", cwd: "/sample" }) ;
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "구현과 검증" });
 		const refs = { threadId: "thread-1", turnId: "turn-1" };
@@ -1021,8 +1015,8 @@ describe("ProjectWorkbench · recovery, approvals, and durable commands", () => 
 	});
 
 	test("Native replacement plans remain in Trace without replacing the seven Todo parents", async () => {
-		const native = new FakeNativeHarness();
-		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample", cwd: "/sample" });
+		const native    = new FakeNativeHarness()                                                                    ;
+		const workbench = new ProjectWorkbench(native, new MemoryJournal(), { projectId: "sample", cwd: "/sample" }) ;
 		await ready(workbench);
 		await workbench.dispatch({ type: "chat.send", text: "계획 변경" });
 		const refs = { threadId: "thread-1", turnId: "turn-1" };

@@ -1,13 +1,13 @@
-import { describe, expect, test }               from "bun:test";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import      { describe, expect, test               } from "bun:test"               ;
+import      { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui" ;
 
 const UP    = "\x1b[A" ;
 const DOWN  = "\x1b[B" ;
 const ENTER = "\r"     ;
 const ESC   = "\x1b"   ;
-import type { NativeApprovalRequest }     from "../src/core/domain/execution/native-session";
-import type { WorkbenchApprovalDecision } from "../src/core/domain/work/workbench";
-import { ApprovalOverlay }                from "../src/adapters/inbound/tui/features/approval/view/approval-overlay";
+import type { NativeApprovalRequest     } from "../src/core/domain/execution/native-session"                         ;
+import type { WorkbenchApprovalDecision } from "../src/core/domain/work/workbench"                                   ;
+import      { ApprovalOverlay           } from "../src/adapters/inbound/tui/features/approval/view/approval-overlay" ;
 
 function request(overrides: Partial<NativeApprovalRequest> = {}): NativeApprovalRequest {
 	return {
@@ -102,8 +102,8 @@ describe("ApprovalOverlay", () => {
 	});
 
 	test("keeps an advertised policy-amendment choice as a numbered option", () => {
-		const amendment = { acceptWithExecpolicyAmendment: { execpolicyAmendment: { command: ["bun", "test"] } } };
-		const view = overlay({ availableDecisions: ["accept", amendment, "decline"] });
+		const amendment = { acceptWithExecpolicyAmendment: { execpolicyAmendment: { command: ["bun", "test"] } } } ;
+		const view      = overlay({ availableDecisions: ["accept", amendment, "decline"] })                        ;
 		expect(view.lines().join("\n")).toContain("2. 향후 같은 명령도 허용");
 		view.panel.handleInput("2");
 		expect(view.decisions).toEqual([amendment]);
@@ -131,23 +131,20 @@ describe("ApprovalOverlay", () => {
 		}
 	});
 
-	test("renders Linear Issue·Project Activity, Obsidian, and GitHub PR Artifact candidates", () => {
+	test("renders GitHub PR Artifact candidates", () => {
 		const lines = overlay({ params: { externalMutationCandidates: [
-			{ kind : "linear-issue"           , target : "WOO-901"        , content : "본문"            , currentState : "snapshot"  , scope : "one issue"           , status : "pending" , payload : { candidateDigest: "a".repeat(64) } },
-			{ kind : "linear-project-comment" , target : "World Wide Woo" , content : "Comment 본문"    , currentState : "comment-1" , scope : "one project comment" , status : "pending" , payload : { candidateDigest: "d".repeat(64) } },
-			{ kind : "linear-project-update"  , target : "World Wide Woo" , content : "Update 본문"     , currentState : "update-1"  , scope : "one project update"  , status : "pending" , payload : { candidateDigest: "e".repeat(64) } },
-			{ kind : "obsidian-canonical"     , target : "RPA/설계.md"    , content : "canonical bytes" , currentState : "digest"    , scope : "one note"            , status : "pending" , payload : { candidateDigest: "b".repeat(64) } },
-			{ kind : "github-pr"              , target : "owner/repo#1"   , content : "PR body"         , currentState : "head sha"  , scope : "one PR"              , status : "pending" , payload : { candidateDigest: "c".repeat(64) } },
+			{ kind: "github-pr", target: "owner/repo#1", content: "PR body", currentState: "head sha", scope: "one PR", status: "pending", payload: { candidateDigest: "c".repeat(64) } },
 		] } }).lines().join("\n");
-		for (const label of ["Linear Issue · pending", "Linear Project Comment · pending", "Linear Project Update · pending", "Obsidian 정본 · pending", "GitHub PR · pending"]) expect(lines).toContain(label);
+		expect(lines).toContain("GitHub PR · pending");
+		expect(lines).toContain("owner/repo#1");
 	});
 
 	test("drops Artifact mutations that are not bound to an exact sha256 Candidate", () => {
 		const lines = overlay({ params: { externalMutationCandidates: [
-				{ kind: "linear-issue", target: "WOO-901", content: "본문", currentState: "snapshot", scope: "one issue", status: "pending", payload: {} },
+				{ kind: "github-pr", target: "owner/repo#2", content: "본문", currentState: "snapshot", scope: "one issue", status: "pending", payload: {} },
 				{ kind: "github-pr", target: "owner/repo#1", content: "본문", currentState: "head", scope: "one PR", status: "pending", payload: { candidateDigest: "stale" } },
 		] } }).lines().join("\n");
-		expect(lines).not.toContain("WOO-901");
+		expect(lines).not.toContain("owner/repo#2");
 		expect(lines).not.toContain("owner/repo#1");
 	});
 });

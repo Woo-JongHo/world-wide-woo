@@ -1,29 +1,28 @@
-import { retryAssistantCall }                             from "@earendil-works/pi-ai";
-import type { AssistantMessage, Context, ToolCall }       from "@earendil-works/pi-ai";
-import type { WwwSettings }                               from "@/core/domain/execution/model-settings";
-import type { WorkbenchConfig }                           from "@/core/domain/execution/workbench-config.js";
-import type { WorkNarration }                             from "@/core/domain/work/narration";
-import type { PlanningSnapshot }                          from "@/core/domain/work/planning";
-import type { SessionEvent }                              from "@/core/domain/execution/session-events";
-import type { CommandResultSnapshot, ToolResultSnapshot } from "@/core/domain/execution/output";
-import { sanitizeTerminalText }                           from "@/core/domain/execution/terminal";
-import type { AgentTool }                                 from "@/core/ports/execution/agent-tool-port";
-import type { TerminalCommandExecutor }                   from "@/core/ports/execution/terminal-command-port";
-import type { TodoController }                            from "@/core/ports/execution/todo-controller-port";
-import type { ModelAuthStatus, ModelClient }              from "@/core/ports/integration/model-client-port";
-import type { SessionRepository }                         from "@/core/ports/persistence/session-repository";
+import      { retryAssistantCall                        } from "@earendil-works/pi-ai"                            ;
+import type { AssistantMessage, Context, ToolCall       } from "@earendil-works/pi-ai"                            ;
+import type { WwwSettings                               } from "@/core/domain/execution/model-settings"           ;
+import type { WorkbenchConfig                           } from "@/core/domain/execution/workbench-config.js"      ;
+import type { WorkNarration                             } from "@/core/domain/work/narration"                     ;
+import type { SessionEvent                              } from "@/core/domain/execution/session-events"           ;
+import type { CommandResultSnapshot, ToolResultSnapshot } from "@/core/domain/execution/output"                   ;
+import      { sanitizeTerminalText                      } from "@/core/domain/execution/terminal"                 ;
+import type { AgentTool                                 } from "@/core/ports/execution/agent-tool-port"           ;
+import type { TerminalCommandExecutor                   } from "@/core/ports/execution/terminal-command-port"     ;
+import type { TodoController                            } from "@/core/ports/execution/todo-controller-port"      ;
+import type { ModelAuthStatus, ModelClient              } from "@/core/ports/integration/model-client-port"       ;
+import type { SessionRepository                         } from "@/core/ports/persistence/session-repository"      ;
 import type {
-	ConversationTurn,
-	SessionActivity,
-	SessionListener,
-	SessionPhase,
-	SessionSnapshot,
-	WorkspaceContext,
-} from "@/core/application/session/session-contracts";
-import { assistantMessageText, sessionErrorMessage }      from "@/core/application/session/session-event-codec";
-import { replaySessionEvents }                            from "@/core/application/session/session-event-replay";
-import { buildSessionSystemPrompt }                       from "@/core/application/session/session-system-prompt";
-import { SessionToolExecutor }                            from "@/core/application/session/session-tool-executor";
+              ConversationTurn                        ,
+              SessionActivity                         ,
+              SessionListener                         ,
+              SessionPhase                            ,
+              SessionSnapshot                         ,
+              WorkspaceContext                        ,
+                                                        } from "@/core/application/session/session-contracts"     ;
+import      { assistantMessageText, sessionErrorMessage } from "@/core/application/session/session-event-codec"   ;
+import      { replaySessionEvents                       } from "@/core/application/session/session-event-replay"  ;
+import      { buildSessionSystemPrompt                  } from "@/core/application/session/session-system-prompt" ;
+import      { SessionToolExecutor                       } from "@/core/application/session/session-tool-executor" ;
 
 export type {
 	ConversationTurn,
@@ -53,6 +52,7 @@ export class SessionRuntime {
 	private auth                    : ModelAuthStatus | null = null                       ;
 	private abortController         : AbortController | null = null                       ;
 	private activeTask              : Promise<void> | null   = null                       ;
+	private settingsUpdateInFlight                           = false                      ;
 	private closed                                           = false                      ;
 
 	constructor(
@@ -63,14 +63,13 @@ export class SessionRuntime {
 		readonly id: string = crypto.randomUUID(),
 		private readonly tools: readonly AgentTool[] = [],
 		private readonly todos?: TodoController,
-		private planning: PlanningSnapshot | null = null,
 		private readonly terminal?: TerminalCommandExecutor,
 		private readonly retryPolicy: WorkbenchConfig["retry"] = { enabled: true, maxRetries: 2, baseDelayMs: 500 },
 		private readonly maxAgentRounds: number = DEFAULT_MAX_AGENT_ROUNDS,
 	) {
 		this.selection = { ...settings };
 		this.context = {
-			systemPrompt : buildSessionSystemPrompt(workspace, settings, tools.map(tool => tool.definition.name), planning),
+			systemPrompt : buildSessionSystemPrompt(workspace, settings, tools.map(tool => tool.definition.name)),
 			messages     : [],
 			tools        : tools.map(tool => tool.definition),
 		};
@@ -98,16 +97,6 @@ export class SessionRuntime {
 
 	get settings(): WwwSettings {
 		return { ...this.selection };
-	}
-
-	updatePlanning(snapshot: PlanningSnapshot): void {
-		this.planning = snapshot;
-		this.context.systemPrompt = buildSessionSystemPrompt(
-			this.workspace,
-			this.selection,
-			this.tools.map(tool => tool.definition.name),
-			this.planning,
-		);
 	}
 
 	get snapshot(): SessionSnapshot {
@@ -170,25 +159,30 @@ export class SessionRuntime {
 
 	async updateSettings(settings: WwwSettings): Promise<void> {
 		if (this.closed) throw new Error("종료된 세션의 모델 설정은 변경할 수 없습니다.");
-		const nextSelection = { ...settings };
-		const nextAuth = await this.router.checkAuth(nextSelection);
-		await this.store.append(this.id, {
+		if (this.activeTask || this.settingsUpdateInFlight) throw new Error("작업 처리 중에는 모델 설정을 변경할 수 없습니다.");
+		this.settingsUpdateInFlight = true;
+		try {
+			const nextSelection = { ...settings }                            ;
+			const nextAuth      = await this.router.checkAuth(nextSelection) ;
+			await this.store.append(this.id, {
 			category : "decision",
 			type     : "model.changed",
 			status   : nextAuth.configured ? "passed" : "blocked",
 			title    : "모델 설정 변경",
 			body     : `${settings.provider}/${settings.model}`,
 			metadata : { settings, auth: nextAuth },
-		});
-		this.selection = nextSelection;
-		this.auth = nextAuth;
-		this.context.systemPrompt = buildSessionSystemPrompt(
-			this.workspace,
-			nextSelection,
-			this.tools.map(tool => tool.definition.name),
-			this.planning,
-		);
-		this.emit();
+			});
+			this.selection = nextSelection;
+			this.auth = nextAuth;
+			this.context.systemPrompt = buildSessionSystemPrompt(
+				this.workspace,
+				nextSelection,
+				this.tools.map(tool => tool.definition.name),
+			);
+			this.emit();
+		} finally {
+			this.settingsUpdateInFlight = false;
+		}
 	}
 
 	async refreshAuth(): Promise<ModelAuthStatus> {
@@ -201,6 +195,7 @@ export class SessionRuntime {
 		const prompt = text.trim();
 		if (!prompt) return Promise.resolve();
 		if (this.closed) return Promise.reject(new Error("종료된 세션에는 메시지를 보낼 수 없습니다."));
+		if (this.settingsUpdateInFlight) return Promise.reject(new Error("모델 설정 변경 중에는 메시지를 보낼 수 없습니다."));
 		if (this.activeTask) return Promise.reject(new Error("이미 모델 응답을 처리하고 있습니다."));
 		if (!this.auth?.configured) {
 			return Promise.reject(new Error(
@@ -331,8 +326,8 @@ export class SessionRuntime {
 					timedOut   : false,
 				};
 			}
-			const cancelled = result.cancelled || this.abortController.signal.aborted;
-			const passed = !cancelled && !result.timedOut && result.exitCode === 0;
+			const cancelled = result.cancelled || this.abortController.signal.aborted ;
+			const passed    = !cancelled && !result.timedOut && result.exitCode === 0 ;
 			const stderr = result.timedOut
 				? `${result.stderr}${result.stderr ? "\n" : ""}명령 실행 시간이 초과되었습니다.`
 				: result.stderr;

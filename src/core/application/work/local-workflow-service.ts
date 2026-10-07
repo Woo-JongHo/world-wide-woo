@@ -1,7 +1,7 @@
-import { planRpaScenario }                                                 from "@/core/agents/rpa-agent.js";
-import type { SkillRegistryPort }                                          from "@/core/skills/skill-registry.js";
-import { beginSkillStep, finishSkillStep, skillRunMonitor, startSkillRun } from "@/core/workflows/skill-run.js";
-import type { SkillRunReceipt, SkillRunState, SkillVerification }          from "@/core/workflows/skill-run.js";
+import      { planRpaScenario                                                 } from "@/core/agents/rpa-agent.js"      ;
+import type { SkillRegistryPort                                               } from "@/core/skills/skill-registry.js" ;
+import      { beginSkillStep, finishSkillStep, skillRunMonitor, startSkillRun } from "@/core/workflows/skill-run.js"   ;
+import type { SkillRunReceipt, SkillRunState, SkillVerification               } from "@/core/workflows/skill-run.js"   ;
 
 export interface LocalWorkflowCheck {
  readonly status        : "passed" | "failed" | "uncertain" ;
@@ -21,16 +21,16 @@ export interface LocalWorkflowResult {
  readonly receipts : readonly SkillRunReceipt[] ;
  readonly summary  : string                     ;
 }
-/** 로컬 참조 검사만 실행한다. 원격 네 표면의 RPA 정합 수락과 구분한다. */
+/** 로컬 코드 선언과 manifest를 검사하고 입력 digest에 결박된 검증 기록을 보존한다. */
 export class LocalWorkflowService {
  constructor(private readonly registry: SkillRegistryPort, private readonly store: LocalWorkflowStore,
   private readonly verify: (expected?: {subjectDigest: string}) => Promise<LocalWorkflowCheck>) {}
  async run(processId: string): Promise<LocalWorkflowResult> {
-  const registry = await this.registry.load();
-  const scenario = planRpaScenario({intent: "reconcile", registry, processId});
+  const registry = await this.registry.load()                                  ;
+  const scenario = planRpaScenario({intent: "reconcile", registry, processId}) ;
   // 검사 시작의 입력을 고정한다. 이후 재개는 동일 입력만 재검사한다.
-  const input = await this.verify();
-  const initial = {...startSkillRun(scenario, undefined, "local-preflight"), subjectDigest: input.subjectDigest};
+  const input   = await this.verify()                                                                            ;
+  const initial = {...startSkillRun(scenario, undefined, "local-preflight"), subjectDigest: input.subjectDigest} ;
   await this.store.write(initial);
   return this.resume(initial.runId);
  }
@@ -74,12 +74,12 @@ export class LocalWorkflowService {
   )))) throw new Error("완료 기록의 로컬 검증 Receipt가 없습니다.");
   const monitor                         = skillRunMonitor(state)                                                                                                                                                          ;
   const labels : Record<string, string> = {ready: "준비", running: "검사 중", failed: "실패", blocked: "차단", uncertain: "결과 불확실", canceled: "취소", authorize: "승인 대기", execute: "실행 중", verify: "검증 중"} ;
-  const status                          = state.stage === "completed" ? "저장 당시 로컬 참조 검사 통과 (현재 입력 재검증 아님)" : `로컬 참조 검사: ${labels[state.stage] ?? state.stage}`                                 ;
+  const status                          = state.stage === "completed" ? "저장 당시 로컬 코드 검사 통과 (현재 입력 재검증 아님)" : `로컬 코드 검사: ${labels[state.stage] ?? state.stage}`                                 ;
   const next = state.stage === "ready" || state.stage === "running" ? `다음 행동: /workflow resume ${runId}`
-   : state.stage === "completed" ? "다음 행동: 전체 정합 수락 전에 원격 표면을 별도로 확인하세요."
-   : "다음 행동: 원본·연결을 확인하고 새 로컬 검사를 실행하세요.";
+   : state.stage === "completed" ? "다음 행동: 코드나 manifest가 변경되면 새 로컬 검사를 실행하세요."
+   : "다음 행동: 코드와 manifest를 확인하고 새 로컬 검사를 실행하세요.";
   return {state, receipts, summary: [status, `Run: ${runId}`, `업무: ${monitor.processId}`, `단계: ${monitor.completed}/${monitor.total}`,
-   "범위: 로컬 코드·참조 사전 검사. Linear·Obsidian 원격 정합은 미검증.",
+   "범위: 로컬 코드 선언·manifest 사전 검사.",
    ...receipts.flatMap(receipt => receipt.evidence), next].join("\n")};
  }
 }

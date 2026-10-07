@@ -3,8 +3,8 @@ orchestration:
   maxAgentRounds: 24
 execution:
   provider: openai-codex
-  model: gpt-6-sol
-  effort: low
+  model: gpt-6.1-sol
+  effort: medium
   approvalPolicy: on-request
   sandbox: workspace-write
 tnote:
@@ -28,10 +28,6 @@ display:
   tnoteVisibleLimit: 20
   tnoteSummaryMaxChars: 2048
   tnoteSummaryMaxLines: 24
-linear:
-  server: linear-woo
-  projectId: 5639ee1c-a6cd-44cf-9ed6-82ee9c5fc3db
-  projectName: World Wide Woo
 hud:
   showUsage: true
   showContext: true
